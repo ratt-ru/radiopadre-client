@@ -4,8 +4,6 @@ import socket
 import subprocess
 import sys
 
-from .config import REMOTE_HOST
-
 def message(x, prefix='radiopadre_client: ', file=None, raw=False):
     """Prints message, interpolating globals with .format()"""
     if not raw:

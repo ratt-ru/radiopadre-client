@@ -1,15 +1,14 @@
 import os, sys, subprocess, tempfile, re, time
 
-
 from . import config
 
 from .utils import DEVNULL, message, bye, find_unused_port, Poller
-from .config import AUTOINSTALL_VERSION, AUTOINSTALL_PATH, AUTOINSTALL_REPO, AUTOINSTALL_BRANCH, AUTOINSTALL_CLIENT_VENV, REMOTE_PATH, REMOTE_HOST
+from .config import AUTOINSTALL_VERSION, AUTOINSTALL_PATH, AUTOINSTALL_REPO, AUTOINSTALL_BRANCH, AUTOINSTALL_CLIENT_VENV, REMOTE_CLIENT_PATH, REMOTE_HOST
 from .notebooks import default_notebook_code
 
 
 # Find remote radiopadre script
-def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments, options):
+def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):
 
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
@@ -18,7 +17,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [host]
 
     # master ssh connection, to be closed when we exit
-    if options.verbose:
+    if config.VERBOSE:
         message("Opening initial master connection to {} {}. You may be prompted for your password.".format(REMOTE_HOST,
                                                                                                             " ".join(
                                                                                                                 SSH_OPTS)))
@@ -90,27 +89,45 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # Check for various remote bits
 
-    if options.verbose:
+    if config.VERBOSE:
         message(f"Checking installation on {REMOTE_HOST}.")
-    has_venv = check_remote_command("virtualenv") and check_remote_command("pip")
+
     has_git = check_remote_command("git")
-    has_singularity = check_remote_command("singularity")
-    has_docker = check_remote_command("docker")
+
+    USE_VENV = USE_DOCKER = USE_SINGULARITY = False
+
+    for backend in config.BACKEND:
+        if backend == "venv" and check_remote_command("virtualenv") and check_remote_command("pip"):
+            USE_VENV = True
+            break
+        elif backend == "docker":
+            has_docker = check_remote_command("docker")
+            if has_docker:
+                USE_DOCKER = True
+                break
+        elif backend == "singularity":
+            has_singularity = check_remote_command("singularity")
+            if has_singularity:
+                USE_SINGULARITY = True
+                break
+        message(f"The '{backend}' back-end is not available on {REMOTE_HOST}, skipping.")
+    else:
+        bye(f"None of the specified back-ends are available on {REMOTE_HOST}.")
 
     ## Look for remote launch script
 
-    padre_exec0 = f"{REMOTE_PATH}/bin/run-radiopadre" if REMOTE_PATH else "run-radiopadre" # path to remote padre executable
+    padre_exec0 = f"{REMOTE_CLIENT_PATH}/bin/run-radiopadre" if REMOTE_CLIENT_PATH else "run-radiopadre" # path to remote padre executable
     padre_exec = None
 
     # look for remote radiopadre installation in container-dev mode
 
-    if options.container_dev:
+    if config.CONTAINER_DEV:
         if not check_remote_file("~/radiopadre", "-d"):
             message("no remote installation detected in ~/radiopadre: can't run --container-dev mode")
             sys.exit(1)
 
     # does the remote have a server virtual environment configured? Client better go through the same
-    if options.virtual_env:
+    if USE_VENV:
         ## Check for remote virtualenv
 
         SERVER_VENV = remote_client_venv = "~/.radiopadre/venv"
@@ -141,10 +158,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             message(f"No client virtualenv {REMOTE_HOST}:{AUTOINSTALL_CLIENT_VENV}, run script is {padre_exec}")
 
     if padre_exec:
-        message(f"using remote script {padre_exec}")
+        message(f"Using remote client script {padre_exec}")
     else:
         message(f"No {padre_exec0} script found on {REMOTE_HOST}")
-        if not options.auto_init:
+        if not config.AUTO_INIT:
             bye(f"no radiopadre-client installation detected on {REMOTE_HOST}. Try --auto-init?")
 
         message("Trying to --auto-init an installation for you")
@@ -162,7 +179,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             ssh_remote_v(f"source {remote_client_venv}/bin/activate && pip install -e {install_path}")
 
         elif config.AUTOINSTALL_REPO:
-            install_path = REMOTE_PATH or "~/radiopadre-client"
+            install_path = REMOTE_CLIENT_PATH or "~/radiopadre-client"
             message("I could try to install {}:{} from {}".format(REMOTE_HOST, install_path, config.AUTOINSTALL_REPO))
 
             if not remote_client_venv:
@@ -203,8 +220,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("Success!")
 
     # do we need an update of the client install?
-    if options.update and config.AUTOINSTALL_REPO:
-        install_path = REMOTE_PATH or "~/radiopadre-client"
+    if config.UPDATE and config.AUTOINSTALL_REPO:
+        install_path = REMOTE_CLIENT_PATH or "~/radiopadre-client"
         if check_remote_file(f"{install_path}/.git", "-d"):
             message(f"--update specified, will attempt a git pull in {REMOTE_HOST}:{install_path}")
             if has_git:
@@ -226,40 +243,31 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             notebook_path = nbpath
 
     # run remote in container mode
-    if not options.virtual_env:
-        if options.singularity and not has_singularity:
-            help_yourself("{} doesn't appear to have Singularity installed.".format(REMOTE_HOST),
-                          "Ask the admin to install Docker on {}".format(REMOTE_HOST))
-        if options.docker:
-            has_singularity = False
-            if not has_docker:
-                help_yourself("{} doesn't appear to have Docker installed.".format(REMOTE_HOST),
-                              "Ask the admin to install Docker on {} and to add you to the docker group.".format(
-                                  REMOTE_HOST))
-
-        if has_singularity:
+    if USE_SINGULARITY or USE_DOCKER:
+        assert (padre_exec is not None)
+        if USE_SINGULARITY:
             padre_exec += " --singularity"
-            message(f"Using remote {has_singularity} to run in container mode")
-        elif has_docker:
+            message(f"Using remote Singularity back-end ({has_singularity}) to run in container mode")
+        elif USE_DOCKER:
             padre_exec += " --docker"
-            message(f"Using remote {has_docker} to run in container mode")
-        else:
-            help_yourself("{} doesn't appear to have Singularity or Docker installed.".format(REMOTE_HOST),
-                          "Ask the admin to install either on {}. Otherwise, use --virtual-env mode?".format(REMOTE_HOST))
+            message(f"Using remote Docker back-end ({has_docker}) to run in container mode")
 
-        if options.container_dev:
-            assert (padre_exec is not None)
+        if config.CONTAINER_DEV:
             padre_exec += " --container-dev"
-            message(f"Running remote in container-dev mode with image {options.docker_image}")
+            message(f"  using container-dev mode with docker image {config.DOCKER_IMAGE}")
         else:
-            message(f"Running remote in container mode with image {options.docker_image}")
+            message(f"  using docker image {config.DOCKER_IMAGE}")
 
-        if options.update:
-            padre_exec += " --update --docker-image " + options.docker_image
+        if config.UPDATE:
+            padre_exec += " --update"
+            message(f"  docker image will be updated if needed")
+        padre_exec += f" --docker-image {config.DOCKER_IMAGE}"
 
     # else run remote in virtual-env mode (deprecated)
-    else:
+    elif USE_VENV:
         padre_exec += " --virtual-env"
+    else:
+        raise RuntimeError("unknown backend specified")
 
 
     # allocate 5 suggested ports (in resume mode, this will be overridden by the session settings)
@@ -269,16 +277,16 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         starting_port = find_unused_port(starting_port + 1, 10000)
         ports.append(starting_port)
 
-    if options.auto_init:
+    if config.AUTO_INIT:
         padre_exec += " --auto-init"
-    if options.venv_reinstall:
+    if config.VENV_REINSTALL:
         padre_exec += " --venv-reinstall"
-    if options.venv_no_casacore:
+    if config.VENV_NO_CASACORE:
         padre_exec += " --venv-no-casacore"
-    if options.venv_no_js9:
+    if config.VENV_NO_JS9:
         padre_exec += " --venv-no-js9"
-    if options.verbose:
-        padre_exec += " --verbose"
+    if config.VERBOSE:
+        padre_exec += f" --verbose {config.VERBOSE}"
 
     padre_exec += "  --remote {} {} {}".format(":".join(map(str, ports)),
                                                command if command is not "load" else notebook_path,
@@ -292,7 +300,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     poller = Poller()
     poller.register_process(ssh, REMOTE_HOST, REMOTE_HOST + " stderr")
-    if not options.virtual_env:
+    if not USE_VENV:
         poller.register_file(sys.stdin, "stdin")
 
     container_name = None
@@ -325,7 +333,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     print_output = not line.startswith("Shared connection to")
                 else:
                     print_output = not line.startswith("radiopadre:") or command != 'load'
-                if options.verbose or print_output:
+                if config.VERBOSE or print_output:
                     print("\r{}: {}\r".format(fname, line))
                 if not line:
                     continue
@@ -344,13 +352,13 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         remote_jupyter_port, remote_js9helper_port, remote_http_port, remote_carta_port, \
                         remote_carta_ws_port = remote_ports = ports[:5]
                         local_ports = ports[5:]
-                        if options.verbose:
+                        if config.VERBOSE:
                             message("Detected ports {}:{}:{}:{}:{} -> {}:{}:{}:{}:{}".format(*ports))
                         ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", REMOTE_HOST]
                         for loc, rem in zip(local_ports, remote_ports):
                             ssh2_args += ["-L", "localhost:{}:localhost:{}".format(loc, rem)]
                         # tell mux process to forward the ports
-                        if options.verbose:
+                        if config.VERBOSE:
                             message("sending forward request to ssh mux process".format(ssh2_args))
                         subprocess.call(ssh2_args)
                         continue
@@ -372,23 +380,23 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         time.sleep(1)
                         for url in urls:
                             # open browser if needed
-                            if not options.no_browser:
-                                message("running {} {}\r".format(options.browser_command, url))
+                            if config.BROWSER:
+                                message(f"running {config.BROWSER} {url}\r")
                                 message(
                                     "  if this fails, specify a correct browser invocation command with --browser-command and rerun,")
                                 message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
                                 try:
-                                    subprocess.call([options.browser_command, url], stdout=DEVNULL)
+                                    subprocess.call([config.BROWSER, url], stdout=DEVNULL)
                                 except OSError as exc:
                                     if exc.errno == 2:
-                                        message("{} not found".format(options.browser_command))
+                                        message(f"{config.BROWSER} not found")
                                     else:
                                         raise
                             else:
-                                message("-n/--no-browser given, not opening a browser for you\r")
+                                message("-n/--no-browser given, or browser not set, not opening a browser for you\r")
                                 message("Please browse to: {}\n".format(url))
                         message("The remote radiopadre session is now fully up")
-                        if options.virtual_env:
+                        if USE_VENV:
                             message("Press Ctrl+C to kill the remote session")
                         else:
                             message("Press Q<Enter> to detach from remote session, or Ctrl+C to kill it")
@@ -401,7 +409,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("Ctrl+C caught")
         status = 1
 
-    if status and not options.virtual_env and container_name:
+    if status and not USE_VENV and container_name:
         message(f"killing remote container {container_name}")
         try:
             ssh_remote("docker kill {}".format(container_name))
