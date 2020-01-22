@@ -145,8 +145,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 runscript = f"source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}"
                 message(f"Using remote client script within {config.RADIOPADRE_VENV}")
             else:
-                bye(f"Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation.",
-                    f"Suggest reinstalling radiopadre on {config.REMOTE_HOST} manually.")
+                message(f"Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation.")
         else:
             message(f"No remote venv found at {config.RADIOPADRE_VENV}")
 

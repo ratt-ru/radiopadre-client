@@ -29,7 +29,7 @@ def update_installation():
 
     # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-        if sys.prefix == config.RADIOconfig.RADIOPADRE_VENV:
+        if sys.prefix == config.RADIOPADRE_VENV:
             message("Already running inside radiopadre virtual environment")
         else:
             bye("Can't run this script inside a non-radiopadre virtualenv. Please deactivate and rerun.")
