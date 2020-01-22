@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from __future__ import print_function
-import sys, os.path, os, argparse
+import sys, os.path, os, argparse, glob
 
 # ### some globals
 
@@ -41,7 +41,7 @@ parser.add_argument("arguments", nargs="*",
         kills a specific radiopadre_client session, or all sessions on remote host;
                        """)
 
-parser.add_argument("-b", "--browser", type=str, metavar="CMD", default=config.BROWSER,
+parser.add_argument("-b", "--browser", type=str, metavar="CMD[:OPT[:OPT...]]", default=config.BROWSER,
                     help="browser command to run. Default is %(default)s (can also set RADIOPADRE_BROWSER).")
 parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
@@ -167,7 +167,7 @@ elif command == 'kill':
         parser.error("kill: specify at least one arguments")
 else:
     notebook_path = command
-    if not remote_host and not os.path.exists(notebook_path):
+    if not remote_host and not glob.glob(notebook_path):
         parser.error("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
     command = 'load'
     # in remote mode, allow an optional argument
@@ -195,9 +195,14 @@ if remains:
 if options.remote:
     config.BACKEND = config.BACKEND[:1]
 
-# get radiopadre install directory. __file__ is RADIOPADRE-CLIENT/bin/run-radiopadre, so take the dirname twice
-config.CLIENT_INSTALL_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH)
+# work out browser
+browser_opts = config.BROWSER.split(":")
+if browser_opts[1:]:
+    config.BROWSER = browser_opts[0]
+    config.BROWSER_BG = "bg" in browser_opts[1:]
+    config.BROWSER_MULTI = "*" in browser_opts[1:]
+if config.BROWSER == "None":
+    config.BROWSER = None
 
 
 ### REMOTE MODE #################################################################################################
@@ -209,7 +214,12 @@ if remote_host:
     sys.exit(retcode)
 
 
-### LOCAL SERVER MODE #############################################################################################
+### LOCAL SERVER MODE ###########################################################################################
+
+# expand "~" in various config settings
+config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
+config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH)
+config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH)
 
 import radiopadre_client.server
 

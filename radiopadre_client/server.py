@@ -4,12 +4,11 @@ import os, os.path, sys, subprocess, re, time, glob, uuid, shutil, fnmatch
 from . import config
 
 from .utils import DEVNULL, message, bye, find_unused_port, find_which, make_dir, make_link
-from .config import USER
 from .notebooks import default_notebook_code
 
 backend = None
 
-PADRE_WORKDIR = PADRE_VENV = ABSROOTDIR = ROOTDIR = SHADOWDIR = None
+PADRE_WORKDIR = ABSROOTDIR = ROOTDIR = SHADOWDIR = None
 
 LOCAL_SESSION_DIR = SHADOW_SESSION_DIR = None
 
@@ -118,7 +117,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # NORMAL MODE: find unused internal ports. Userside ports are passed from remote if in remote mode, or same in local mode
     else:
         if not USE_VENV:
-            container_name = "radiopadre-{}-{}".format(USER, uuid.uuid4().hex)
+            container_name = "radiopadre-{}-{}".format(config.USER, uuid.uuid4().hex)
             message(f"  Starting new session in container {container_name}")
         else:
             container_name = None
@@ -202,8 +201,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # if explicit notebook directory is given, change into it before doing anything else
     if notebook_path:
-        if not os.path.exists(notebook_path):
-            bye("{} doesn't exist".format(notebook_path))
         if os.path.isdir(notebook_path):
             os.chdir(notebook_path)
             notebook_path = '.'
@@ -212,6 +209,8 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         else:
             nbdir = os.path.dirname(notebook_path)
             if nbdir:
+                if not os.path.isdir(nbdir):
+                    bye("{} doesn't exist".format(nbdir))
                 os.chdir(nbdir)
             notebook_path = os.path.basename(notebook_path)
             LOAD_DIR = False
@@ -220,15 +219,14 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
 
-    global PADRE_WORKDIR, PADRE_VENV, ABSROOTDIR, ROOTDIR, SHADOWDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+    global PADRE_WORKDIR, ABSROOTDIR, ROOTDIR, SHADOWDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 
     # cache and shadow dir base
     PADRE_WORKDIR = workdir or os.path.expanduser("~/.radiopadre")
     os.environ['RADIOPADRE_SHADOW_HOME'] = PADRE_WORKDIR
 
     # virtual environment
-    PADRE_VENV = "/.radiopadre/venv" if config.INSIDE_CONTAINER_PORTS else PADRE_WORKDIR + "/venv"
-    os.environ["RADIOPADRE_VENV"] = PADRE_VENV
+    os.environ["RADIOPADRE_VENV"] = config.RADIOPADRE_VENV
 
     # target directory
     ABSROOTDIR = ROOTDIR = os.path.abspath(os.getcwd())              # e.g. /home/other/path
@@ -308,40 +306,38 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     message("  Available notebooks: " + " ".join(ALL_NOTEBOOKS))
 
-    if LOAD_NOTEBOOK is None and not config.INSIDE_CONTAINER_PORTS:
+    if not config.INSIDE_CONTAINER_PORTS:
 
-        DEFAULT_NAME = config.DEFAULT_NOTEBOOK
-
+        # if no notebooks in place, see if we need to create a default
         if not ALL_NOTEBOOKS:
-            if DEFAULT_NAME:
-                message("  No notebooks: will create {DEFAULT_NAME}")
+            if config.DEFAULT_NOTEBOOK:
+                message(f"  No notebooks yet: will create {config.DEFAULT_NOTEBOOK}")
                 LOAD_DIR = True
-                open(DEFAULT_NAME, 'w').write(default_notebook_code)
+                open(config.DEFAULT_NOTEBOOK, 'wt').write(default_notebook_code)
+                ALL_NOTEBOOKS = [config.DEFAULT_NOTEBOOK]
             else:
                 message("  No notebooks and no default. Displaying directory only.")
                 LOAD_DIR = True
                 LOAD_NOTEBOOK = None
-        else:
+
+        # expand globs and apply auto-load as needed
+        if LOAD_NOTEBOOK:
+            LOAD_NOTEBOOK = [nb for nb in ALL_NOTEBOOKS if fnmatch.fnmatch(os.path.basename(nb), LOAD_NOTEBOOK)]
+        elif config.AUTO_LOAD == "1":
+            LOAD_NOTEBOOK = ALL_NOTEBOOKS[0] if ALL_NOTEBOOKS else None
+            message(f"  Auto-loading {LOAD_NOTEBOOK[0]}.")
+        elif config.AUTO_LOAD:
+            LOAD_NOTEBOOK = [nb for nb in ALL_NOTEBOOKS if fnmatch.fnmatch(os.path.basename(nb), config.AUTO_LOAD)]
             if LOAD_NOTEBOOK:
-                if LOAD_NOTEBOOK in ALL_NOTEBOOKS:
-                    message(f"  Will load {LOAD_NOTEBOOK} as requested.")
-                else:
-                    message(f"  {LOAD_NOTEBOOK} not found. Displaying directory only.")
-                    LOAD_DIR = True
-                    LOAD_NOTEBOOK = None
-            elif config.AUTO_LOAD:
-                if config.AUTO_LOAD == "1":
-                    LOAD_NOTEBOOK = ALL_NOTEBOOKS[0]
-                else:
-                    load = [nb for nb in ALL_NOTEBOOKS if fnmatch.fnmatch(os.path.basename(nb), config.AUTO_LOAD)]
-                    LOAD_NOTEBOOK = load and load[0]
-                message(f"  Auto-loading {LOAD_NOTEBOOK}.")
+                message("  Auto-loading {}".format(" ".join(LOAD_NOTEBOOK)))
+            else:
+                message(f"  No notebooks matching --auto-load {config.AUTO_LOAD}")
 
     urls = []
-    if LOAD_NOTEBOOK:
-        urls.append("http://localhost:{}/notebooks/{}?token={}".format(userside_jupyter_port, LOAD_NOTEBOOK, session_id))
     if LOAD_DIR:
-        urls.append("http://localhost:{}/?token={}".format(userside_jupyter_port, session_id))
+        urls.append(f"http://localhost:{userside_jupyter_port}/?token={session_id}")
+    if LOAD_NOTEBOOK:
+        urls += [f"http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={session_id}" for nb in LOAD_NOTEBOOK]
 
     # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
     if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:

@@ -4,6 +4,10 @@ import socket
 import subprocess
 import sys
 
+
+DEVZERO = open("/dev/zero")
+DEVNULL = open("/dev/null", "w")
+
 def message(x, prefix='radiopadre_client: ', file=None, raw=False):
     """Prints message, interpolating globals with .format()"""
     if not raw:
@@ -93,5 +97,40 @@ class Poller(object):
         return fobj.fileno() in self.fdlabels
 
 
-DEVZERO = open("/dev/zero")
-DEVNULL = open("/dev/null", "w")
+def run_browser(*urls):
+    """
+    Runs a browser pointed to URL(s), in background if config.BROWSER_BG is True.
+
+    If config.BROWSER_MULTI is set, runs a browser per URL, else feeds all URLs to one browser invocation
+
+    Returns list of processes (in BROWSER_BG mode).
+    """
+    from . import config
+    procs = []
+    # open browser if needed
+    if config.BROWSER:
+        message("running {} {}\r".format(config.BROWSER, " ".join(urls)))
+        message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
+        message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
+        if config.BROWSER_MULTI:
+            commands = [[config.BROWSER]+list(urls)]
+        else:
+            commands = [[config.BROWSER, url] for url in urls]
+
+        for command in commands:
+            try:
+                if config.BROWSER_BG:
+                    procs.append(subprocess.Popen(command, stdin=DEVZERO, stdout=sys.stdout, stderr=sys.stderr))
+                else:
+                    subprocess.call(command, stdout=DEVNULL)
+            except OSError as exc:
+                if exc.errno == 2:
+                    message(f"{config.BROWSER} not found")
+                else:
+                    raise
+
+    else:
+        message("--no-browser given, or browser not set, not opening a browser for you\r")
+        message("Please browse to: {}\n".format(" ".join(urls)))
+
+    return procs

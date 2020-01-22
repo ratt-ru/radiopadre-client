@@ -1,5 +1,5 @@
 import sys, os, os.path, subprocess, time
-from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DEVZERO
+from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DEVZERO, run_browser
 
 from radiopadre_client import config
 
@@ -24,21 +24,18 @@ def kill_sessions(session_dict, session_ids):
 
 
 def update_installation():
-    from radiopadre_client.server import PADRE_VENV, PADRE_WORKDIR, ABSROOTDIR, LOCAL_SESSION_DIR, SHADOWDIR
-    from radiopadre_client.server import LOAD_NOTEBOOK, ROOTDIR
-
-    activation_script = os.path.expanduser(os.path.join(config.SERVER_VENV, "bin/activate_this.py"))
-    complete_cookie   = os.path.expanduser(os.path.join(config.SERVER_VENV, ".complete"))
+    activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
+    complete_cookie   = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, ".complete"))
 
     # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-        if sys.prefix == config.SERVER_VENV:
+        if sys.prefix == config.RADIOconfig.RADIOPADRE_VENV:
             message("Already running inside radiopadre virtual environment")
         else:
             bye("Can't run this script inside a non-radiopadre virtualenv. Please deactivate and rerun.")
     else:
         if os.path.exists(activation_script) and os.path.exists(complete_cookie) and not config.VENV_REINSTALL:
-            message(f"Found radiopadre virtualenv in {config.SERVER_VENV}")
+            message(f"Found radiopadre virtualenv in {config.RADIOPADRE_VENV}")
         elif config.AUTO_INIT or config.VENV_REINSTALL:
             if config.VENV_REINSTALL:
                 message("Will reinstall radiopadre virtualenv using install-radiopadre")
@@ -62,15 +59,13 @@ def update_installation():
 
 def start_session(container_name, session_id, selected_ports, userside_ports, orig_rootdir, notebook_path,
                   browser_urls):
-
-    from radiopadre_client.server import PADRE_VENV, PADRE_WORKDIR, ABSROOTDIR, LOCAL_SESSION_DIR, SHADOWDIR
-    from radiopadre_client.server import LOAD_NOTEBOOK, ROOTDIR
+    from radiopadre_client.server import ROOTDIR, ABSROOTDIR, PADRE_WORKDIR, LOCAL_SESSION_DIR, SHADOWDIR
 
     # get hostname
     os.environ["HOSTNAME"] = subprocess.check_output("/bin/hostname").decode()
 
     # get jupyter path
-    notebook_dir = subprocess.check_output(f"{PADRE_VENV}/bin/pip show jupyter| "
+    notebook_dir = subprocess.check_output(f"{config.RADIOPADRE_VENV}/bin/pip show jupyter| "
                                            "grep Location:|cut -d ':' -f 2", shell=True).strip().decode()
     if not notebook_dir:
         raise subprocess.CalledProcessError(-1, "venv backend", "jupyter installation path not found")
@@ -79,7 +74,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     # check status of JS9. Ends up being True, or a RuntimeError
 
     js9dir = js9error = None
-    js9status_file = PADRE_VENV + "/js9status"
+    js9status_file = config.RADIOPADRE_VENV + "/js9status"
     if not os.path.exists(js9status_file):
         js9error = "not found"
     else:
@@ -120,8 +115,8 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     if config.INSIDE_CONTAINER_PORTS:
         JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"] # --no-browser alone seems to be ignored
 
-    if LOAD_NOTEBOOK:
-        JUPYTER_OPTS.append(LOAD_NOTEBOOK)
+    # if LOAD_NOTEBOOK:
+    #     JUPYTER_OPTS.append(LOAD_NOTEBOOK if type(LOAD_NOTEBOOK) is str else LOAD_NOTEBOOK[0])
 
     userside_jupyter_port, userside_helper_port, userside_http_port, userside_carta_port, userside_carta_ws_port = userside_ports
     jupyter_port, helper_port, http_port, carta_port, carta_ws_port  = selected_ports
@@ -131,8 +126,6 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     #os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = "http://localhost:{}/".format(forwarded_http_port)
     os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = "http://localhost:{}/{}/".format(userside_http_port, session_id)
     js9prefs = None
-    print(userside_ports, selected_ports)
-    print(os.environ)
 
     http_rewrites = [ "/radiopadre-www/={}/".format(config.SERVER_INSTALL_PATH + "/html") ]
 
@@ -176,7 +169,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
             message("JS9 not configured")
 
         message(f"Starting HTTP server process in {PADRE_WORKDIR} on port {http_port}")
-        args = [f"{PADRE_VENV}/bin/python", f"{config.CLIENT_INSTALL_PATH}/bin/radiopadre-http-server.py",
+        args = [f"{config.RADIOPADRE_VENV}/bin/python", f"{config.CLIENT_INSTALL_PATH}/bin/radiopadre-http-server.py",
                 str(http_port) ] + http_rewrites
 
         try:
@@ -188,17 +181,9 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
             os.chdir(ROOTDIR)
 
         ## start CARTA backend
-        carta_dir = carta_exec = None
-
-        if config.INSIDE_CONTAINER_PORTS:
-            carta_dir, carta_exec = "/", "/carta/carta"
-            if not os.access(carta_exec, os.X_OK):
-                 carta_exec = None
-        else:
-            carta_exec = os.path.realpath(find_which("carta"))
-            carta_dir = os.path.dirname(carta_exec)
-
-        if not carta_exec:
+        carta_dir = os.path.expanduser(config.RADIOPADRE_VENV)
+        carta_exec = f"{carta_dir}/carta/carta"
+        if not os.path.exists(carta_exec):
             message("CARTA backend not found, omitting", file=sys.stderr)
         else:
             message(f"Found CARTA in {carta_exec} (dir {carta_dir})")
@@ -227,7 +212,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
 
         ## start jupyter process
 
-        jupyter_path = PADRE_VENV + "/bin/jupyter"
+        jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
         message("Starting: " + jupyter_path + " " + " ".join(JUPYTER_OPTS))
 
         notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
@@ -235,28 +220,17 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
                                           env=os.environ)
 
         ## use this instead to debug the sessison
-        #notebook_proc = subprocess.Popen([PADRE_VENV+"/bin/ipython"],
+        #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
         #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
         #                                  env=os.environ)
 
         child_processes.append(notebook_proc)
 
         # launch browser
-        url = "http://localhost:{}?token={}".format(userside_jupyter_port, session_id)
         if browser_urls:
-            message("running {} {}\r".format(config.BROWSER, url))
-            message("  if this fails, specify a correct browser invocation command with --browser-command and rerun,")
-            message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
-            try:
-                time.sleep(2)
-                subprocess.call([config.BROWSER, url], stdout=DEVNULL)
-            except OSError as exc:
-                if exc.errno == 2:
-                    message(f"{config.BROWSER} not found")
-                else:
-                    raise
+            child_processes += run_browser(*browser_urls)
         elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
-            message("Please point your browser to {}".format(url))
+            message("Please point your browser to {}".format(" ".join(browser_urls)))
 
         notebook_proc.wait()
         message("Notebook process done")

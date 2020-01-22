@@ -4,13 +4,11 @@ from .utils import make_dir, message
 from .default_config import DefaultConfig
 
 AUTO_INIT = False
-AUTOINSTALL_CLIENT_VENV = "~/.radiopadre/venv-client"
-AUTOINSTALL_VERSION = "radiopadre-client"
+AUTOINSTALL_PIP = "radiopadre-client"
 AUTOINSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
 AUTOINSTALL_BRANCH = "master"
-AUTOINSTALL_PATH = "~/radiopadre-client"
 CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
-AUTO_LOAD = "radiopadre-auto.ipynb"
+AUTO_LOAD = "radiopadre-auto*.ipynb"
 DEFAULT_NOTEBOOK = "radiopadre-default.ipynb"
 DOCKER_IMAGE = "osmirnov/radiopadre:latest"
 DOCKER_DEBUG = False
@@ -20,7 +18,9 @@ BACKEND = []
 UNAME = subprocess.check_output("uname").strip()
 USER = os.environ['USER']
 BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else "xdg-open")
-SERVER_VENV = "~/.radiopadre/venv"
+BROWSER_BG = False
+BROWSER_MULTI = False
+RADIOPADRE_VENV = "~/.radiopadre/venv"
 SERVER_INSTALL_PATH = "~/radiopadre"
 CLIENT_INSTALL_PATH = "~/radiopadre-client"
 
@@ -38,7 +38,7 @@ REMOTE_CLIENT_PATH = None
 REMOTE_MODE_PORTS = False
 INSIDE_CONTAINER_PORTS = False
 
-CONFIG_FILE = os.path.expanduser("~/.radiopadre/client.conf")
+CONFIG_FILE = os.path.expanduser("~/.config/radiopadre-client")
 
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
@@ -69,6 +69,15 @@ def init_defaults():
         if value != "default":
             globals()[key] = value
 
+def get_config_dict():
+    """
+    Forms up dict of config settings that can be turned into command-line arguments.
+
+    :return: dictionary of config settings
+    """
+    global _DEFAULT_KEYS
+    return {key: globals()[key] for key in _DEFAULT_KEYS}
+
 def add_to_parser(parser):
     """Adds parser options corresponding to global defaults (that have not been added to the parser already)"""
     global _DEFAULT_KEYS, _CMDLINE_DEFAULTS
@@ -85,7 +94,7 @@ def add_to_parser(parser):
 def init_specific_options(remote_host, notebook_path, options):
     global _DEFAULT_KEYS
     parser = configparser.ConfigParser()
-    hostname = f"{remote_host}" or "local sesssion"
+    hostname = f"{remote_host}" if remote_host else "local sesssion"
     session = f"{hostname}:{notebook_path}"
     config_exists = os.path.exists(CONFIG_FILE)
     use_config_files = not options.remote and not options.inside_container

@@ -1,7 +1,7 @@
 import subprocess, glob, os, os.path, re, sys, socket, time
 from collections import OrderedDict
 
-from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL
+from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_browser
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 
@@ -169,6 +169,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     docker_opts += [ "run-radiopadre",
                      "--inside-container", ":".join(map(str, container_ports + userside_ports)),
                      "--workdir", PADRE_WORKDIR,
+                     "--radiopadre-venv", "/.radiopadre/venv"
                    ]
 
     if notebook_path:
@@ -208,6 +209,9 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
 
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
+
+    child_processes = []
+
     # add arguments
     if config.DOCKER_DEBUG:
         docker_opts.append("--docker-debug")
@@ -227,6 +231,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL)
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
+    child_processes.append(docker_process)
 
     # pause to let the Jupyter server spin up
     t0 = time.time()
@@ -246,10 +251,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         bye("unable to connect to Jupyter Notebook server on port {jupyter_port}")
 
     if browser_urls:
-        for url in browser_urls:
-            message(f"Driving browser: {config.BROWSER} {url}")
-            subprocess.call([config.BROWSER, url])
-            # give things a second (to let the browser command print its stuff, if it wants to)
+        child_processes += run_browser(*browser_urls)
+        # give things a second (to let the browser command print its stuff, if it wants to)
         time.sleep(1)
 
 
