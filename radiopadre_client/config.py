@@ -3,10 +3,11 @@ import os, os.path, subprocess, configparser, re
 from .utils import make_dir, message
 from .default_config import DefaultConfig
 
+# const object to use as default value in ArgumentParser. Will be replaced by contents
+# of config file.
+DEFAULT_VALUE = object()
+
 AUTO_INIT = False
-AUTOINSTALL_PIP = "radiopadre-client"
-AUTOINSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
-AUTOINSTALL_BRANCH = "master"
 CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
 AUTO_LOAD = "radiopadre-auto*.ipynb"
 DEFAULT_NOTEBOOK = "radiopadre-default.ipynb"
@@ -21,24 +22,31 @@ BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else 
 BROWSER_BG = False
 BROWSER_MULTI = False
 RADIOPADRE_VENV = "~/.radiopadre/venv"
+
 SERVER_INSTALL_PATH = "~/radiopadre"
+SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
+SERVER_INSTALL_BRANCH = "py3"
+
 CLIENT_INSTALL_PATH = "~/radiopadre-client"
+CLIENT_INSTALL_PIP = "radiopadre-client"
+CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
+CLIENT_INSTALL_BRANCH = "master"
 
 UPDATE = False
 VERBOSE = 0
 VENV_REINSTALL = False
-VENV_NO_JS9 = False
-VENV_NO_CASACORE = False
+VENV_IGNORE_JS9 = False
+VENV_IGNORE_CASACORE = False
 
 
 # set to remote host, if running remote session
 REMOTE_HOST = None
-REMOTE_CLIENT_PATH = None
-
 REMOTE_MODE_PORTS = False
 INSIDE_CONTAINER_PORTS = False
 
 CONFIG_FILE = os.path.expanduser("~/.config/radiopadre-client")
+
+COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
@@ -67,7 +75,7 @@ def init_defaults():
 
     for key, value in DefaultConfig.items():
         if value != "default":
-            globals()[key] = value
+            globals()[key] = value if value is not None else False
 
 def get_config_dict():
     """
@@ -82,17 +90,26 @@ def add_to_parser(parser):
     """Adds parser options corresponding to global defaults (that have not been added to the parser already)"""
     global _DEFAULT_KEYS, _CMDLINE_DEFAULTS
     for key in _DEFAULT_KEYS:
-        argname = key.lower()
-        default = parser.get_default(argname)
+        defvalue = DefaultConfig[key]
+        lkey = key.lower()
+        optname = lkey.replace("_", "-")
+        default = parser.get_default(lkey)
         if default is None:
-            parser.add_argument("--" + argname.replace("_", "-"),
-                                type=type(globals()[key]), metavar=key,
+            parser.add_argument("--" + optname, type=type(defvalue), metavar=key,
                                 help=f"overrides the {key} config setting.")
         else:
+            if type(DefaultConfig[key]) is bool:
+                if default is 0:
+                    parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
+                                        help=f"opposite of --{optname}.")
+                elif default is 1:
+                    parser.add_argument(optname, action="store_true", dest=lkey,
+                                        help=f"opposite of --no-{optname}.")
             _CMDLINE_DEFAULTS[key] = default
 
 def init_specific_options(remote_host, notebook_path, options):
     global _DEFAULT_KEYS
+    global _CMDLINE_DEFAULTS
     parser = configparser.ConfigParser()
     hostname = f"{remote_host}" if remote_host else "local sesssion"
     session = f"{hostname}:{notebook_path}"
@@ -121,14 +138,17 @@ def init_specific_options(remote_host, notebook_path, options):
         if re.match("^[A-Z]", key):
             optname = key.lower()
             value = getattr(options, optname, None)
+            # skip DEFAULT_VALUE placeholders, trust in config
+            if value is DEFAULT_VALUE or value is None:
+                continue
             if type(value) is list:
                 value = ",".join(value)
-            if value is not _CMDLINE_DEFAULTS.get(key) and value != globals()[key]:
+            if value != _CMDLINE_DEFAULTS[key]:
                 if use_config_files:
-                    if not command_line_updated:
-                        message(f"  applying settings from command line:")
-                    command_line_updated.append(key)
-                    message(f"    {key} = {value}")
+                    # do not mark options such as --update for saving
+                    if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None:
+                        command_line_updated.append(key)
+                    message(f"  command line specifies {key} = {value}")
                 globals()[key] = value
 
     # save new config

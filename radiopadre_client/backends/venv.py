@@ -22,31 +22,71 @@ def identify_session(session_dict, arg):
 def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in virtualenv mode")
 
+def _install_radiopadre(init_venv=False):
+
+    # check for existing venv
+    if config.VENV_REINSTALL:
+        init_venv = True
+    else:
+        if os.path.exists(f"{config.RADIOPADRE_VENV}/bin/activate_this.py"):
+            if os.path.exists(f"{config.RADIOPADRE_VENV}/{config.COMPLETE_INSTALL_COOKIE}"):
+                message(f"Found complete radiopadre virtualenv in {config.RADIOPADRE_VENV}")
+                return
+            else:
+                message(f"Radiopadre virtualenv in {config.RADIOPADRE_VENV} is incomplete")
+        else:
+            message(f"Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist")
+            init_venv = True
+        if not config.AUTO_INIT:
+            bye("Try running with --auto-init to (re)install it.")
+
+    if init_venv:
+        message("Will try to completely reinstall radiopadre virtualenv using install-radiopadre")
+    else:
+        message("Will try complete radiopadre virtualenv installation using install-radiopadre")
+
+    # find install-radiopadre
+    install_script = f"{config.SERVER_INSTALL_PATH}/bin/install-radiopadre"
+
+    if not os.path.exists(install_script):
+        message(f"{config.SERVER_INSTALL_PATH}/bin/install-radiopadre not found")
+        if not config.SERVER_INSTALL_REPO:
+            bye("Try running with a --server-install-repo?")
+        cmd = "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
+        message(f"Running {cmd}")
+        if shell(cmd):
+            bye("git clone failed")
+
+
+    cmd = "{} --venv {} {} {} {}".format(config.SERVER_INSTALL_PATH, config.RADIOPADRE_VENV,
+                "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
+                "--no-js9" if config.VENV_IGNORE_JS9 else "",
+                "reinstall" if init_venv else "install",
+                )
+    message(f"Running {cmd}")
+    if shell(cmd):
+        bye("Installation script failed.")
+
 
 def update_installation():
-    activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
-    complete_cookie   = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, ".complete"))
-
     # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
+    # are we already running inside a virtualenv?
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
             message("Already running inside radiopadre virtual environment")
         else:
-            bye("Can't run this script inside a non-radiopadre virtualenv. Please deactivate and rerun.")
-    else:
-        if os.path.exists(activation_script) and os.path.exists(complete_cookie) and not config.VENV_REINSTALL:
-            message(f"Found radiopadre virtualenv in {config.RADIOPADRE_VENV}")
-        elif config.AUTO_INIT or config.VENV_REINSTALL:
-            if config.VENV_REINSTALL:
-                message("Will reinstall radiopadre virtualenv using install-radiopadre")
-            else:
-                message("Can't find complete radiopadre virtualenv, bootstrapping with install-radiopadre")
-            if shell("{}/bin/install-radiopadre {} {} reinstall".format(config.SERVER_INSTALL_PATH,
-                                                                        "--no-casacore" if config.VENV_NO_CASACORE else "",
-                                                                        "--no-js9" if config.VENV_NO_JS9 else "",
-                                                                        )):
-                bye("Installation script failed")
+            message(f"Running inside non-default virtual environment {sys.prefix}")
+            message(f"Will assume radiopadre has been installed here.")
+            config.RADIOPADRE_VENV = sys.prefix
 
+        if config.VENV_REINSTALL:
+            bye("Can't --venv-reinstall from inside a virtualenv.")
+
+        _install_radiopadre(init_venv=False)
+    else:
+        _install_radiopadre(init_venv=True)
+
+        activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
         message(f"Activating the radiopadre virtualenv via {activation_script}")
         with open(activation_script) as f:
             code = compile(f.read(), activation_script, 'exec')
@@ -213,7 +253,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
         ## start jupyter process
 
         jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
-        message("Starting: " + jupyter_path + " " + " ".join(JUPYTER_OPTS))
+        message("Starting: {} {} in {}".format(jupyter_path,  " ".join(JUPYTER_OPTS), ROOTDIR))
 
         notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
                                           stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,

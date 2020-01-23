@@ -109,7 +109,7 @@ def run_browser(*urls):
     procs = []
     # open browser if needed
     if config.BROWSER:
-        message("running {} {}\r".format(config.BROWSER, " ".join(urls)))
+        message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
         message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
         message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
         if config.BROWSER_MULTI:

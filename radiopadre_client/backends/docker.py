@@ -181,6 +181,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     if config.DOCKER_DETACH:
         message("exiting: container session will remain running.")
         sys.exit(0)
+
     elif config.REMOTE_MODE_PORTS:
         if config.VERBOSE:
             message("sleeping")
@@ -192,6 +193,12 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
                 a = input("Type Q<Enter> to detach from the container session, or Ctrl+C to kill it: ")
                 if a and a[0].upper() == 'Q':
                     sys.exit(0)
+
+
+
+
+
+
         except BaseException as exc:
             if type(exc) is KeyboardInterrupt:
                 message("Caught Ctrl+C")
