@@ -91,7 +91,6 @@ group.add_argument("-s", "--save-config-host", action="store_true",
 group.add_argument("-e", "--save-config-session", action="store_true",
                    help="Save command line settings for this host & session to config file.")
 
-message("Adding to parser")
 config.add_to_parser(group)
 
 parser.add_argument("arguments", nargs="*",

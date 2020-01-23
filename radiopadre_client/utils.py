@@ -10,11 +10,9 @@ DEVNULL = open("/dev/null", "w")
 
 time0 = time.time()
 
-def message(x, prefix='radiopadre_client: ', file=None, raw=False):
+def message(x, prefix='radiopadre_client: ', file=None):
     """Prints message, interpolating globals with .format()"""
     from . import config
-    if not raw:
-        x = x.format(**globals())
     if config.TIMESTAMPS:
         prefix += "{:.2f}: ".format(time.time() - time0)
     print(prefix + x, file=file or sys.stdout)
@@ -28,7 +26,7 @@ def bye(x, code=1):
 
 def shell(cmd):
     """Runs shell command, interpolating globals with .format()"""
-    return subprocess.call(cmd.format(**globals()), shell=True)
+    return subprocess.call(cmd, shell=True)
 
 
 def make_dir(name):

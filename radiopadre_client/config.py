@@ -29,6 +29,7 @@ SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
 CLIENT_INSTALL_PATH = "~/radiopadre-client"
 CLIENT_INSTALL_PIP = "radiopadre-client"
 CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
+CLIENT_INSTALL_BRANCH = "py3"
 
 UPDATE = False
 VERBOSE = 0

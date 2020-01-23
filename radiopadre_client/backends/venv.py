@@ -50,7 +50,7 @@ def _install_radiopadre(init_venv=False):
         message(f"{config.SERVER_INSTALL_PATH}/bin/install-radiopadre not found")
         if not config.SERVER_INSTALL_REPO:
             bye("Try running with a --server-install-repo?")
-        cmd = "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
+        cmd = f"git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
         message(f"Running {cmd}")
         if shell(cmd):
             bye("git clone failed")

@@ -23,6 +23,7 @@ DefaultConfig = OrderedDict(
     DOCKER_DEBUG=False,
     DOCKER_DETACH=False,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
+    CLIENT_INSTALL_BRANCH="py3",
     SERVER_INSTALL_PATH="~/radiopadre",
     SERVER_INSTALL_REPO="git@github.com:ratt-ru/radiopadre.git",
     SERVER_INSTALL_BRANCH="py3",
