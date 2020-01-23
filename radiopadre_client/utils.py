@@ -33,7 +33,6 @@ def make_dir(name):
         os.mkdir(name)
     return name
 
-
 def make_link(src, dest, rm_fr=False):
     """Makes links."""
     if os.path.exists(dest):
@@ -134,3 +133,8 @@ def run_browser(*urls):
         message("Please browse to: {}\n".format(" ".join(urls)))
 
     return procs
+
+def make_git_glone_command(repo):
+    if "@" in repo:
+        repo, branch = repo.rsplit("@", 1)
+    cmd = "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"

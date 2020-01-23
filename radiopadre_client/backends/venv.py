@@ -3,14 +3,12 @@ from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DE
 
 from radiopadre_client import config
 
+from .docker import read_session_info
 
 def init():
     pass
 
-def read_session_info(container_name):
-    raise NotImplementedError("not available in virtualenv mode")
-
-def save_session_info(container_name, session_id, selected_ports, userside_ports):
+def save_session_info(container_name, selected_ports, userside_ports):
     pass
 
 def list_sessions():
@@ -97,7 +95,7 @@ def update_installation():
 
 
 
-def start_session(container_name, session_id, selected_ports, userside_ports, orig_rootdir, notebook_path,
+def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path,
                   browser_urls):
     from radiopadre_client.server import ROOTDIR, ABSROOTDIR, PADRE_WORKDIR, LOCAL_SESSION_DIR, SHADOWDIR
 
@@ -164,7 +162,7 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     child_processes = []
 
     #os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = "http://localhost:{}/".format(forwarded_http_port)
-    os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = "http://localhost:{}/{}/".format(userside_http_port, session_id)
+    os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = f"http://localhost:{userside_http_port}/{config.SESSION_ID}/"
     js9prefs = None
 
     http_rewrites = [ "/radiopadre-www/={}/".format(config.SERVER_INSTALL_PATH + "/html") ]

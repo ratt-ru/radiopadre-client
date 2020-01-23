@@ -25,12 +25,10 @@ RADIOPADRE_VENV = "~/.radiopadre/venv"
 
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
-SERVER_INSTALL_BRANCH = "py3"
 
 CLIENT_INSTALL_PATH = "~/radiopadre-client"
 CLIENT_INSTALL_PIP = "radiopadre-client"
 CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
-CLIENT_INSTALL_BRANCH = "master"
 
 UPDATE = False
 VERBOSE = 0
@@ -38,10 +36,15 @@ VENV_REINSTALL = False
 VENV_IGNORE_JS9 = False
 VENV_IGNORE_CASACORE = False
 
+# set to the unique session ID
+SESSION_ID = None
 
 # set to remote host, if running remote session
 REMOTE_HOST = None
+
+# set to port assignments, when running remotely
 REMOTE_MODE_PORTS = False
+# set to port assignments, when running inside container
 INSIDE_CONTAINER_PORTS = False
 
 CONFIG_FILE = os.path.expanduser("~/.config/radiopadre-client")
@@ -86,26 +89,49 @@ def get_config_dict():
     global _DEFAULT_KEYS
     return {key: globals()[key] for key in _DEFAULT_KEYS}
 
+def get_options_list(config_dict, quote=True):
+    """
+    :param config_dict: dictionary of config settings
+           quote: if True, values will placed in single quotes. Use this if forming up a shell string command,
+                    ultimately.
+    :return: list of command-line arguments
+    """
+    args = []
+    # turn the remote_config dict into a command line
+    for key, value in config_dict.items():
+        opt = key.lower().replace("_", "-")
+        if value != DefaultConfig.get(key):
+            if value is True:
+                args.append(f"--{opt}")
+            elif value is not False and value is not None:
+                if type(value) is list:
+                    value = ",".join(map(str, value))
+                args += [f"--{opt}", f"'{value}'" if quote else str(value)]
+    return args
+
 def add_to_parser(parser):
     """Adds parser options corresponding to global defaults (that have not been added to the parser already)"""
     global _DEFAULT_KEYS, _CMDLINE_DEFAULTS
     for key in _DEFAULT_KEYS:
-        defvalue = DefaultConfig[key]
+        default_conf = DefaultConfig[key]
         lkey = key.lower()
         optname = lkey.replace("_", "-")
-        default = parser.get_default(lkey)
-        if default is None:
-            parser.add_argument("--" + optname, type=type(defvalue), metavar=key,
+        default_cmdline = parser.get_default(lkey)
+        # no command-line switch for this option? Add it
+        if default_cmdline is None:
+            parser.add_argument("--" + optname, type=type(default_conf), metavar=key,
                                 help=f"overrides the {key} config setting.")
+            _CMDLINE_DEFAULTS[key] = default_conf
+        # else check for opposite-value switch
         else:
             if type(DefaultConfig[key]) is bool:
-                if default is 0:
+                if default_cmdline is 0:
                     parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
                                         help=f"opposite of --{optname}.")
-                elif default is 1:
+                elif default_cmdline is 1:
                     parser.add_argument(optname, action="store_true", dest=lkey,
                                         help=f"opposite of --no-{optname}.")
-            _CMDLINE_DEFAULTS[key] = default
+            _CMDLINE_DEFAULTS[key] = default_cmdline
 
 def init_specific_options(remote_host, notebook_path, options):
     global _DEFAULT_KEYS

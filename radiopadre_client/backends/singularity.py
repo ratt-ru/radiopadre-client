@@ -5,7 +5,7 @@ from radiopadre_client import config
 
 singularity = None
 
-from .docker import get_session_info_dir, _run_container, _init_session_dir
+from .docker import get_session_info_dir, _run_container, _init_session_dir, _collect_runscript_arguments
 
 
 def init(binary):
@@ -16,7 +16,7 @@ def init(binary):
 def read_session_info(container_name):
     raise NotImplementedError("not available in singularity mode")
 
-def save_session_info(container_name, session_id, selected_ports, userside_ports):
+def save_session_info(container_name, selected_ports, userside_ports):
     pass
 
 def list_sessions():
@@ -45,10 +45,10 @@ def update_installation():
 
 
 
-from radiopadre_client.server import PADRE_WORKDIR, ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 
 
-def start_session(container_name, session_id, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
+def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
@@ -85,10 +85,8 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
         docker_opts = [singularity, "exec" ] + docker_opts + [singularity_image]
     container_ports = selected_ports
 
-    docker_opts += [ "/radiopadre/bin/radiopadre",
-                     "--inside-container", ":".join(map(str, container_ports + userside_ports)),
-                     "--workdir", PADRE_WORKDIR,
-                   ]
+    # build up command-line arguments
+    docker_opts += _collect_runscript_arguments(container_ports + userside_ports)
 
     if notebook_path:
         docker_opts.append(notebook_path)

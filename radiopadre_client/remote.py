@@ -256,13 +256,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_config["remote"] = ":".join(map(str, ports))
 
     # turn the remote_config dict into a command line
-    for key, value in remote_config.items():
-        opt = key.lower().replace("_", "-")
-        if value != DefaultConfig.get(key):
-            if value is True:
-                runscript += f" --{opt}"
-            elif value is not False and value is not None:
-                runscript += f" --{opt} '{value}'"
+    runscript += " ".join(config.get_options_list(remote_config))
 
     runscript += " '{}' {}".format(command if command is not "load" else notebook_path,
                                    " ".join(extra_arguments))
@@ -321,7 +315,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     # check for session ID
                     match = re.match(".*Session ID/notebook token is '([0-9a-f]+)'", line)
                     if match:
-                        session_id = match.group(1)
+                        config.SESSION_ID = match.group(1)
                         continue
                     # check for notebook port, and launch second ssh when we have it
                     re_ports = ":".join(["([\\d]+)"]*10)   # form up regex for ddd:ddd:...

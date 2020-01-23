@@ -7,39 +7,10 @@ import sys, os.path, os, argparse, glob
 from radiopadre_client import config
 from radiopadre_client.utils import message, bye
 
-message("Welcome to the radiopadre client!")
-
 parser = argparse.ArgumentParser(description="""
-    Manages local or remote Jupyter sessions with radiopadre_client notebooks.
+    Manages local or remote Jupyter sessions with radiopadre notebooks.
     """,
     formatter_class=argparse.RawTextHelpFormatter)
-
-
-parser.add_argument("arguments", nargs="*",
-                    help="""One or more arguments, as follows:
-    directory[/notebook.ipynb]
-        load local notebook or directory;
-    [user@]remote_host:directory[/notebook.ipynb]
-        run a remote radiopadre_client session, loading the specified notebook or directory;
-    [user@]remote_host:directory notebook.ipynb
-        run a remote radiopadre_client session, copying over the specified notebook if it doesn't 
-        already exist on the remote;
-
-    ps
-        list available local containerized radiopadre_client sessions;
-    resume [ID]
-        reconnect to a containerized radiopadre_client session. If an ID is not given,
-        reconnects to first available session;
-    kill [ID(s)|all]
-        kills specified containerized session, or all sessions
-
-    [user@]remote_host:ps
-        list available containerized radiopadre_client sessions on remote host;
-    [user@]remote_host:resume [ID]
-        reconnect to a containerized radiopadre_client session on remote host;
-    [user@]remote_host:kill [ID|all]
-        kills a specific radiopadre_client session, or all sessions on remote host;
-                       """)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
                     help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER).")
@@ -117,11 +88,38 @@ group.add_argument("-s", "--save-config-host", action="store_true",
 group.add_argument("-e", "--save-config-session", action="store_true",
                    help="Save command line settings for this host & session to config file.")
 
+message("Adding to parser")
 config.add_to_parser(group)
 
-### PARSE ARGUMENTS
-options = parser.parse_args()
+parser.add_argument("arguments", nargs="*",
+                    help="""One or more arguments, as follows:
+    directory[/notebook.ipynb]
+        load local notebook or directory;
+    [user@]remote_host:directory[/notebook.ipynb]
+        run a remote radiopadre_client session, loading the specified notebook or directory;
+    [user@]remote_host:directory notebook.ipynb
+        run a remote radiopadre_client session, copying over the specified notebook if it doesn't 
+        already exist on the remote;
 
+    ps
+        list available local containerized radiopadre_client sessions;
+    resume [ID]
+        reconnect to a containerized radiopadre_client session. If an ID is not given,
+        reconnects to first available session;
+    kill [ID(s)|all]
+        kills specified containerized session, or all sessions
+
+    [user@]remote_host:ps
+        list available containerized radiopadre_client sessions on remote host;
+    [user@]remote_host:resume [ID]
+        reconnect to a containerized radiopadre_client session on remote host;
+    [user@]remote_host:kill [ID|all]
+        kills a specific radiopadre_client session, or all sessions on remote host;
+                       """)
+
+### PARSE ARGUMENTS
+#
+options = parser.parse_args()
 
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
@@ -163,6 +161,8 @@ else:
         copy_initial_notebook = arguments.pop(0) if arguments else None
     if arguments:
         parser.error("too many arguments")
+
+message("Welcome to the radiopadre client!")
 
 ## finalize settings
 

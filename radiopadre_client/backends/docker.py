@@ -47,11 +47,11 @@ def read_session_info(container_name):
     return session_id, ports
 
 
-def save_session_info(container_name, session_id, selected_ports, userside_ports):
+def save_session_info(container_name, selected_ports, userside_ports):
     session_info_dir = "{}/{}".format(SESSION_INFO_DIR, container_name)
     make_dir(session_info_dir)
     session_info_file = session_info_dir + "/info"
-    open(session_info_file, "w").write(" ".join(map(str, [session_id] + selected_ports + userside_ports)))
+    open(session_info_file, "w").write(" ".join(map(str, [config.SESSION_ID] + selected_ports + userside_ports)))
     os.chmod(session_info_file, 0o600)
     userside_helper_port = userside_ports[1]
     open(session_info_dir + "/js9prefs.js", "w").write(
@@ -121,9 +121,25 @@ def update_installation():
         message("  (This may take a few minutes if it isn't....)")
         subprocess.call([docker, "pull", docker_image])
 
+def _collect_runscript_arguments(ports):
+    from radiopadre_client.server import PADRE_WORKDIR
 
-def start_session(container_name, session_id, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
-    from radiopadre_client.server import PADRE_WORKDIR, ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+    run_config = config.get_config_dict()
+    run_config["BACKEND"] = "venv"
+    run_config["BROWSER"] = "None"
+    run_config["INSIDE_CONTAINER"] = ":".join(map(str, ports))
+    run_config["WORKDIR"] = PADRE_WORKDIR
+    run_config["RADIOPADRE_VENV"] = "/.radiopadre/venv"
+
+    for key in "CLIENT_INSTALL_PATH", "SERVER_INSTALL_PATH", "AUTO_INIT":
+        if key in run_config:
+            del run_config[key]
+
+    return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
+
+
+def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
+    from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
@@ -135,8 +151,9 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
                         "--user", "{}:{}".format(os.getuid(), os.getgid()),
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
-                        "-e", "RADIOPADRE_CONTAINER_NAME={}".format(container_name)
-                  ]
+                        "-e", f"RADIOPADRE_CONTAINER_NAME={container_name}",
+                        "-e", f"RADIOPADRE_SESSION_ID={config.SESSION_ID}",
+                    ]
     # enable detached mode if not debugging
     if not config.DOCKER_DEBUG:
         docker_opts.append("-d")
@@ -166,11 +183,8 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
     # add image
     docker_opts.append(docker_image)
 
-    docker_opts += [ "run-radiopadre",
-                     "--inside-container", ":".join(map(str, container_ports + userside_ports)),
-                     "--workdir", PADRE_WORKDIR,
-                     "--radiopadre-venv", "/.radiopadre/venv"
-                   ]
+    # build up command-line arguments
+    docker_opts += _collect_runscript_arguments(container_ports + userside_ports)
 
     if notebook_path:
         docker_opts.append(notebook_path)
@@ -193,12 +207,6 @@ def start_session(container_name, session_id, selected_ports, userside_ports, or
                 a = input("Type Q<Enter> to detach from the container session, or Ctrl+C to kill it: ")
                 if a and a[0].upper() == 'Q':
                     sys.exit(0)
-
-
-
-
-
-
         except BaseException as exc:
             if type(exc) is KeyboardInterrupt:
                 message("Caught Ctrl+C")
@@ -219,14 +227,6 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
 
     child_processes = []
 
-    # add arguments
-    if config.DOCKER_DEBUG:
-        docker_opts.append("--docker-debug")
-    if config.VERBOSE:
-        docker_opts.append("--verbose")
-    if config.DEFAULT_NOTEBOOK:
-        docker_opts.append(f"--default-notebook {config.DEFAULT_NOTEBOOK}" if config.DEFAULT_NOTEBOOK else
-                           "--no-default-notebook")
 
     message("Running {}".format(" ".join(map(str, docker_opts))))
     if singularity:
@@ -242,10 +242,16 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
 
     # pause to let the Jupyter server spin up
     t0 = time.time()
-    time.sleep(5)
+    time.sleep(2)
     # then try to connect to it
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     for retry in range(1000):
+        if docker_process.returncode is not None:
+            bye(f"container unexpectedly exited with return code {docker_process.returncode}")
+        try:
+            docker_process.wait(.1)
+        except subprocess.TimeoutExpired:
+            pass
         try:
             sock.connect(("localhost", jupyter_port))
             message("Container started: the Jupyter Notebook is running on port {} (after {} secs)".format(
@@ -253,15 +259,14 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
             del sock
             break
         except socket.error:
-            time.sleep(.1)
+            pass
     else:
-        bye("unable to connect to Jupyter Notebook server on port {jupyter_port}")
+        bye(f"unable to connect to Jupyter Notebook server on port {jupyter_port}")
 
     if browser_urls:
         child_processes += run_browser(*browser_urls)
         # give things a second (to let the browser command print its stuff, if it wants to)
         time.sleep(1)
-
 
     return docker_process
 
