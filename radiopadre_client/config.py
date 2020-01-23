@@ -32,6 +32,7 @@ CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
 
 UPDATE = False
 VERBOSE = 0
+TIMESTAMPS = False
 VENV_REINSTALL = False
 VENV_IGNORE_JS9 = False
 VENV_IGNORE_CASACORE = False

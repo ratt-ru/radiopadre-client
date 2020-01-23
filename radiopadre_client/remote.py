@@ -256,7 +256,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_config["remote"] = ":".join(map(str, ports))
 
     # turn the remote_config dict into a command line
-    runscript += " ".join(config.get_options_list(remote_config))
+    runscript += " " + " ".join(config.get_options_list(remote_config, quote=True))
 
     runscript += " '{}' {}".format(command if command is not "load" else notebook_path,
                                    " ".join(extra_arguments))

@@ -55,8 +55,7 @@ def _install_radiopadre(init_venv=False):
         if shell(cmd):
             bye("git clone failed")
 
-
-    cmd = "{} --venv {} {} {} {}".format(config.SERVER_INSTALL_PATH, config.RADIOPADRE_VENV,
+    cmd = "{}/bin/install-radiopadre --venv {} {} {} {}".format(config.SERVER_INSTALL_PATH, config.RADIOPADRE_VENV,
                 "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
                 "--no-js9" if config.VENV_IGNORE_JS9 else "",
                 "reinstall" if init_venv else "install",

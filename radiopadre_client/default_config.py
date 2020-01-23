@@ -28,6 +28,7 @@ DefaultConfig = OrderedDict(
     SERVER_INSTALL_BRANCH="py3",
     UPDATE=None,
     VERBOSE=0,
+    TIMESTAMPS=False,
     RADIOPADRE_VENV="~/.radiopadre/venv",
     VENV_REINSTALL=None,
     VENV_IGNORE_JS9=False,

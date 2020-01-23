@@ -3,15 +3,20 @@ import select
 import socket
 import subprocess
 import sys
-
+import time
 
 DEVZERO = open("/dev/zero")
 DEVNULL = open("/dev/null", "w")
 
+time0 = time.time()
+
 def message(x, prefix='radiopadre_client: ', file=None, raw=False):
     """Prints message, interpolating globals with .format()"""
+    from . import config
     if not raw:
         x = x.format(**globals())
+    if config.TIMESTAMPS:
+        prefix += "{:.2f}: ".format(time.time() - time0)
     print(prefix + x, file=file or sys.stdout)
 
 

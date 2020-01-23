@@ -28,6 +28,9 @@ parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto
                     help="disable auto-load.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
                     help="Verbosity level. Default is 0, higher means more output.")
+parser.add_argument("-t", "--timestamps", action="store_true", default=0,
+                    help="Enables timestamps in output.")
+
 
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
