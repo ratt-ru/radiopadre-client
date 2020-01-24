@@ -232,7 +232,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && pip install {config.CLIENT_INSTALL_PIP}")
 
         else:
-            bye("To use auto-init, set CLIENT_INSTALL_PATH and/or AUTOINSTALL_PIP and/or AUTOINSTALL_REPO")
+            bye("To use auto-init, set CLIENT_INSTALL_PATH and/or CLIENT_INSTALL_PIP and/or CLIENT_INSTALL_REPO")
 
         # sanity check
         if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
