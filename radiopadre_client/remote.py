@@ -83,15 +83,26 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         Checks that remote host has a particular command available (by running 'which' on the remote).
         Returns True or False, or raises an exception on other errors.
         """
+        if config.SKIP_CHECKS:
+            return command
         return (ssh_remote("which " + command, fail_retcode=1, stderr=DEVNULL) or "").strip()
 
+    # --update or --auto-init disables --skip-checks
+    if config.SKIP_CHECKS:
+        if config.UPDATE:
+            message("Noe that --update implies --no-skip-checks")
+            config.SKIP_CHECKS = False
+        elif config.AUTO_INIT:
+            message("Note that --auto-init implies --no-skip-checks")
+            config.SKIP_CHECKS = False
 
     # propagate our config to command-line arguments
     remote_config = config.get_config_dict()
     remote_config['BROWSER'] = 'None'
+    remote_config['SKIP_CHECKS'] = False
 
     # Check for various remote bits
-    if config.VERBOSE:
+    if config.VERBOSE and not config.SKIP_CHECKS:
         message(f"Checking installation on {config.REMOTE_HOST}.")
 
     has_git = check_remote_command("git")
@@ -123,29 +134,34 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # (b) with which
 
     runscript0 = "run-radiopadre"
-    runscript = None
 
-    # (a) look inside venv
-    if runscript is None and config.RADIOPADRE_VENV:
-        if "~" in config.RADIOPADRE_VENV:
-            config.RADIOPADRE_VENV = ssh_remote(f"echo {config.RADIOPADRE_VENV}").strip()  # expand "~" on remote
-        if check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
-            if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
-                runscript = f"source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}"
-                message(f"Using remote client script within {config.RADIOPADRE_VENV}")
+    if config.SKIP_CHECKS:
+        runscript=f"rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " \
+                  f"source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs "
+    else:
+        runscript = None
+
+        # (a) look inside venv
+        if runscript is None and config.RADIOPADRE_VENV:
+            if "~" in config.RADIOPADRE_VENV:
+                config.RADIOPADRE_VENV = ssh_remote(f"echo {config.RADIOPADRE_VENV}").strip()  # expand "~" on remote
+            if check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
+                if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
+                    runscript = f"source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}"
+                    message(f"Using remote client script within {config.RADIOPADRE_VENV}")
+                else:
+                    message(f"Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation.")
             else:
-                message(f"Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation.")
-        else:
-            message(f"No remote venv found at {config.RADIOPADRE_VENV}")
+                message(f"No remote venv found at {config.RADIOPADRE_VENV}")
 
-    # (b) just try `which` directly
-    if runscript is None:
-        runscript = check_remote_command(runscript0)
-        if runscript:
-            message(f"Using remote client script at {runscript}")
-        else:
-            message(f"No remote client script {runscript0} found")
-            runscript = None
+        # (b) just try `which` directly
+        if runscript is None:
+            runscript = check_remote_command(runscript0)
+            if runscript:
+                message(f"Using remote client script at {runscript}")
+            else:
+                message(f"No remote client script {runscript0} found")
+                runscript = None
 
     # does the remote have a server virtual environment configured?
     # if USE_VENV:
@@ -162,7 +178,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     #     message(f"Detected server virtualenv {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
     if not USE_VENV and config.CONTAINER_DEV:
-        if not check_remote_file(config.SERVER_INSTALL_PATH, "-d"):
+        if not config.SKIP_CHECKS and not check_remote_file(config.SERVER_INSTALL_PATH, "-d"):
             message(f"no remote installation detected in {config.SERVER_INSTALL_PATH}: can't run --container-dev mode")
             sys.exit(1)
 

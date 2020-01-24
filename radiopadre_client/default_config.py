@@ -15,6 +15,7 @@ DefaultConfig = OrderedDict(
     AUTOINSTALL_PIP="radiopadre-client",
     AUTOINSTALL_REPO="git@github.com:ratt-ru/radiopadre-client.git",
     AUTOINSTALL_BRANCH="py3",
+    SKIP_CHECKS=False,
     BACKEND="",
     BROWSER="default",
     CONTAINER_DEV=False,

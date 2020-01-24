@@ -75,9 +75,11 @@ group = parser.add_argument_group("Remote installation options")
 group.add_argument("--auto-init", action="store_true", default=0,
                     help="automatically initialize radiopadre_client installation, if missing on remote. " 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
+group.add_argument("--skip-checks", action="store_true", default=0,
+                   help="assume remote has a fully functional installation and skip the detailed checks. "
+                   "This can make for faster startup, but less informative failure modes.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help="Directory in which remote radiopadre_client is installed.\n" +
-                         f"Default is {config.CLIENT_INSTALL_PATH}, otherwise looks in the path. ")
+                    help=f"directory in which remote radiopadre_client will be installed with --auto-init.")
 group.add_argument("-u", "--update", action="store_true",
                     help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
                          "in docker mode: update docker container using docker pull.")

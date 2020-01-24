@@ -24,7 +24,7 @@ BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else 
 BROWSER_BG = False
 BROWSER_MULTI = False
 RADIOPADRE_VENV = "~/.radiopadre/venv"
-
+SKIP_CHECKS = False
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
 
