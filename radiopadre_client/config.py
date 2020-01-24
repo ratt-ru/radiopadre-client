@@ -105,13 +105,13 @@ def get_options_list(config_dict, quote=True):
     # turn the remote_config dict into a command line
     for key, value in config_dict.items():
         opt = key.lower().replace("_", "-")
-        if value != DefaultConfig.get(key):
-            if value is True:
-                args.append(f"--{opt}")
-            elif value is not False and value is not None:
-                if type(value) is list:
-                    value = ",".join(map(str, value))
-                args += [f"--{opt}", f"'{value}'" if quote else str(value)]
+        #if value != DefaultConfig.get(key):
+        if value is True:
+            args.append(f"--{opt}")
+        elif value is not False and value is not None:
+            if type(value) is list:
+                value = ",".join(map(str, value))
+            args += [f"--{opt}", f"'{value}'" if quote else str(value)]
     return args
 
 def add_to_parser(parser):

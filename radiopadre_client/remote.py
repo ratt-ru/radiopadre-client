@@ -245,12 +245,16 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # do we need an update of the client install?
     if config.UPDATE:
         install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
-        if check_remote_file(f"{install_path}/.git", "-d"):
+        if config.CLIENT_INSTALL_REPO and check_remote_file(f"{install_path}/.git", "-d"):
             message(f"--update specified, will attempt a git pull in {config.REMOTE_HOST}:{install_path}")
             if has_git:
-                ssh_remote_interactive(f"cd {install_path} && git pull")
+                ssh_remote_interactive(f"cd {install_path} && git fetch origin && " +
+                                       f"git checkout {config.CLIENT_INSTALL_BRANCH} && git merge FETCH_HEAD")
             else:
                 message("No git installed on remote, ignoring --update flag for the client")
+        elif config.CLIENT_INSTALL_PIP:
+            message(f"Doing pip install -U {config.CLIENT_INSTALL_PIP} into {config.RADIOPADRE_VENV}")
+            ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && pip install -U {config.CLIENT_INSTALL_PIP}")
 
     # copy notebook to remote
     if copy_initial_notebook:
