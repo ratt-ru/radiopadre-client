@@ -49,10 +49,9 @@ def update_installation():
     config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
 
 
-from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
-
-
 def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
+    from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
@@ -82,7 +81,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     if not config.CONTAINER_DEBUG:
         command = [singularity, "instance.start"] + docker_opts + \
                   [singularity_image, container_name]
-        message("running {}".format(" ".join(command)))
+        message("running {}".format(" ".join(map(str,command))))
         subprocess.call(command)
         docker_opts = [singularity, "exec", "instance://{}".format(container_name)]
     else:
