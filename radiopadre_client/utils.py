@@ -22,6 +22,8 @@ def enable_logging(logtype, level=1):
 def message(x, prefix='radiopadre_client: ', file=None):
     """Prints message, interpolating globals with .format()"""
     from . import config
+    if type(x) is bytes:
+        x = x.decode()
     if config.TIMESTAMPS:
         prefix += "{:.2f}: ".format(time.time() - time0)
     print(prefix + x, file=file or sys.stdout)

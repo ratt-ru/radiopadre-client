@@ -401,7 +401,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 singularity_image = get_singularity_image(config.DOCKER_IMAGE)
                 ssh_remote(f"{has_singularity} instance.stop {singularity_image} {container_name}")
         except subprocess.CalledProcessError as exc:
-            message(exc.output)
+            message(exc.output.decode())
 
     ssh.kill()
     for proc in child_processes:
