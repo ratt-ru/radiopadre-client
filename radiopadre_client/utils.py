@@ -10,23 +10,40 @@ DEVNULL = open("/dev/null", "w")
 
 time0 = time.time()
 
+logfile = None
+
+def enable_logging(logtype, level=1):
+    global logfile
+    make_dir("~/.radiopadre")
+    logname = os.path.expanduser(f"~/.radiopadre/log-{logtype}.txt")
+    logfile = open(logname, "wt")
+
+
 def message(x, prefix='radiopadre_client: ', file=None):
     """Prints message, interpolating globals with .format()"""
     from . import config
     if config.TIMESTAMPS:
         prefix += "{:.2f}: ".format(time.time() - time0)
     print(prefix + x, file=file or sys.stdout)
+    if logfile:
+        print(time.strftime("%x %X:"), prefix + x, file=logfile)
+        logfile.flush()
 
 
 def bye(x, code=1):
-    """Prints message, interpolating globals with .format(). Exits with given code"""
+    """Prints message to stderr. Exits with given code"""
     message(x, file=sys.stderr)
     sys.exit(code)
 
 
-def shell(cmd):
-    """Runs shell command, interpolating globals with .format()"""
-    return subprocess.call(cmd, shell=True)
+def shell(cmd, ignore_fail=False):
+    """Runs shell command. If ignore_fail is set, returns None on failure"""
+    try:
+       return subprocess.call(cmd, shell=True)
+    except subprocess.CalledProcessError as exc:
+        if ignore_fail:
+            return None
+        raise
 
 
 def make_dir(name):

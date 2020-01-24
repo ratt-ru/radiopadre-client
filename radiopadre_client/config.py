@@ -12,9 +12,11 @@ CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
 AUTO_LOAD = "radiopadre-auto*.ipynb"
 DEFAULT_NOTEBOOK = "radiopadre-default.ipynb"
 DOCKER_IMAGE = "osmirnov/radiopadre:latest"
-DOCKER_DEBUG = False
-DOCKER_DETACH = False
+CONTAINER_DEBUG = False
+CONTAINER_DETACH = False
+CONTAINER_PERSIST = False
 CONTAINER_DEV = False
+GRIM_REAPER = True
 BACKEND = []
 UNAME = subprocess.check_output("uname").strip()
 USER = os.environ['USER']
@@ -31,6 +33,7 @@ CLIENT_INSTALL_PIP = "radiopadre-client"
 CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
 CLIENT_INSTALL_BRANCH = "py3"
 
+LOG = 0
 UPDATE = False
 VERBOSE = 0
 TIMESTAMPS = False
@@ -131,7 +134,7 @@ def add_to_parser(parser):
                     parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
                                         help=f"opposite of --{optname}.")
                 elif default_cmdline is 1:
-                    parser.add_argument(optname, action="store_true", dest=lkey,
+                    parser.add_argument("--" + optname, action="store_true",
                                         help=f"opposite of --no-{optname}.")
             _CMDLINE_DEFAULTS[key] = default_cmdline
 

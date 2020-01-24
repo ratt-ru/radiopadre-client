@@ -96,7 +96,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     has_git = check_remote_command("git")
 
-    USE_VENV = False
+    USE_VENV = has_singularity = has_docker = None
 
     for backend in config.BACKEND:
         remote_config["BACKEND"] = backend
@@ -114,6 +114,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message(f"The '{backend}' back-end is not available on {config.REMOTE_HOST}, skipping.")
     else:
         bye(f"None of the specified back-ends are available on {config.REMOTE_HOST}.")
+
+    if remote_config["BACKEND"] != "docker":
+        config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
 
     ## Look for remote launch script
     # (a) under VIRTUAL_ENV/bin
@@ -262,7 +265,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                                    " ".join(extra_arguments))
 
     # start ssh subprocess to launch notebook
-    args = list(SSH_OPTS) + [runscript]
+    args = list(SSH_OPTS) + ["shopt -s huponexit && "+
+                             runscript]
 
     if config.VERBOSE:
         message("running {}".format(" ".join(args)))
@@ -289,7 +293,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     line = fobj.readline()
                 except EOFError:
                     line = b''
-                if fobj is sys.stdin and line and line[0].upper() == "Q":
+                if fobj is sys.stdin and line and line[0].upper() == b'Q' and config.CONTAINER_PERSIST:
                     sys.exit(0)
                 # break out if ssh closes
                 if not line:
@@ -299,7 +303,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         remote_running = None
                         break
                     continue
-                line = line.decode().rstrip()
+                line = (line.decode() if type(line) is bytes else line).rstrip()
                 # print remote output
                 print_output = False
                 if fobj is ssh.stderr:
@@ -352,7 +356,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         time.sleep(1)
                         child_processes += run_browser(*urls)
                         message("The remote radiopadre session is now fully up")
-                        if USE_VENV:
+                        if USE_VENV or not config.CONTAINER_PERSIST:
                             message("Press Ctrl+C to kill the remote session")
                         else:
                             message("Press Q<Enter> to detach from remote session, or Ctrl+C to kill it")
@@ -368,7 +372,12 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     if status and not USE_VENV and container_name:
         message(f"killing remote container {container_name}")
         try:
-            ssh_remote("docker kill {}".format(container_name))
+            if has_docker:
+                ssh_remote(f"{has_docker} kill {container_name}")
+            elif has_singularity:
+                from .backends.singularity import get_singularity_image
+                singularity_image = get_singularity_image(config.DOCKER_IMAGE)
+                ssh_remote(f"{has_singularity} instance.stop {singularity_image} {container_name}")
         except subprocess.CalledProcessError as exc:
             message(exc.output)
 

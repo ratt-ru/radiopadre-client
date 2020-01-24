@@ -1,4 +1,4 @@
-import subprocess, glob, os, os.path, re, sys, socket, time
+import subprocess, glob, os, os.path, re, sys, socket, time, signal
 from collections import OrderedDict
 
 from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_browser
@@ -16,14 +16,14 @@ def init(binary):
 def _init_session_dir():
     make_dir("~/.radiopadre")
     global SESSION_INFO_DIR
-    SESSION_INFO_DIR = os.path.expanduser("~/.radiopadre/.sessions")
+    SESSION_INFO_DIR = os.path.expanduser("~/.radiopadre/sessions")
     make_dir(SESSION_INFO_DIR)
 
 def _ps_containers():
     """Returns OrderedDict (ordered by uptime) of containers returned by docker ps.
     Dict is name -> [id, path, uptime, None, None]"""
     lines = subprocess.check_output([docker, "ps", "--filter", "label=radiopadre.user={}".format(USER),
-                "--format", """{{.CreatedAt}}:::{{.ID}}:::{{.Names}}:::{{.Label "radiopadre.dir"}}"""]).strip()
+                "--format", """{{.CreatedAt}}:::{{.ID}}:::{{.Names}}:::{{.Label "radiopadre.dir"}}"""]).decode().strip()
     container_list = sorted([line.split(":::") for line in lines.split("\n") if len(line.split(":::")) == 4], reverse=True)
     return OrderedDict([(name, [id_, path, time, None, None]) for time, id_, name, path in container_list])
 
@@ -35,15 +35,19 @@ def get_session_info_dir(container_name):
 def read_session_info(container_name):
     """Reads the given session ID file. Returns session_id, ports, or else throws a ValueError"""
     dirname = get_session_info_dir(container_name)
+    session_file = f"{dirname}/info"
 
-    comps = open(dirname + "/info").read().strip().split(" ")
+    if not os.path.exists(session_file):
+        raise ValueError(f"invalid session dir {dirname}")
+
+    comps = open(session_file, "rt").read().strip().split(" ")
     if len(comps) != 11:
-        raise ValueError("invalid session dir " + dirname)
+        raise ValueError(f"invalid session dir {dirname}")
     session_id = comps[0]
     try:
         ports = map(int, comps[1:])
     except:
-        raise ValueError("invalid session dir " + dirname)
+        raise ValueError(f"invalid session dir {dirname}")
     return session_id, ports
 
 
@@ -51,7 +55,7 @@ def save_session_info(container_name, selected_ports, userside_ports):
     session_info_dir = "{}/{}".format(SESSION_INFO_DIR, container_name)
     make_dir(session_info_dir)
     session_info_file = session_info_dir + "/info"
-    open(session_info_file, "w").write(" ".join(map(str, [config.SESSION_ID] + selected_ports + userside_ports)))
+    open(session_info_file, "wt").write(" ".join(map(str, [config.SESSION_ID] + selected_ports + userside_ports)))
     os.chmod(session_info_file, 0o600)
     userside_helper_port = userside_ports[1]
     open(session_info_dir + "/js9prefs.js", "w").write(
@@ -66,20 +70,20 @@ def list_sessions():
     for session_dir in glob.glob(SESSION_INFO_DIR + "/radiopadre-*"):
         name = os.path.basename(session_dir)
         if name not in container_dict:
-            message("container {} is no longer running, clearing up session dir".format(name))
+            message("    container {} is no longer running, clearing up session dir".format(name))
             subprocess.call(["rm", "-fr", session_dir])
             continue
         try:
             container_dict[name][3], container_dict[name][4] = read_session_info(session_dir)
         except ValueError:
-            message(f"invalid session dir {session_dir}")
+            message(f"    invalid session dir {session_dir}")
             continue
     output = OrderedDict()
 
     # check for containers without session info and form up output dict
     for name, (id_, path, time, session_id, ports) in container_dict.items():
         if session_id is None:
-            message("container {} has no session dir -- killing it".format(name))
+            message("    container {} has no session dir -- killing it".format(name))
             subprocess.call([docker, "kill", id_])
         else:
             output[id_] = [name, path, time, session_id, ports]
@@ -99,9 +103,9 @@ def identify_session(session_dict, arg):
     return arg
 
 
-def kill_sessions(session_dict, session_ids):
+def kill_sessions(session_dict, session_ids, ignore_fail=False):
     kill_cont = " ".join(session_ids)
-    message("killing containers: {}".format(kill_cont))
+    message("    killing containers: {}".format(kill_cont))
     for cont in session_ids:
         if cont not in session_dict:
             bye("no such radiopadre container: {}".format(cont))
@@ -109,7 +113,7 @@ def kill_sessions(session_dict, session_ids):
         session_id_file = "{}/{}".format(SESSION_INFO_DIR, name)
         if os.path.exists(session_id_file):
             subprocess.call(["rm", "-fr", session_id_file])
-    shell(f"{docker} kill " + kill_cont)
+    shell(f"{docker} kill {kill_cont}", ignore_fail=True)
 
 
 def update_installation():
@@ -155,7 +159,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
                         "-e", f"RADIOPADRE_SESSION_ID={config.SESSION_ID}",
                     ]
     # enable detached mode if not debugging
-    if not config.DOCKER_DEBUG:
+    if not config.CONTAINER_DEBUG:
         docker_opts.append("-d")
     for port1, port2 in zip(selected_ports, CONTAINER_PORTS):
         docker_opts += [ "-p", "{}:{}/tcp".format(port1, port2)]
@@ -191,16 +195,15 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
 
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls)
 
-
-    if config.DOCKER_DETACH:
+    if config.CONTAINER_PERSIST and config.CONTAINER_DETACH:
         message("exiting: container session will remain running.")
         sys.exit(0)
 
     elif config.REMOTE_MODE_PORTS:
         if config.VERBOSE:
-            message("sleeping")
+            message("sleeping until signal")
         while True:
-            time.sleep(1000000)
+            signal.pause()
     else:
         try:
             while True:
@@ -232,7 +235,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     if singularity:
         message("  (When using singularity and the image is not yet available locally, this can take a few minutes the first time you run.)")
 
-    if config.DOCKER_DEBUG:
+    if config.CONTAINER_DEBUG:
         docker_process = subprocess.Popen(docker_opts, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
     else:
         docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL)
@@ -254,7 +257,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
             pass
         try:
             sock.connect(("localhost", jupyter_port))
-            message("Container started: the Jupyter Notebook is running on port {} (after {} secs)".format(
+            message("Container started: the Jupyter Notebook is running on port {} (after {:.2f} secs)".format(
                         jupyter_port, time.time() - t0))
             del sock
             break
@@ -269,4 +272,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         time.sleep(1)
 
     return docker_process
+
+def kill_container(name):
+    shell(f"{docker} kill {name}")
 

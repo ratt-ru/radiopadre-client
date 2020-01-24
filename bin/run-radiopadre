@@ -4,7 +4,7 @@ import sys, os.path, os, argparse, glob
 
 # ### some globals
 
-from radiopadre_client import config
+from radiopadre_client import config, utils
 from radiopadre_client.utils import message, bye
 
 parser = argparse.ArgumentParser(description="""
@@ -18,7 +18,7 @@ parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
-                    help=f"if no notebooks are found in the specified directory, will create a\n"
+                    help=f"if no notebooks are found in the specified directory, will create a "
                          f"{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename.")
 parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
                     help="disable default notebook creation.")
@@ -35,25 +35,31 @@ parser.add_argument("-t", "--timestamps", action="store_true", default=0,
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
 group.add_argument("-D", "--docker", action="append_const", const="docker", dest="backend",
-                    help="enables Docker container mode (first default).")
+                   help="enables Docker container mode (first default).")
 
 group.add_argument("-S", "--singularity", action="append_const", const="singularity", dest="backend",
-                    help="enables Singularity container mode (second default).")
+                   help="enables Singularity container mode (second default).")
 
 group.add_argument("-V", "--virtual-env", action="append_const", const="venv", dest="backend",
-                    help="enables virtualenv mode.")
+                   help="enables virtualenv mode.")
 
 group = parser.add_argument_group("Docker and Singularity back-end options")
 group.add_argument("-C", "--container-dev", action="store_true", default=0,
-                    help="runs radiopadre_client via a Docker or Singularity container, but mounts the host-installed\n"
-                         "version of radiopadre inside it. Intended for developers.")
+                   help="mounts the host-installed versions of radiopadre inside the container. "
+                         "Intended for developers and bleeding-edge users.")
 
 group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
-                    help=f"Which Docker image to use. Default is {config.DOCKER_IMAGE}.")
-group.add_argument("--docker-detach", action="store_true", default=0,
-                    help="detach from container and exit after setting everything up.")
-group.add_argument("--docker-debug", action="store_true", default=0,
-                    help="run container in debug mode, with output to screen.")
+                   help=f"Which Docker image to use. Default is {config.DOCKER_IMAGE}.")
+group.add_argument("--container-persist", action="store_true", default=0,
+                   help="Allow persistent container sessions (Docker only). Default is to kill the container " 
+                        "when radiopadre disconnects.")
+group.add_argument("--container-detach", action="store_true", default=0,
+                   help="detach from container and exit after setting everything up. Implies --container-persist.")
+group.add_argument("--container-debug", action="store_true", default=0,
+                   help="run container in debug mode, with output to screen.")
+group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper", default=1,
+                   help="grim reaper will normally kill older radiopadre containers for the same host/directory. " 
+                        "Use this option to disable this behaviour.")
 
 ## virtualenv support
 group = parser.add_argument_group("Virtualenv back-end options")
@@ -67,13 +73,13 @@ group.add_argument("--venv-ignore-js9", action="store_true", default=0,
 ## remote init support
 group = parser.add_argument_group("Remote installation options")
 group.add_argument("--auto-init", action="store_true", default=0,
-                    help="automatically initialize radiopadre_client installation, if missing on remote.\n" +
+                    help="automatically initialize radiopadre_client installation, if missing on remote. " 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
                     help="Directory in which remote radiopadre_client is installed.\n" +
-                         f"Default is {config.CLIENT_INSTALL_PATH}, otherwise looks in the path.\n")
+                         f"Default is {config.CLIENT_INSTALL_PATH}, otherwise looks in the path. ")
 group.add_argument("-u", "--update", action="store_true",
-                    help="in virtualenv mode: update remote radiopadre_client installation using git pull.\n"
+                    help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
                          "in docker mode: update docker container using docker pull.")
 
 # internal switches used when running in container
@@ -81,6 +87,9 @@ parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
+
+# debug logging
+parser.add_argument("--log", type=int, default=0, help=argparse.SUPPRESS)
 
 ## other settings from config
 
@@ -170,6 +179,9 @@ message("Welcome to the radiopadre client!")
 
 config.init_specific_options(remote_host, notebook_path, options)
 
+if config.LOG:
+    utils.enable_logging("remote" if options.remote else "container" if options.inside_container else "local")
+
 # work out backend
 if not config.BACKEND:
     config.BACKEND = ['singularity', 'docker']
@@ -184,6 +196,13 @@ if remains:
 # figured it out for us
 if options.remote:
     config.BACKEND = config.BACKEND[:1]
+
+def _handle_hup(signum, frame):
+    print("HUP received")
+    message("HUP received")
+
+import signal
+signal.signal(signal.SIGHUP, _handle_hup)
 
 # work out browser
 browser_opts = config.BROWSER.split(":")

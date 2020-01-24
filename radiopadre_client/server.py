@@ -95,6 +95,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     else:
         bye("unknown command {}".format(command))
 
+    running_session_dict = None
 
     # ### SETUP LOCAL SESSION PROPERTIES: container_name, session_id, port assignments
 
@@ -117,6 +118,8 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         if not USE_VENV:
             container_name = "radiopadre-{}-{}".format(config.USER, uuid.uuid4().hex)
             message(f"  Starting new session in container {container_name}")
+            # get dict of running sessions (for GRIM_REAPER later)
+            running_session_dict = backend.list_sessions()
         else:
             container_name = None
             message("  Starting new session in virtual environment")
@@ -216,6 +219,19 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     else:
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
+
+    # if using containers (and not inside a container), see if older sessions need to be reaped
+    if running_session_dict and config.GRIM_REAPER:
+        kill_sessions = []
+        for cont, (_, path, _, sid, _) in running_session_dict.items():
+            if sid != config.SESSION_ID and os.path.samefile(path, os.getcwd()):
+                message(f"reaping older session {sid}")
+                kill_sessions.append(cont)
+
+        if kill_sessions:
+            backend.kill_sessions(running_session_dict, kill_sessions, ignore_fail=True)
+
+
 
     global PADRE_WORKDIR, ABSROOTDIR, ROOTDIR, SHADOWDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 

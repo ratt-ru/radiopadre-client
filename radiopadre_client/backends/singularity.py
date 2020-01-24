@@ -20,8 +20,7 @@ def save_session_info(container_name, selected_ports, userside_ports):
     pass
 
 def list_sessions():
-    raise NotImplementedError("not available in singularity mode")
-
+    return {}
 
 def identify_session(session_dict, arg):
     raise NotImplementedError("not available in singularity mode")
@@ -29,11 +28,14 @@ def identify_session(session_dict, arg):
 def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in singularity mode")
 
+def get_singularity_image(docker_image):
+    return "~/.radiopadre/{}.singularity.img".format(docker_image.replace("/", "_"))
+
 def update_installation():
     global docker_image
     global singularity_image
     docker_image = config.DOCKER_IMAGE
-    singularity_image = os.path.expanduser("~/.radiopadre/{}.singularity.img".format(docker_image.replace("/", "_")))
+    singularity_image = os.path.expanduser(docker_image)
     if config.UPDATE and os.path.exists(singularity_image):
         os.unlink(singularity_image)
     if not os.path.exists(singularity_image):
@@ -43,6 +45,8 @@ def update_installation():
     else:
         message(f"  Using radiopadre Singularity image {singularity_image}")
 
+    # not supported with Singularity
+    config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
 
 
 from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
@@ -75,7 +79,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
             docker_opts += ["-B", "{}:/radiopadre-client".format(config.CLIENT_INSTALL_PATH)]
         if os.path.isdir(config.SERVER_INSTALL_PATH):
             docker_opts += ["-B", "{}:/radiopadre".format(config.SERVER_INSTALL_PATH)]
-    if not config.DOCKER_DEBUG:
+    if not config.CONTAINER_DEBUG:
         command = [singularity, "instance.start"] + docker_opts + \
                   [singularity_image, container_name]
         message("running {}".format(" ".join(command)))
@@ -120,3 +124,6 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
             sys.exit(status)
 
 
+def kill_container(name):
+    singularity_image = get_singularity_image(config.DOCKER_IMAGE)
+    shell(f"{singularity} instance.stop {singularity_image} {name}")
