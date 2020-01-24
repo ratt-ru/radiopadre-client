@@ -194,6 +194,11 @@ remains = set(config.BACKEND) - {"docker", "singularity", "venv"}
 if remains:
     bye("unknown backend specified: {}".format(",".join(remains)))
 
+# fix docker image, if only tag specified
+if config.DOCKER_IMAGE[0] == ":":
+    config.DOCKER_IMAGE = config.DefaultConfig['DOCKER_IMAGE'].rsplit(":", 1)[0] + config.DOCKER_IMAGE
+
+
 # when running  a remote session, only accept the first backend, since run_remote_session() will have
 # figured it out for us
 if options.remote:

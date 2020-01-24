@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from radiopadre_client.utils import message, make_dir, DEVNULL
+from radiopadre_client.utils import message, make_dir, shell, DEVNULL
 from radiopadre_client import config
 
 singularity = None
@@ -35,7 +35,7 @@ def update_installation():
     global docker_image
     global singularity_image
     docker_image = config.DOCKER_IMAGE
-    singularity_image = os.path.expanduser(docker_image)
+    singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if config.UPDATE and os.path.exists(singularity_image):
         os.unlink(singularity_image)
     if not os.path.exists(singularity_image):
