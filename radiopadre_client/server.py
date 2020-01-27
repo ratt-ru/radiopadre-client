@@ -251,8 +251,8 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         os.system("mkdir -p {}".format(SHADOWDIR))
     # This is where the per-session js9prefs.js goes. In virtualenv mode, this is just a directory
     # In docker mode, we mount session_info_dir on this
-    LOCAL_SESSION_DIR = ABSROOTDIR + "/.radiopadre-session"
-    SHADOW_SESSION_DIR = SHADOWDIR + "/.radiopadre-session"
+    os.environ['RADIOPADRE_LOCAL_SESSION_DIR'] = LOCAL_SESSION_DIR = ABSROOTDIR + "/.radiopadre-session"
+    os.environ['RADIOPADRE_SHADOW_SESSION_DIR'] = SHADOW_SESSION_DIR = SHADOWDIR + "/.radiopadre-session"
 
     # make .radiopadre and .radiopadre-session in target dir, or in shadow dir
     cachedir = ABSROOTDIR + "/.radiopadre"

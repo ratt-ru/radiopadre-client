@@ -174,7 +174,7 @@ def init_specific_options(remote_host, notebook_path, options):
                 continue
             if type(value) is list:
                 value = ",".join(value)
-            if value != _CMDLINE_DEFAULTS[key]:
+            if value is not _CMDLINE_DEFAULTS[key]:
                 if use_config_files:
                     # do not mark options such as --update for saving
                     if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None:

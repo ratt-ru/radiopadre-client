@@ -142,11 +142,13 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     #     if not os.path.exists(PADRE_WORKDIR + "/radiopadre-www"):
     #         os.symlink(PADRE_PATH + "/html", PADRE_WORKDIR + "/radiopadre-www")
 
-    # add padre directory to PYTHONPATH
-    if "PYTHONPATH" in os.environ:
-        os.environ["PYTHONPATH"] = os.environ["PYTHONPATH"] + ":" + config.SERVER_INSTALL_PATH
-    else:
-        os.environ["PYTHONPATH"] = config.SERVER_INSTALL_PATH
+    ### NB this should be obviated by container-dev (and by pip install -e into virtualenvs)
+    # # add padre directory to PYTHONPATH
+    # if not config.CONTAINER_DEV:
+    # if "PYTHONPATH" in os.environ:
+    #     os.environ["PYTHONPATH"] = os.environ["PYTHONPATH"] + ":" + config.SERVER_INSTALL_PATH
+    # else:
+    #     os.environ["PYTHONPATH"] = config.SERVER_INSTALL_PATH
 
     from radiopadre_client.server import JUPYTER_OPTS
 

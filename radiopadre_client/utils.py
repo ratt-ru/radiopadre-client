@@ -11,12 +11,19 @@ DEVNULL = open("/dev/null", "w")
 time0 = time.time()
 
 logfile = None
+_do_print = True
+prefix = 'radiopadre-client: '
 
 def enable_logging(logtype, level=1):
     global logfile
     make_dir("~/.radiopadre")
     logname = os.path.expanduser(f"~/.radiopadre/log-{logtype}.txt")
     logfile = open(logname, "wt")
+    return logfile
+
+def enable_printing(enable=True):
+   global _do_print
+   _do_print = enable
 
 
 def message(x, prefix='radiopadre_client: ', file=None):
@@ -26,7 +33,8 @@ def message(x, prefix='radiopadre_client: ', file=None):
         x = x.decode()
     if config.TIMESTAMPS:
         prefix += "{:.2f}: ".format(time.time() - time0)
-    print(prefix + x, file=file or sys.stdout)
+    if _do_print:
+        print(prefix + x, file=file or sys.stdout)
     if logfile:
         print(time.strftime("%x %X:"), prefix + x, file=logfile)
         logfile.flush()
@@ -78,7 +86,7 @@ def find_which(command):
     return binary.decode()
 
 
-def find_unused_port (base, maxtries=10000):
+def find_unused_port(base=1025, maxtries=10000):
     """Helper function. Finds an unused server port"""
     if base > 65535:
         base = 1025
@@ -92,6 +100,13 @@ def find_unused_port (base, maxtries=10000):
             base += 1
             continue
     raise RuntimeError("unable to find free socket port")
+
+def find_unused_ports(num=1, base=1025):
+    """Helper function. Finds N unused ports, returns list"""
+    ports = []
+    for _ in range(num):
+        ports.append(find_unused_port(ports[-1]+1 if ports else base))
+    return ports
 
 
 class Poller(object):
@@ -159,4 +174,17 @@ def run_browser(*urls):
 def make_git_glone_command(repo):
     if "@" in repo:
         repo, branch = repo.rsplit("@", 1)
-    cmd = "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
+    return "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
+
+
+class chdir(object):
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
