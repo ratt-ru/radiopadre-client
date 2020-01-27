@@ -5,6 +5,7 @@ matrix:
   - env: TARGET=pep8
   - env: TARGET=mypy
   allow_failures:
+  - env: TARGET=mypy
   - env: TARGET=pep8
 sudo: required
 services:
