@@ -1,0 +1,23 @@
+language: python
+matrix:
+  include:
+  - env: TARGET=py3
+  - env: TARGET=pep8
+  - env: TARGET=mypy
+  allow_failures:
+  - env: TARGET=pep8
+sudo: required
+services:
+ - docker
+install:
+  - true
+script:
+  - docker build . -f .travis/${TARGET}.docker
+deploy:
+  provider: pypi
+  user: gijzelaerr
+  password:
+    secure: QFyt2Q4Ha+8yrYFOJEvcp49rdHRhfitmmR9I+jZsyYFpEAetkXr/DgeFMadaOUeS1Hsal1k80poHN61pORJPmqkwnUI2qR1sW18tEYTMpsS6UAJR01tRIFvkT9KPRND4ObZ2UsltJ+WrFoPPT5vfqYpwQxmrp6iL3NLbQZCVhrQ=
+  on:
+    tags: true
+    repo: ska-sa/radiopadre-client
