@@ -1,75 +1,108 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from __future__ import print_function
-import sys, os.path, os, argparse
+import sys, os.path, os, argparse, glob
 
 # ### some globals
 
-import radiopadre_client.config
-from radiopadre_client.config import DEFAULT_BROWSER, DEFAULT_DOCKER_IMAGE
-
+from radiopadre_client import config, utils
+from radiopadre_client.utils import message, bye
 
 parser = argparse.ArgumentParser(description="""
-    Manages local or remote Jupyter sessions with radiopadre_client notebooks.
+    Manages local or remote Jupyter sessions with radiopadre notebooks.
     """,
     formatter_class=argparse.RawTextHelpFormatter)
 
-# parser.add_argument("-b","--browser", action="store_true",
-#                   help="open a browser session, even if running under ssh.")
-#
-parser.add_argument("-n", "--no-browser", action="store_true",
-                    help="do not open a browser session")
-parser.add_argument("--browser-command", type=str, metavar="CMD", default=DEFAULT_BROWSER,
-                    help="browser command to run. Default is %(default)s (can also set RADIOPADRE_BROWSER).")
+parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
+                    help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER).")
+parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
+                    help="do not open a browser session.")
 
-## container support
-parser.add_argument("-D", "--docker", action="store_true",
-                    help="forces use of Docker for container mode. Default is to use Singularity if found, and fall\n"
-                         "back to Docker if not.")
+parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
+                    help=f"if no notebooks are found in the specified directory, will create a "
+                         f"{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename.")
+parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
+                    help="disable default notebook creation.")
+parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFAULT_VALUE,
+                    help=f"auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}.")
+parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
+                    help="disable auto-load.")
+parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
+                    help="Verbosity level. Default is 0, higher means more output.")
+parser.add_argument("-t", "--timestamps", action="store_true", default=0,
+                    help="Enables timestamps in output.")
 
-parser.add_argument("-S", "--singularity", action="store_true",
-                    help="forces use of Singularity for container mode. Fail if Singularity is not found.")
 
-parser.add_argument("-C", "--container-dev", action="store_true",
-                    help="runs radiopadre_client via a Docker or Singularity container, but mounts the host-installed\n"
-                         "version of radiopadre inside it. Intended for developers.")
+## back-end support
+group = parser.add_argument_group("Back-end selection options")
+group.add_argument("-D", "--docker", action="append_const", const="docker", dest="backend",
+                   help="enables Docker container mode (first default).")
 
-parser.add_argument("--docker-image", type=str, metavar="IMAGE", default=DEFAULT_DOCKER_IMAGE,
-                    help="Which Docker image to use. Default is %(default)s.")
-parser.add_argument("--docker-detach", action="store_true",
-                    help="detach from container and exit after setting everything up.")
-parser.add_argument("--docker-debug", action="store_true",
-                    help="run container in debug mode, with output to screen.")
+group.add_argument("-S", "--singularity", action="append_const", const="singularity", dest="backend",
+                   help="enables Singularity container mode (second default).")
+
+group.add_argument("-V", "--virtual-env", action="append_const", const="venv", dest="backend",
+                   help="enables virtualenv mode.")
+
+group = parser.add_argument_group("Docker and Singularity back-end options")
+group.add_argument("-C", "--container-dev", action="store_true", default=0,
+                   help="mounts the host-installed versions of radiopadre inside the container. "
+                         "Intended for developers and bleeding-edge users.")
+
+group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
+                   help=f"Which Docker image to use. Default is {config.DOCKER_IMAGE}.")
+group.add_argument("--container-persist", action="store_true", default=0,
+                   help="Allow persistent container sessions (Docker only). Default is to kill the container " 
+                        "when radiopadre disconnects.")
+group.add_argument("--container-detach", action="store_true", default=0,
+                   help="detach from container and exit after setting everything up. Implies --container-persist.")
+group.add_argument("--container-debug", action="store_true", default=0,
+                   help="run container in debug mode, with output to screen.")
+group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper", default=1,
+                   help="grim reaper will normally kill older radiopadre containers for the same host/directory. " 
+                        "Use this option to disable this behaviour.")
 
 ## virtualenv support
-parser.add_argument("-V", "--virtual-env", action="store_true",
-                    help="run radiopadre_client using a virtualenv+local install, rather than via a container (default).")
-parser.add_argument("--venv-reinstall", action="store_true",
+group = parser.add_argument_group("Virtualenv back-end options")
+group.add_argument("--venv-reinstall", action="store_true",
                     help="virtualenv: reinstall radiopadre_client virtual environment before running.")
-parser.add_argument("--venv-no-casacore", action="store_true",
+group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
-parser.add_argument("--venv-no-js9", action="store_true",
-                    help="virtualenv: Ignore JS9 installation errors, if bootstrapping.")
+group.add_argument("--venv-ignore-js9", action="store_true", default=0,
+                    help="virtualenv: ignore JS9 installation errors, if bootstrapping.")
 
 ## remote init support
-parser.add_argument("--auto-init", action="store_true",
-                    help="automatically initialize radiopadre_client installation, if missing on remote.\n" +
+group = parser.add_argument_group("Remote installation options")
+group.add_argument("--auto-init", action="store_true", default=0,
+                    help="automatically initialize radiopadre_client installation, if missing on remote. " 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
-parser.add_argument("--remote-path", type=str, metavar="PATH",
-                    help="for virtualenv or dev-docker mode: directory in which remote radiopadre_client is installed.\n" +
-                         "Default is to try ~/radiopadre_client first, and PATH second.\n")
-parser.add_argument("-u", "--update", action="store_true",
-                    help="in virtualenv mode: update remote radiopadre_client installation using git pull.\n"
+group.add_argument("--skip-checks", action="store_true", default=0,
+                   help="assume remote has a fully functional installation and skip the detailed checks. "
+                   "This can make for faster startup, but less informative failure modes.")
+group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
+                    help=f"directory in which remote radiopadre_client will be installed with --auto-init.")
+group.add_argument("-u", "--update", action="store_true",
+                    help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
                          "in docker mode: update docker container using docker pull.")
 
-## notebook support
-parser.add_argument("--no-default", action="store_true",
-                    help="if no notebooks are found in the specified directory, default is to create\n"
-                         "a radiopadre_client-default.ipynb with some boilerplate. Use this option to disable.")
-parser.add_argument("--no-auto-load", action="store_true",
-                    help="do not load radiopadre_client-auto.ipynb even if found.")
-parser.add_argument("-v", "--verbose", action="store_true",
-                    help="Enable verbose output.")
+# internal switches used when running in container
+parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
+parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
+# internal switch to run script in remote mode.
+parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
 
+# debug logging
+parser.add_argument("--log", type=int, default=0, help=argparse.SUPPRESS)
+
+## other settings from config
+
+group = parser.add_argument_group("Other config options")
+
+group.add_argument("-s", "--save-config-host", action="store_true",
+                   help="Save command line settings for this host to config file.")
+group.add_argument("-e", "--save-config-session", action="store_true",
+                   help="Save command line settings for this host & session to config file.")
+
+config.add_to_parser(group)
 
 parser.add_argument("arguments", nargs="*",
                     help="""One or more arguments, as follows:
@@ -97,23 +130,9 @@ parser.add_argument("arguments", nargs="*",
         kills a specific radiopadre_client session, or all sessions on remote host;
                        """)
 
-# internal switches used when running in container
-parser.add_argument("--inside-container", type=str, metavar="<port1:port2:port3>", help=argparse.SUPPRESS)
-parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
-# internal switch to run script in remote mode.
-parser.add_argument("--remote", type=str, metavar="<port1:port2:port3>", help=argparse.SUPPRESS)
-
-
-
-
-options = parser.parse_args()
-
-
 ### PARSE ARGUMENTS
-
-# check for contradictions
-if options.virtual_env and options.container_dev:
-    parser.error("can't use --virtual-env with --container-dev")
+#
+options = parser.parse_args()
 
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
@@ -131,8 +150,9 @@ else:
     else:
         remote_host, command = None, arguments.pop(0)
 
-radiopadre_client.config.REMOTE_HOST = remote_host
-radiopadre_client.config.REMOTE_PATH = options.remote_path
+config.REMOTE_HOST = remote_host
+config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
+config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":"))) if options.inside_container else []
 
 # work out command and its arguments
 if command == 'ps':
@@ -146,7 +166,7 @@ elif command == 'kill':
         parser.error("kill: specify at least one arguments")
 else:
     notebook_path = command
-    if not remote_host and not os.path.exists(notebook_path):
+    if not remote_host and not glob.glob(notebook_path):
         parser.error("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
     command = 'load'
     # in remote mode, allow an optional argument
@@ -155,23 +175,70 @@ else:
     if arguments:
         parser.error("too many arguments")
 
+message("Welcome to the radiopadre client!")
+
+## finalize settings
+
+config.init_specific_options(remote_host, notebook_path, options)
+
+if config.LOG:
+    utils.enable_logging("remote" if options.remote else "container" if options.inside_container else "local")
+
+# work out backend
+if not config.BACKEND:
+    config.BACKEND = ['singularity', 'docker']
+elif type(config.BACKEND) is str:
+    config.BACKEND = config.BACKEND.split(",")
+
+remains = set(config.BACKEND) - {"docker", "singularity", "venv"}
+if remains:
+    bye("unknown backend specified: {}".format(",".join(remains)))
+
+# fix docker image, if only tag specified
+if config.DOCKER_IMAGE[0] == ":":
+    config.DOCKER_IMAGE = config.DefaultConfig['DOCKER_IMAGE'].rsplit(":", 1)[0] + config.DOCKER_IMAGE
+
+
+# when running  a remote session, only accept the first backend, since run_remote_session() will have
+# figured it out for us
+if options.remote:
+    config.BACKEND = config.BACKEND[:1]
+
+def _handle_hup(signum, frame):
+    print("HUP received")
+    message("HUP received")
+
+import signal
+signal.signal(signal.SIGHUP, _handle_hup)
+
+# work out browser
+browser_opts = config.BROWSER.split(":")
+if browser_opts[1:]:
+    config.BROWSER = browser_opts[0]
+    config.BROWSER_BG = "bg" in browser_opts[1:]
+    config.BROWSER_MULTI = "*" in browser_opts[1:]
+if config.BROWSER == "None":
+    config.BROWSER = None
 
 
 ### REMOTE MODE #################################################################################################
 
 if remote_host:
     import radiopadre_client.remote
-    retcode = radiopadre_client.remote.run_remote_session(command, copy_initial_notebook, notebook_path, arguments, options)
+    retcode = radiopadre_client.remote.run_remote_session(command, copy_initial_notebook, notebook_path, arguments)
 
     sys.exit(retcode)
 
 
-### LOCAL SERVER MODE #############################################################################################
+### LOCAL SERVER MODE ###########################################################################################
+
+# expand "~" in various config settings
+config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
+config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH)
+config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH)
 
 import radiopadre_client.server
 
-# get radiopadre install directory. __file__ is RADIOPADRE-CLIENT/bin/run-radiopadre, so take the dirname twice
-radiopadre_client.config.CLIENT_INSTALL_PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
-radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path, options)
+radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path,
+                                                workdir=options.workdir)
 
