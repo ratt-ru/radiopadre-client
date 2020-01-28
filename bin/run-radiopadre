@@ -1,11 +1,11 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 from __future__ import print_function
-import sys, os.path, os, argparse, glob
+import sys, os, argparse, glob
 
 # ### some globals
 
 from radiopadre_client import config, utils
-from radiopadre_client.utils import message, bye
+from radiopadre_client.utils import message, bye, ff
 
 parser = argparse.ArgumentParser(description="""
     Manages local or remote Jupyter sessions with radiopadre notebooks.
@@ -13,17 +13,17 @@ parser = argparse.ArgumentParser(description="""
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
-                    help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER).")
+                    help=ff("browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER)."))
 parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
-                    help=f"if no notebooks are found in the specified directory, will create a "
-                         f"{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename.")
+                    help=ff("if no notebooks are found in the specified directory, will create a ") +
+                         ff("{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename."))
 parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
                     help="disable default notebook creation.")
 parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFAULT_VALUE,
-                    help=f"auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}.")
+                    help=ff("auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}."))
 parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
                     help="disable auto-load.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
@@ -49,7 +49,7 @@ group.add_argument("-C", "--container-dev", action="store_true", default=0,
                          "Intended for developers and bleeding-edge users.")
 
 group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
-                   help=f"Which Docker image to use. Default is {config.DOCKER_IMAGE}.")
+                   help=ff("Which Docker image to use. Default is {config.DOCKER_IMAGE}."))
 group.add_argument("--container-persist", action="store_true", default=0,
                    help="Allow persistent container sessions (Docker only). Default is to kill the container " 
                         "when radiopadre disconnects.")
@@ -79,7 +79,7 @@ group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks. "
                    "This can make for faster startup, but less informative failure modes.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help=f"directory in which remote radiopadre_client will be installed with --auto-init.")
+                    help=ff("directory in which remote radiopadre_client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
                     help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
                          "in docker mode: update docker container using docker pull.")
@@ -153,6 +153,11 @@ else:
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
 config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":"))) if options.inside_container else []
+
+if config.CLIENT_INSTALL_PATH == "None":
+    config.CLIENT_INSTALL_PATH = None
+if config.SERVER_INSTALL_PATH == "None":
+    config.SERVER_INSTALL_PATH = None
 
 # work out command and its arguments
 if command == 'ps':
@@ -234,8 +239,8 @@ if remote_host:
 
 # expand "~" in various config settings
 config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
-config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH)
-config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH)
+config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH or "")
+config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH or "")
 
 import radiopadre_client.server
 

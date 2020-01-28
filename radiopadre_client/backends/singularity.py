@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from radiopadre_client.utils import message, make_dir, shell, DEVNULL
+from radiopadre_client.utils import message, make_dir, shell, DEVNULL, ff
 from radiopadre_client import config
 
 singularity = None
@@ -36,11 +36,11 @@ def update_installation():
     if config.UPDATE and os.path.exists(singularity_image):
         os.unlink(singularity_image)
     if not os.path.exists(singularity_image):
-        message(f"  Rebuilding radiopadre Singularity image {singularity_image} from docker://{docker_image}")
-        message(f"  (This may take a few minutes....)")
+        message(ff("  Rebuilding radiopadre Singularity image {singularity_image} from docker://{docker_image}"))
+        message(ff("  (This may take a few minutes....)"))
         subprocess.check_call([singularity, "build", singularity_image, "docker://{}".format(docker_image)])
     else:
-        message(f"  Using radiopadre Singularity image {singularity_image}")
+        message(ff("  Using radiopadre Singularity image {singularity_image}"))
 
     # not supported with Singularity
     config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
@@ -53,7 +53,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
-    message(f"Container name: {container_name}")  # remote script will parse it
+    message(ff("Container name: {container_name}"))  # remote script will parse it
 
     os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
     os.environ["XDG_RUNTIME_DIR"] = ""
@@ -122,4 +122,4 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
 
 def kill_container(name):
     singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-    shell(f"{singularity} instance.stop {singularity_image} {name}")
+    shell(ff("{singularity} instance.stop {singularity_image} {name}"))

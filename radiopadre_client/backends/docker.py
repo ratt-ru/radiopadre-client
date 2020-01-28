@@ -1,7 +1,7 @@
 import subprocess, glob, os, os.path, re, sys, socket, time, signal
 from collections import OrderedDict
 
-from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_browser
+from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_browser, ff
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 
@@ -35,19 +35,19 @@ def get_session_info_dir(container_name):
 def read_session_info(container_name):
     """Reads the given session ID file. Returns session_id, ports, or else throws a ValueError"""
     dirname = get_session_info_dir(container_name)
-    session_file = f"{dirname}/info"
+    session_file = ff("{dirname}/info")
 
     if not os.path.exists(session_file):
-        raise ValueError(f"invalid session dir {dirname}")
+        raise ValueError(ff("invalid session dir {dirname}"))
 
     comps = open(session_file, "rt").read().strip().split(" ")
     if len(comps) != 11:
-        raise ValueError(f"invalid session dir {dirname}")
+        raise ValueError(ff("invalid session dir {dirname}"))
     session_id = comps[0]
     try:
         ports = map(int, comps[1:])
     except:
-        raise ValueError(f"invalid session dir {dirname}")
+        raise ValueError(ff("invalid session dir {dirname}"))
     return session_id, ports
 
 
@@ -76,7 +76,7 @@ def list_sessions():
         try:
             container_dict[name][3], container_dict[name][4] = read_session_info(session_dir)
         except ValueError:
-            message(f"    invalid session dir {session_dir}")
+            message(ff("    invalid session dir {session_dir}"))
             continue
     output = OrderedDict()
 
@@ -113,13 +113,13 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
         session_id_file = "{}/{}".format(SESSION_INFO_DIR, name)
         if os.path.exists(session_id_file):
             subprocess.call(["rm", "-fr", session_id_file])
-    shell(f"{docker} kill {kill_cont}", ignore_fail=True)
+    shell(ff("{docker} kill {kill_cont}"), ignore_fail=True)
 
 
 def update_installation():
     global docker_image
     docker_image = config.DOCKER_IMAGE
-    message(f"  Using radiopadre Docker image {docker_image}")
+    message(ff("  Using radiopadre Docker image {docker_image}"))
     if config.UPDATE:
         message("  Calling docker pull to make sure the image is up-to-date.")
         message("  (This may take a few minutes if it isn't....)")
@@ -149,14 +149,14 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
-    message(f"Container name: {container_name}")  # remote script will parse it
+    message(ff("Container name: {container_name}"))  # remote script will parse it
 
     docker_opts = [ docker, "run", "--rm", "--name", container_name, "-w", ABSROOTDIR,
                         "--user", "{}:{}".format(os.getuid(), os.getgid()),
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
-                        "-e", f"RADIOPADRE_CONTAINER_NAME={container_name}",
-                        "-e", f"RADIOPADRE_SESSION_ID={config.SESSION_ID}",
+                        "-e", ff("RADIOPADRE_CONTAINER_NAME={container_name}"),
+                        "-e", ff("RADIOPADRE_SESSION_ID={config.SESSION_ID}"),
                     ]
     # enable detached mode if not debugging
     if not config.CONTAINER_DEBUG:
@@ -250,7 +250,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     for retry in range(1000):
         if docker_process.returncode is not None:
-            bye(f"container unexpectedly exited with return code {docker_process.returncode}")
+            bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
         try:
             docker_process.wait(.1)
         except subprocess.TimeoutExpired:
@@ -264,7 +264,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         except socket.error:
             pass
     else:
-        bye(f"unable to connect to Jupyter Notebook server on port {jupyter_port}")
+        bye(ff("unable to connect to Jupyter Notebook server on port {jupyter_port}"))
 
     if browser_urls:
         child_processes += run_browser(*browser_urls)
@@ -274,5 +274,5 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     return docker_process
 
 def kill_container(name):
-    shell(f"{docker} kill {name}")
+    shell(ff("{docker} kill {name}"))
 

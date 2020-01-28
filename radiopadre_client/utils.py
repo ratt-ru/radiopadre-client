@@ -14,10 +14,18 @@ logfile = None
 _do_print = True
 prefix = 'radiopadre-client: '
 
+def ff(fstring):
+    """Emulates Python 3.6+ f-strings"""
+    fr = sys._getframe(1)
+    kw = fr.f_globals.copy()
+    kw.update(fr.f_locals)
+    return fstring.format(**kw)
+
+
 def enable_logging(logtype, level=1):
     global logfile
     make_dir("~/.radiopadre")
-    logname = os.path.expanduser(f"~/.radiopadre/log-{logtype}.txt")
+    logname = os.path.expanduser(ff("~/.radiopadre/log-{logtype}.txt"))
     logfile = open(logname, "wt")
     return logfile
 
@@ -161,7 +169,7 @@ def run_browser(*urls):
                     subprocess.call(command, stdout=DEVNULL)
             except OSError as exc:
                 if exc.errno == 2:
-                    message(f"{config.BROWSER} not found")
+                    message(ff("{config.BROWSER} not found"))
                 else:
                     raise
 
