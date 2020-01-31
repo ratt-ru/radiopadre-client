@@ -53,9 +53,10 @@ def _install_radiopadre(init_venv=False):
         if shell(cmd):
             bye("git clone failed")
     elif config.UPDATE:
-        message(ff("--update specified, will attempt a git pull in {config.SERVER_INSTALL_REPO}"))
-        if shell(ff("cd {config.SERVER_INSTALL_REPO} && git pull")):
-            bye("git pull failed")
+        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
+        message(ff("--update specified: {cmd}"))
+        if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
+            bye("update failed")
 
     cmd = "{}/bin/install-radiopadre --venv {} {} {} {}".format(config.SERVER_INSTALL_PATH, config.RADIOPADRE_VENV,
                 "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
