@@ -150,6 +150,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
         elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
             message("Please point your browser to {}".format(" ".join(browser_urls)))
 
+        message("Startup done... waiting on notebook process")
         notebook_proc.wait()
         message("Notebook process done")
         child_processes.pop(-1)
