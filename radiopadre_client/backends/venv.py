@@ -98,7 +98,7 @@ def update_installation():
 
 def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path,
                   browser_urls):
-    from radiopadre_client.server import ROOTDIR, ABSROOTDIR, PADRE_WORKDIR, LOCAL_SESSION_DIR, SHADOWDIR
+    from radiopadre_client.server import ROOTDIR, JUPYTER_OPTS
 
     # get hostname
     os.environ["HOSTNAME"] = subprocess.check_output("/bin/hostname").decode()
@@ -109,155 +109,32 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     if not notebook_dir:
         raise subprocess.CalledProcessError(-1, "venv backend", "jupyter installation path not found")
 
+    jupyter_port = selected_ports[0]
+    userside_http_port = userside_ports[3]
 
-    # check status of JS9. Ends up being True, or a RuntimeError
-
-    js9dir = js9error = None
-    js9status_file = config.RADIOPADRE_VENV + "/js9status"
-    if not os.path.exists(js9status_file):
-        js9error = "not found"
-    else:
-        js9dir = open(js9status_file).read().strip()
-        if not js9dir.startswith("/"):
-            js9error = js9dir
-            js9dir = None
-
-    os.environ['RADIOPADRE_JS9_DIR'] = js9dir or ''
-    os.environ['RADIOPADRE_JS9_ERROR'] = js9error or ''
-    if js9dir:
-        message(ff("  Found JS9 install in {js9dir}"))
-    else:
-        message(ff("  Warning: JS9 not functional ({js9error}). Reinstall radiopadre?"))
-
-
-    # # make link to JS9 install
-    # if js9dir:
-    #     if not os.path.exists(PADRE_WORKDIR + "/js9-www"):
-    #         os.symlink(js9dir, PADRE_WORKDIR + "/js9-www")
-    #     if not os.path.exists(PADRE_WORKDIR + "/js9colormaps.js"):
-    #         message("making {} symlink".format(PADRE_WORKDIR + "/js9colormaps.js"))
-    #         os.symlink(notebook_dir + "/notebook/static/js9colormaps.js", PADRE_WORKDIR + "/js9colormaps.js")
-    #     if not os.path.exists(PADRE_WORKDIR + "/radiopadre-www"):
-    #         os.symlink(PADRE_PATH + "/html", PADRE_WORKDIR + "/radiopadre-www")
-
-    ### NB this should be obviated by container-dev (and by pip install -e into virtualenvs)
-    # # add padre directory to PYTHONPATH
-    # if not config.CONTAINER_DEV:
-    # if "PYTHONPATH" in os.environ:
-    #     os.environ["PYTHONPATH"] = os.environ["PYTHONPATH"] + ":" + config.SERVER_INSTALL_PATH
-    # else:
-    #     os.environ["PYTHONPATH"] = config.SERVER_INSTALL_PATH
-
-    from radiopadre_client.server import JUPYTER_OPTS
-
-    JUPYTER_OPTS.append("--port={}".format(selected_ports[0]))
-    JUPYTER_OPTS += ["--no-browser", "--browser=/dev/null"] # --no-browser alone seems to be ignored
+    JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
     if config.INSIDE_CONTAINER_PORTS:
-        JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"] # --no-browser alone seems to be ignored
+        JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
 
     # if LOAD_NOTEBOOK:
     #     JUPYTER_OPTS.append(LOAD_NOTEBOOK if type(LOAD_NOTEBOOK) is str else LOAD_NOTEBOOK[0])
 
-    userside_jupyter_port, userside_helper_port, userside_http_port, userside_carta_port, userside_carta_ws_port = userside_ports
-    jupyter_port, helper_port, http_port, carta_port, carta_ws_port  = selected_ports
+    # pass configured ports to radiopadre kernel
+    os.environ['RADIOPADRE_SELECTED_PORTS'] = ":".join(map(str, selected_ports[1:]))
+    os.environ['RADIOPADRE_USERSIDE_PORTS'] = ":".join(map(str, userside_ports[1:]))
+    os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = ff("http://localhost:{userside_http_port}/{config.SESSION_ID}/")
 
     child_processes = []
 
-    #os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = "http://localhost:{}/".format(forwarded_http_port)
-    os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = ff("http://localhost:{userside_http_port}/{config.SESSION_ID}/")
-    js9prefs = None
-
-    http_rewrites = [ "/radiopadre-www/={}/".format(config.SERVER_INSTALL_PATH + "/html") ]
-
-    if js9dir:
-        os.environ['RADIOPADRE_JS9_HELPER_PORT'] = str(userside_helper_port)
-        js9prefs = LOCAL_SESSION_DIR + "/js9prefs.js"
-        if not config.INSIDE_CONTAINER_PORTS:
-            # create JS9 settings file (in container mode, this is created above, and mounted inside container already)
-            open(js9prefs, "w").write("JS9Prefs.globalOpts.helperPort = {};\n".format(userside_helper_port))
-        # URL to local settings file for this session
-        os.environ['RADIOPADRE_JS9_SETTINGS'] = "{}{}".format(urlbase, js9prefs)
-
-        http_rewrites.append("/js9-www/={}/".format(js9dir))
-        http_rewrites.append("/js9colormaps.js={}".format(notebook_dir + "/notebook/static/js9colormaps.js"))
-
     try:
-        helper_proc = None
-        if js9dir:
-            os.environ['JS9_LOCAL_URL_PREFIX'] = urlbase
-            os.environ['JS9_LOCAL_FS_PREFIX'] = PADRE_WORKDIR + "/"
-            js9helper = js9dir +"/js9Helper.js"
-            if os.path.exists(js9helper):
-                message(ff("Starting {js9helper} on port {helper_port} in {SHADOWDIR}"))
-                nodejs = find_which("nodejs") or find_which("node")
-                if not nodejs:
-                    bye("Unable to find nodejs or node -- can't run js9helper. You need to apt-get install nodejs perhaps?")
-                try:
-                    os.chdir(SHADOWDIR)
-                    child_processes.append(subprocess.Popen([nodejs.strip(), js9helper,
-                        ('{{"helperPort": {}, "debug": {}, ' +
-                         '"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{}|/static/)", ""] }}').format(
-                                helper_port, 1 if config.VERBOSE else 0,
-                                ABSROOTDIR)],
-                            stdin=DEVZERO, stdout=sys.stdout, stderr=sys.stderr))
-                finally:
-                    os.chdir(ROOTDIR)
-            else:
-                message(ff("Can't find JS9 helper at {js9helper}"))
-        else:
-            message("JS9 not configured")
-
-        message(ff("Starting HTTP server process in {PADRE_WORKDIR} on port {http_port}"))
-        args = [ff("{config.RADIOPADRE_VENV}/bin/python"), ff("{config.CLIENT_INSTALL_PATH}/bin/radiopadre-http-server.py"),
-                str(http_port) ] + http_rewrites
-
-        try:
-            os.chdir(PADRE_WORKDIR)
-            child_processes.append(subprocess.Popen(args, stdin=DEVZERO,
-                                                    stdout=sys.stdout if config.VERBOSE else DEVNULL,
-                                                    stderr=sys.stderr if config.VERBOSE else DEVNULL))
-        finally:
-            os.chdir(ROOTDIR)
-
-        ## start CARTA backend
-        carta_dir = os.path.expanduser(config.RADIOPADRE_VENV)
-        carta_exec = ff("{carta_dir}/carta/carta")
-        if not os.path.exists(carta_exec):
-            message("CARTA backend not found, omitting", file=sys.stderr)
-        else:
-            message(ff("Found CARTA in {carta_exec} (dir {carta_dir})"))
-            if carta_dir:
-                os.chdir(carta_dir)
-            try:
-                # if options.inside_container:
-                #     xvfb  = find_which("which Xvfb")
-                #     args = [xvfb, "-displayfd", "1", "-auth", "/dev/null" ]
-                #     child_processes.append(subprocess.Popen(xvfb, stdin=DEVZERO,
-                #                   stdout=sys.stdout if options.verbose else DEVNULL,
-                #                   stderr=sys.stderr if options.verbose else DEVNULL, shell=True))
-                #     os.environ['DISPLAY'] = ':0'
-
-                args = [carta_exec, "--remote", "--root={}".format(ROOTDIR), "--folder={}".format(ROOTDIR),
-                        "--port={}".format(carta_ws_port), "--fport={}".format(carta_port)]
-                message("Starting CARTA backend {} (in {})".format(" ".join(args), os.getcwd()), file=sys.stderr)
-                os.environ['RADIOPADRE_CARTA_PORT'] = str(userside_carta_port)
-                os.environ['RADIOPADRE_CARTA_WS_PORT'] = str(userside_carta_ws_port)
-
-                child_processes.append(subprocess.Popen(args, stdin=subprocess.PIPE,
-                                                        stdout=sys.stderr if config.VERBOSE else DEVNULL,
-                                                        stderr=sys.stderr if config.VERBOSE else DEVNULL))
-            finally:
-                os.chdir(ROOTDIR)
-
         ## start jupyter process
-
         jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
         message("Starting: {} {} in {}".format(jupyter_path,  " ".join(JUPYTER_OPTS), ROOTDIR))
 
         notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
-                                          stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-                                          env=os.environ)
+                                         stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
+                                         env=os.environ)
 
         ## use this instead to debug the sessison
         #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
@@ -277,9 +154,10 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
         child_processes.pop(-1)
 
     finally:
-        message("Terminating child processes")
-        for proc in child_processes:
-            proc.terminate()
-            proc.wait()
+        if child_processes:
+            message("Terminating {} remaining child processes".format(len(child_processes)))
+            for proc in child_processes:
+                proc.terminate()
+                proc.wait()
 
     message("Exiting")
