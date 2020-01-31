@@ -138,6 +138,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         if container_name:
             backend.save_session_info(container_name, selected_ports, userside_ports)
 
+    global userside_jupyter_port  # needed for it to be visible to ff() from a list comprehension
     jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
     userside_jupyter_port, userside_helper_port, userside_http_port, userside_carta_port, userside_carta_ws_port = userside_ports
 
@@ -230,8 +231,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
         if kill_sessions:
             backend.kill_sessions(running_session_dict, kill_sessions, ignore_fail=True)
-
-
 
     global PADRE_WORKDIR, ABSROOTDIR, ROOTDIR, SHADOWDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 

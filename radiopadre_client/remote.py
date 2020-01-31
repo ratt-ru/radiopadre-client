@@ -249,7 +249,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             message(ff("--update specified, will attempt a git pull in {config.REMOTE_HOST}:{install_path}"))
             if has_git:
                 ssh_remote_interactive(ff("cd {install_path} && git fetch origin && ") +
-                                       ff("git checkout {config.CLIENT_INSTALL_BRANCH} && git merge FETCH_HEAD && ") +
+                                       ff("git checkout {config.CLIENT_INSTALL_BRANCH} && git pull && ") +
                                        ff("source {config.RADIOPADRE_VENV}/bin/activate && pip3 install -e .")
                                        )
             else:
