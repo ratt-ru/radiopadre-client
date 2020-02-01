@@ -17,6 +17,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # master ssh connection, to be closed when we exit
     if config.VERBOSE:
         message("Opening initial master connection to {} {}. You may be prompted for your password.".format(config.REMOTE_HOST,
+                                                                                                                SSH_OPTS))
     else:
         message("Opening initial master connection to {}. You may be prompted for your password.".format(config.REMOTE_HOST))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
