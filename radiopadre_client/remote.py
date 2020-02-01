@@ -250,7 +250,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             if has_git:
                 ssh_remote_interactive(ff("cd {install_path} && git fetch origin && ") +
                                        ff("git checkout {config.CLIENT_INSTALL_BRANCH} && git pull && ") +
-                                       ff("source {config.RADIOPADRE_VENV}/bin/activate && pip3 install -e .")
+                                       ff("source {config.RADIOPADRE_VENV}/bin/activate && pip3 install -U -e .")
                                        )
             else:
                 message("No git installed on remote, ignoring --update flag for the client")
