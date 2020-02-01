@@ -31,6 +31,9 @@ def get_singularity_image(docker_image):
 def update_installation():
     global docker_image
     global singularity_image
+    from .venv import update_server_install
+    if config.CONTAINER_DEV:
+        update_server_install()
     docker_image = config.DOCKER_IMAGE
     singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if config.UPDATE and os.path.exists(singularity_image):

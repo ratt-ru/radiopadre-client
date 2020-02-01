@@ -118,6 +118,9 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
 
 def update_installation():
     global docker_image
+    from .venv import update_server_install
+    if config.CONTAINER_DEV:
+        update_server_install()
     docker_image = config.DOCKER_IMAGE
     message(ff("  Using radiopadre Docker image {docker_image}"))
     if config.UPDATE:

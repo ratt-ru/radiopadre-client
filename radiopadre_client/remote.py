@@ -192,8 +192,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("Trying to --auto-init an installation for you")
 
         # try to auto-init a virtual environment
-        if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-ff("):
-            message(f")Creating virtualenv {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
+        if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
+            message(ff("Creating virtualenv {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"))
             ssh_remote_v(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
         else:
             message(ff("Installing into existing virtualenv {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"))
@@ -265,7 +265,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if check_remote_file(notebook_path or ".", "-d"):
             nbpath = "{}/{}".format(notebook_path or ".", copy_initial_notebook)
             if check_remote_file(nbpath, "-ff("):
-                message(f")remote notebook {nbpath} exists, will not copy over")
+                message(ff("remote notebook {nbpath} exists, will not copy over"))
             else:
                 message(ff("remote notebook {nbpath} doesn't exist, will copy over"))
                 scp_to_remote(copy_initial_notebook, notebook_path)
@@ -294,7 +294,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("running {}".format(" ".join(args)))
     else:
         message(ff("running client on {config.REMOTE_HOST}"))
-    ssh = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ssh = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
+                           universal_newlines=True)
 
     poller = Poller()
     poller.register_process(ssh, config.REMOTE_HOST, config.REMOTE_HOST + " stderr")
@@ -373,7 +374,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         container_name = match.group(1)
                         continue
 
-                    if "Jupyter Notebook is running" in line:
+                    if "Serving notebooks" in line:
                         remote_running = True
                         time.sleep(1)
                         child_processes += run_browser(*urls)

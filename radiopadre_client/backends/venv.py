@@ -68,7 +68,17 @@ def _install_radiopadre(init_venv=False):
         bye("Installation script failed.")
 
 
+def update_server_install():
+    if config.UPDATE and config.SERVER_INSTALL_PATH and os.path.isdir(config.SERVER_INSTALL_PATH + "/.git"):
+        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
+        message(ff("--update specified, existing --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
+        message(ff("    {cmd}"))
+        if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
+            bye("update failed")
+
+
 def update_installation():
+    update_server_install()
     # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
     # are we already running inside a virtualenv?
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
