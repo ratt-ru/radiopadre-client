@@ -134,6 +134,7 @@ def _collect_runscript_arguments(ports):
 
     run_config = config.get_config_dict()
     run_config["BACKEND"] = "venv"
+    run_config["UPDATE"] = False
     run_config["BROWSER"] = "None"
     run_config["INSIDE_CONTAINER"] = ":".join(map(str, ports))
     run_config["WORKDIR"] = PADRE_WORKDIR
