@@ -374,7 +374,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         container_name = match.group(1)
                         continue
 
-                    if "Serving notebooks" in line:
+                    if "jupyter notebook server is running" in line:
                         remote_running = True
                         time.sleep(1)
                         child_processes += run_browser(*urls)

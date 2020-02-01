@@ -2,6 +2,7 @@ import sys, os, os.path, subprocess
 from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DEVZERO, run_browser, ff
 
 from radiopadre_client import config
+from .backend_utils import await_server_startup, update_server_install
 
 def init():
     pass
@@ -67,14 +68,6 @@ def _install_radiopadre(init_venv=False):
     if shell(cmd):
         bye("Installation script failed.")
 
-
-def update_server_install():
-    if config.UPDATE and config.SERVER_INSTALL_PATH and os.path.isdir(config.SERVER_INSTALL_PATH + "/.git"):
-        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
-        message(ff("--update specified, existing --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
-        message(ff("    {cmd}"))
-        if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
-            bye("update failed")
 
 
 def update_installation():
@@ -160,11 +153,23 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
         elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
             message("Please point your browser to {}".format(" ".join(browser_urls)))
 
-        message("Startup done... waiting on notebook process")
-        notebook_proc.wait()
-        message("Notebook process done")
-        child_processes.pop(-1)
+        # pause to let the Jupyter server spin up
+        wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
 
+        if wait is None:
+            if notebook_proc.returncode is not None:
+                bye(ff("jupyter unexpectedly exited with return code {notebook_proc.returncode}"))
+            bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+
+        message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+
+        # wait for termination
+        try:
+            notebook_proc.wait()
+            message(ff("The jupyter notebook process has exited with return code {notebook_proc.returncode}"))
+            child_processes.pop(-1)
+        except KeyboardInterrupt:
+            message("Ctril+C caught")
     finally:
         if child_processes:
             message("Terminating {} remaining child processes".format(len(child_processes)))

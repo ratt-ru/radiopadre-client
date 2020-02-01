@@ -5,6 +5,8 @@ from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 
+from .backend_utils import await_server_startup, update_server_install
+
 docker = None
 SESSION_INFO_DIR = '.'
 
@@ -118,7 +120,6 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
 
 def update_installation():
     global docker_image
-    from .venv import update_server_install
     if config.CONTAINER_DEV:
         update_server_install()
     docker_image = config.DOCKER_IMAGE
@@ -247,27 +248,14 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     child_processes.append(docker_process)
 
     # pause to let the Jupyter server spin up
-    t0 = time.time()
-    time.sleep(2)
-    # then try to connect to it
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    for retry in range(1000):
+    wait = await_server_startup(jupyter_port, process=docker_process, init_wait=1, server_name="notebook container")
+
+    if wait is None:
         if docker_process.returncode is not None:
             bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
-        try:
-            docker_process.wait(.1)
-        except subprocess.TimeoutExpired:
-            pass
-        try:
-            sock.connect(("localhost", jupyter_port))
-            message("Container started: the Jupyter Notebook is running on port {} (after {:.2f} secs)".format(
-                        jupyter_port, time.time() - t0))
-            del sock
-            break
-        except socket.error:
-            pass
-    else:
-        bye(ff("unable to connect to Jupyter Notebook server on port {jupyter_port}"))
+        bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+
+    message(ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
 
     if browser_urls:
         child_processes += run_browser(*browser_urls)
