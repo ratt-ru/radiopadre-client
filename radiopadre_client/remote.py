@@ -11,14 +11,12 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
+#    SSH_OPTS = ["ssh", "-tt"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
     SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
-    # SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [host]
 
     # master ssh connection, to be closed when we exit
     if config.VERBOSE:
         message("Opening initial master connection to {} {}. You may be prompted for your password.".format(config.REMOTE_HOST,
-                                                                                                            " ".join(
-                                                                                                                SSH_OPTS)))
     else:
         message("Opening initial master connection to {}. You may be prompted for your password.".format(config.REMOTE_HOST))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)

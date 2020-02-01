@@ -44,6 +44,7 @@ def message(x, prefix='radiopadre_client: ', file=None):
         prefix += "{:.2f}: ".format(time.time() - time0)
     if _do_print:
         print(prefix + x, file=file or sys.stdout)
+        (file or sys.stdout).flush()
     if logfile:
         print(time.strftime("%x %X:"), prefix + x, file=logfile)
         logfile.flush()
