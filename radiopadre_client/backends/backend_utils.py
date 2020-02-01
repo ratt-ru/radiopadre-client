@@ -1,5 +1,4 @@
-import socket, time, subprocess
-import six
+import socket, time, os, os.path
 
 from radiopadre_client.utils import message, bye, ff, shell
 from radiopadre_client import config
