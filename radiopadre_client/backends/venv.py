@@ -135,7 +135,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
 
         notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
                                          stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-                                         bufsize=1, env=os.environ)
+                                         bufsize=1, universal_newlines=True, env=os.environ)
 
         ## use this instead to debug the sessison
         #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
