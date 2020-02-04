@@ -1,4 +1,9 @@
-import os, os.path, subprocess, re, configparser
+import os, os.path, subprocess, re
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 from .utils import make_dir, message, ff
 from .default_config import DefaultConfig
