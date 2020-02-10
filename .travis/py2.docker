@@ -1,0 +1,9 @@
+FROM kernsuite/base:5
+RUN docker-apt-install python-pip
+
+ADD . /code
+RUN pip install /code
+WORKDIR /code
+ENV USER=root
+
+RUN run-radiopadre --help

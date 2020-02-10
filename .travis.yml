@@ -1,0 +1,26 @@
+language: python
+matrix:
+  include:
+  - env: TARGET=py2
+  - env: TARGET=py3
+  - env: TARGET=pep8
+  - env: TARGET=mypy
+  allow_failures:
+  - env: TARGET=mypy
+  - env: TARGET=pep8
+sudo: required
+services:
+ - docker
+install:
+  - true
+script:
+  - docker build . -f .travis/${TARGET}.docker
+deploy:
+  provider: pypi
+  user: athanaseus
+  password:
+    secure: RCfteSiB39WX/8sOU6Ai5RWThW8BhzeWwdZhfxpg7oDrn7DXDcYCVTws+FS90Q4vpTjYtEgSfzcmOSB5JGXC1hsjk4fIKArGdLo5x9UqNpKUmg8LuDUgqVW9RBePUivg5kRFiMvRcbpdxcKASqLYv/QxcttmzeDB3FV8dqJMYByIb0f0vB3+yXNSMd4Y6JUOtLbr5GO88KqBAb1SQTqs3+eth51nxiK1FtOeKTZ7rAvHPGxM+AJw50CSg3UGxyOGI+0RKR1tggfeNjAv9QnuYEFtpSj+wn/1FQHdhDqb/NT1panB37VJ8hqVzryIRwRTItERpo4LbOZiXUD6g8NvEzrKK4LTnU0shj6BHglDYqrP4hjLn2hTrn4/uHi+WzzDu/n5c/c+gk9Yu8hzfZtKtzr69WcobSmmGdvYIjRoCQqliuA+Fj/Zt27PMOd5JO5VdtxDYXmsxytGTIC7T8F+eG8mq8ULaMMMj1peoobKFUaFWh0hcx/m4fB8hEUQODsnAQM/N15pQF619eWhGWuEpyr68CEOGf6ifpII+A9it4jqAgPF+HwPJAVZSNMo1ItF2AWwmmFbNPQyiuuHYgR8jaMgxM/8sW5bZD0ocJGXubL++skUaxAJMGBBnMaJS3hMERmvsqIIA7IO0tKup37+y5dRZ6UWQ0pGaKhPtYcGXZc=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+repo: ratt-ru/radiopadre-client
