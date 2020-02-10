@@ -102,7 +102,7 @@ def update_installation():
 
 def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path,
                   browser_urls):
-    from radiopadre_client.server import ROOTDIR, JUPYTER_OPTS
+    from radiopadre_client.server import ROOTDIR, JUPYTER_OPTS, SHADOW_SESSION_DIR
 
     # get hostname
     os.environ["HOSTNAME"] = subprocess.check_output("/bin/hostname").decode()
@@ -114,7 +114,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
         raise subprocess.CalledProcessError(-1, "venv backend", "jupyter installation path not found")
 
     jupyter_port = selected_ports[0]
-    userside_http_port = userside_ports[3]
+    userside_http_port = userside_ports[2]
 
     JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
@@ -127,7 +127,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     # pass configured ports to radiopadre kernel
     os.environ['RADIOPADRE_SELECTED_PORTS'] = ":".join(map(str, selected_ports[1:]))
     os.environ['RADIOPADRE_USERSIDE_PORTS'] = ":".join(map(str, userside_ports[1:]))
-    os.environ['RADIOPADRE_SHADOW_URLBASE'] = urlbase = ff("http://localhost:{userside_http_port}/{config.SESSION_ID}/")
+    os.environ['RADIOPADRE_SHADOW_URLBASE'] = ff("http://localhost:{userside_http_port}/{config.SESSION_ID}/")
 
     child_processes = []
 

@@ -54,6 +54,9 @@ INSIDE_CONTAINER_PORTS = False
 
 CONFIG_FILE = os.path.expanduser("~/.config/radiopadre-client")
 
+LAST_SESSIONS_FILE = os.path.expanduser("~/.config/radiopadre-client.last")
+
+
 COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 
 _DEFAULT_KEYS = None

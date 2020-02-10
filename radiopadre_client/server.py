@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, os.path, sys, subprocess, re, time, glob, uuid, shutil, fnmatch
 
 
@@ -269,6 +270,10 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             os.unlink(SHADOW_SESSION_DIR)
         make_dir(SHADOW_SESSION_DIR)
 
+    # write JS9 prefs file which will be loaded by the kernel-side JS
+    js9prefs = os.path.join(SHADOW_SESSION_DIR, "js9prefs.js")
+    print("JS9Prefs.globalOpts.helperPort = {};\n".format(userside_helper_port), file=open(js9prefs, "wt"))
+
     global JUPYTER_OPTS
     JUPYTER_OPTS = [
         "notebook",
@@ -353,10 +358,10 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
                  for nb in LOAD_NOTEBOOK]
 
-    # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
-    if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
-        for url in urls:
-            message(ff("Browse to URL: {url}"))
+    # # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
+    # if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
+    for url in urls:
+        message(ff("Browse to URL: {url}"))
 
     # now we're ready to start the session
 
