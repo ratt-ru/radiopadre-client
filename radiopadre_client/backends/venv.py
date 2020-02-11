@@ -43,10 +43,10 @@ def _install_radiopadre(init_venv=False):
         message("Will try complete radiopadre virtualenv installation using install-radiopadre")
 
     # find install-radiopadre
-    install_script = ff("{config.SERVER_INSTALL_PATH}/bin/install-radiopadre")
+    install_script = ff("{config.SERVER_INSTALL_PATH}/bin/bootstrap-radiopadre-install")
 
     if not os.path.exists(install_script):
-        message(ff("{config.SERVER_INSTALL_PATH}/bin/install-radiopadre not found"))
+        message(ff("{install_script} not found"))
         if not config.SERVER_INSTALL_REPO:
             bye("Try running with a --server-install-repo?")
         cmd = ff("git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}")
@@ -56,10 +56,10 @@ def _install_radiopadre(init_venv=False):
     elif config.UPDATE:
         cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
         message(ff("--update specified: {cmd}"))
-        if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
+        if shell(ff("{cmd}")):
             bye("update failed")
 
-    cmd = "{}/bin/install-radiopadre --venv {} {} {} {}".format(config.SERVER_INSTALL_PATH, config.RADIOPADRE_VENV,
+    cmd = "{} --venv {} {} {} {}".format(install_script, config.RADIOPADRE_VENV,
                 "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
                 "--no-js9" if config.VENV_IGNORE_JS9 else "",
                 "reinstall" if init_venv else "install",
@@ -67,8 +67,6 @@ def _install_radiopadre(init_venv=False):
     message(ff("Running {cmd}"))
     if shell(cmd):
         bye("Installation script failed.")
-
-
 
 def update_installation():
     update_server_install()

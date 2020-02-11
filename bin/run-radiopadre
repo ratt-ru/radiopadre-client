@@ -150,7 +150,7 @@ def get_last_sessions(must_exist=True):
     global last_sessions
     if os.path.exists(config.LAST_SESSIONS_FILE):
         try:
-            last_sessions = pickle.load(open(config.LAST_SESSIONS_FILE))
+            last_sessions = pickle.load(open(config.LAST_SESSIONS_FILE, "rb"))
         except Exception as exc:
             message(ff("Error reading {config.LAST_SESSIONS_FILE}: {exc}"))
             last_sessions = None
@@ -238,7 +238,7 @@ if session_key in last_sessions:
 if len(last_sessions) >= 5:
     del last_sessions[last_sessions.keys()[0]]
 last_sessions[session_key] = argv
-pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'w'))
+pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 
 
 ## finalize settings
