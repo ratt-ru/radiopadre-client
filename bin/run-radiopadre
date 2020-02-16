@@ -8,6 +8,9 @@ from collections import OrderedDict
 from radiopadre_client import config, utils
 from radiopadre_client.utils import message, bye, ff
 
+from radiopadre_client import logger
+logger.init('radiopadre.client')
+
 parser = argparse.ArgumentParser(description="""
     Manages local or remote Jupyter sessions with radiopadre notebooks.
     """,
@@ -246,7 +249,7 @@ pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 config.init_specific_options(remote_host, notebook_path, options)
 
 if config.LOG:
-    utils.enable_logging("remote" if options.remote else "container" if options.inside_container else "local")
+    logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
 
 # work out backend
 if not config.BACKEND:

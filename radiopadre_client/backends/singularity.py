@@ -81,7 +81,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     if not config.CONTAINER_DEBUG:
         command = [singularity, "instance.start"] + docker_opts + \
                   [singularity_image, container_name]
-        message("running {}".format(" ".join(map(str,command))))
+        message("running {}".format(" ".join(map(str, command))))
         subprocess.call(command)
         docker_opts = [singularity, "exec", "instance://{}".format(container_name)]
     else:

@@ -173,7 +173,8 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             message("Please manually browse to the URL printed below.")
             browser = False
         else:
-            message(ff("We'll attempt to open a web browser (using '{config.BROWSER}') as needed. Use --no-browser to disable this."))
+            message(ff(
+                "We'll attempt to open a web browser (using '{config.BROWSER}') as needed. Use --no-browser to disable this."))
             browser = True
 
     # ### ATTACHING TO EXISTING SESSION: complete the attachment and exit

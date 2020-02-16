@@ -1,19 +1,25 @@
 from __future__ import print_function
-import os.path
-import select
-import socket
-import subprocess
-import sys
-import time
+import os.path, select, socket, subprocess, sys, time, logging
+
+from . import logger
 
 DEVZERO = open("/dev/zero")
 DEVNULL = open("/dev/null", "w")
 
 time0 = time.time()
 
-logfile = None
-_do_print = True
-prefix = 'radiopadre-client: '
+def message(x, level=logging.INFO):
+    """Prints message"""
+    from . import config
+    if type(x) is bytes:
+        x = x.decode()
+    timestamp = "{:.2f}: ".format(time.time() - time0) if config.TIMESTAMPS else ""
+    logger.logger.log(level, x, extra=dict(timestamp=timestamp))
+
+def bye(x, code=1):
+    """Prints error message, exits with given code"""
+    message(x, level=logging.ERROR)
+    sys.exit(code)
 
 def ff(fstring):
     """Emulates Python 3.6+ f-strings"""
@@ -21,40 +27,6 @@ def ff(fstring):
     kw = fr.f_globals.copy()
     kw.update(fr.f_locals)
     return fstring.format(**kw)
-
-
-def enable_logging(logtype, level=1):
-    global logfile
-    make_dir("~/.radiopadre")
-    logname = os.path.expanduser(ff("~/.radiopadre/log-{logtype}.txt"))
-    logfile = open(logname, "wt")
-    return logfile
-
-def enable_printing(enable=True):
-   global _do_print
-   _do_print = enable
-
-
-def message(x, prefix='radiopadre_client: ', file=None):
-    """Prints message, interpolating globals with .format()"""
-    from . import config
-    if type(x) is bytes:
-        x = x.decode()
-    if config.TIMESTAMPS:
-        prefix += "{:.2f}: ".format(time.time() - time0)
-    if _do_print:
-        print(prefix + x, file=file or sys.stdout)
-        (file or sys.stdout).flush()
-    if logfile:
-        print(time.strftime("%x %X:"), prefix + x, file=logfile)
-        logfile.flush()
-
-
-def bye(x, code=1):
-    """Prints message to stderr. Exits with given code"""
-    message(x, file=sys.stderr)
-    sys.exit(code)
-
 
 def shell(cmd, ignore_fail=False):
     """Runs shell command. If ignore_fail is set, returns None on failure"""

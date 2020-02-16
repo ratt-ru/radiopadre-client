@@ -235,10 +235,10 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
 
     child_processes = []
 
-
     message("Running {}".format(" ".join(map(str, docker_opts))))
     if singularity:
-        message("  (When using singularity and the image is not yet available locally, this can take a few minutes the first time you run.)")
+        message(
+            "  (When using singularity and the image is not yet available locally, this can take a few minutes the first time you run.)")
 
     if config.CONTAINER_DEBUG:
         docker_process = subprocess.Popen(docker_opts, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
@@ -256,7 +256,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
             bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
         bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
 
-    message(ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+    message(
+        ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
 
     if browser_urls:
         child_processes += run_browser(*browser_urls)

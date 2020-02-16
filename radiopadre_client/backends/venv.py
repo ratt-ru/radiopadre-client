@@ -132,7 +132,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     try:
         ## start jupyter process
         jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
-        message("Starting: {} {} in {}".format(jupyter_path,  " ".join(JUPYTER_OPTS), ROOTDIR))
+        message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), ROOTDIR))
 
         notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
                                          stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,

@@ -16,10 +16,12 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # master ssh connection, to be closed when we exit
     if config.VERBOSE:
-        message("Opening initial master connection to {} {}. You may be prompted for your password.".format(config.REMOTE_HOST,
-                                                                                                                SSH_OPTS))
+        message("Opening initial master connection to {} {}. You may be prompted for your password.".format(
+            config.REMOTE_HOST,
+            SSH_OPTS))
     else:
-        message("Opening initial master connection to {}. You may be prompted for your password.".format(config.REMOTE_HOST))
+        message("Opening initial master connection to {}. You may be prompted for your password.".format(
+            config.REMOTE_HOST))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
 
 
@@ -148,7 +150,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
                     message(ff("Using remote client script within {config.RADIOPADRE_VENV}"))
                 else:
-                    message(ff("Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
+                    message(ff(
+                        "Remote venv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
             else:
                 message(ff("No remote venv found at {config.RADIOPADRE_VENV}"))
 
@@ -205,14 +208,16 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
         elif config.CLIENT_INSTALL_REPO:
             install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
-            message("I could try to install {}:{} from {}".format(config.REMOTE_HOST, install_path, config.CLIENT_INSTALL_REPO))
+            message("I could try to install {}:{} from {}".format(config.REMOTE_HOST, install_path,
+                                                                  config.CLIENT_INSTALL_REPO))
 
             if not has_git:
                 help_yourself(ff("However, I don't see git installed on {config.REMOTE_HOST}"),
                               ff("Try 'sudo apt install git' on {config.REMOTE_HOST}"))
 
             if check_remote_file(install_path, "-d"):
-                message(ff("However, the directory {config.REMOTE_HOST}:{install_path} already exists, so I'd rather not!"))
+                message(
+                    ff("However, the directory {config.REMOTE_HOST}:{install_path} already exists, so I'd rather not!"))
                 help_yourself(ff("This may be a sign of a broken radiopadre installation on {config.REMOTE_HOST},"),
                               ff("For example, remove {config.REMOTE_HOST}:{install_path} to bootstrap from scratch."))
 

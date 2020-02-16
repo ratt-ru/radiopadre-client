@@ -10,7 +10,8 @@ def update_server_install():
     """
     if config.UPDATE and config.SERVER_INSTALL_PATH and os.path.isdir(config.SERVER_INSTALL_PATH + "/.git"):
         cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
-        message(ff("--update specified, existing --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
+        message(ff(
+            "--update specified, existing --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
         message(ff("    {cmd}"))
         if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
             bye("update failed")
