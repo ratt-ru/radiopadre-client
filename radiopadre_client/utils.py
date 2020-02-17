@@ -16,6 +16,12 @@ def message(x, level=logging.INFO):
     timestamp = "{:.2f}: ".format(time.time() - time0) if config.TIMESTAMPS else ""
     logger.logger.log(level, x, extra=dict(timestamp=timestamp))
 
+def warning(x):
+    message(x, logging.WARNING)
+
+def error(x):
+    message(x, logging.ERROR)
+
 def bye(x, code=1):
     """Prints error message, exits with given code"""
     message(x, level=logging.ERROR)
