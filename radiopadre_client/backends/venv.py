@@ -190,7 +190,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
 def kill_child_processes():
     if child_processes:
-        message("Terminating {} remaining child processes".format(len(child_processes)))
+        message("Terminating remaining child processes ({})".format(
+                " ".join([str(proc.pid) for proc in child_processes])))
         for proc in child_processes:
             proc.terminate()
         while child_processes:
