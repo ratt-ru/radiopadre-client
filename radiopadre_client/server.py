@@ -231,8 +231,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # init paths & environment
     iglesia.init()
-    if iglesia.ALIEN_MODE:
-        os.chdir(iglesia.SHADOW_ROOTDIR)
 
     global JUPYTER_OPTS
     JUPYTER_OPTS = [

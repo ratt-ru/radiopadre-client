@@ -23,7 +23,7 @@ CONTAINER_PERSIST = False
 CONTAINER_DEV = False
 GRIM_REAPER = True
 BACKEND = []
-UNAME = subprocess.check_output("uname").strip()
+UNAME = subprocess.check_output("uname").decode().strip()
 USER = os.environ['USER']
 BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else "xdg-open")
 BROWSER_BG = False

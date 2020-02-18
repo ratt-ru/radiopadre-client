@@ -1,4 +1,4 @@
-import sys, os.path, logging
+import sys, os.path, logging, time
 
 logger = None
 logfile = sys.stderr
@@ -26,18 +26,20 @@ class MultiplexingHandler(logging.Handler):
         self.err_handler.setFormatter(fmt)
         self.info_handler.setFormatter(fmt)
 
-_default_formatter = logging.Formatter("%(message)s")
+_default_format = "%(name)s: %(message)s"
+_default_formatter = logging.Formatter(_default_format)
 
 _default_console_handler = MultiplexingHandler()
 _default_console_handler.setFormatter(_default_formatter)
 
-def init(appname, use_formatter=True):
+def init(appname, timestamps=True):
     global logger
     global _default_formatter
     logging.basicConfig()
     logger = logging.getLogger(appname)
-    if use_formatter:
-        _default_formatter = logging.Formatter(fmt="{}: %(timestamp)s%(message)s".format(appname))
+    if timestamps:
+        _default_format = "%(name)s: %(timestamp)s%(message)s"
+        _default_formatter = logging.Formatter(_default_format)
         _default_console_handler.setFormatter(_default_formatter)
     logger.addHandler(_default_console_handler)
     logger.setLevel(logging.INFO)
@@ -52,9 +54,11 @@ def enable_logfile(logtype):
     global logfile
 
     make_dir("~/.radiopadre")
-    logname = os.path.expanduser(ff("~/.radiopadre/log-{logtype}.txt"))
+    make_dir("~/.radiopadre/logs")
+    datetime = time.strftime("%Y%m%d%H%M%S")
+    logname = os.path.expanduser(ff("~/.radiopadre/logs/log-{logtype}-{datetime}.txt"))
     logfile = open(logname, 'wt')
     fh = logging.StreamHandler(logfile)
-    fh.setFormatter(_default_formatter)
+    fh.setFormatter(logging.Formatter("%(asctime)s: " + _default_format, "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(fh)
     return logfile

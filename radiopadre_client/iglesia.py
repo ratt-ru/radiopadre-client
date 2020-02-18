@@ -63,7 +63,7 @@ def init():
         value = os.environ[envvar] = _strip_slash(default() if callable(default) else default)
         return value
 
-    ABSROOTDIR = setdefault_path('RADIOPADRE_ABSROOTDIR', os.path.abspath(os.getcwd()))
+    ABSROOTDIR = os.path.abspath(os.getcwd())
     ROOTDIR = setdefault_path('RADIOPADRE_ROOTDIR', '.')
     debug(ff("Setting up radiopadre environment:"))
     debug(ff("  ABSROOTDIR is {ABSROOTDIR}"))
