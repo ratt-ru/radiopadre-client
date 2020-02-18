@@ -2,6 +2,7 @@ import sys, os.path, logging, time
 
 logger = None
 logfile = sys.stderr
+logfile_handler = None
 
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
@@ -63,14 +64,19 @@ def disable_printing():
 
 def enable_logfile(logtype):
     from .utils import make_dir, ff
-    global logfile
+    global logfile, logfile_handler
 
     make_dir("~/.radiopadre")
     make_dir("~/.radiopadre/logs")
     datetime = time.strftime("%Y%m%d%H%M%S")
     logname = os.path.expanduser(ff("~/.radiopadre/logs/log-{logtype}-{datetime}.txt"))
     logfile = open(logname, 'wt')
-    fh = logging.StreamHandler(logfile)
-    fh.setFormatter(logging.Formatter("%(asctime)s: " + _default_format, "%Y-%m-%d %H:%M:%S"))
-    logger.addHandler(fh)
+    logfile_handler = logging.StreamHandler(logfile)
+    logfile_handler.setFormatter(logging.Formatter(
+        "%(asctime)s: " + _default_format, "%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(logfile_handler)
     return logfile
+
+def flush():
+    if logfile_handler:
+        logfile_handler.flush()

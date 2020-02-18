@@ -1,10 +1,12 @@
-import sys, os, os.path, subprocess
+import sys, os, os.path, subprocess, atexit
 from iglesia.utils import message, shell, bye, ff
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
 import iglesia
 from .backend_utils import await_server_startup, update_server_install
+
+child_processes = []
 
 def init():
     pass
@@ -139,52 +141,58 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
+    global child_processes
     child_processes = iglesia.init_helpers(radiopadre_base)
 
+    atexit.register(kill_child_processes)
+
+    ## start jupyter process
+    jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
+    message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), ROOTDIR))
+
+    notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
+                                     stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
+                                     bufsize=1, universal_newlines=True, env=os.environ)
+
+    ## use this instead to debug the sessison
+    #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
+    #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
+    #                                  env=os.environ)
+
+    child_processes.append(notebook_proc)
+
+    # launch browser
+    if browser_urls:
+        child_processes += run_browser(*browser_urls)
+    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
+        message("Please point your browser to {}".format(" ".join(browser_urls)))
+
+    # pause to let the Jupyter server spin up
+    wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
+
+    if wait is None:
+        if notebook_proc.returncode is not None:
+            bye(ff("jupyter unexpectedly exited with return code {notebook_proc.returncode}"))
+        bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+
+    message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+
+    # wait for termination
     try:
-        ## start jupyter process
-        jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
-        message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), ROOTDIR))
+        notebook_proc.wait()
+        message(ff("The jupyter notebook process has exited with return code {notebook_proc.returncode}"))
+        child_processes.pop(-1)
+    except KeyboardInterrupt:
+        message("Ctrl+C caught")
 
-        notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
-                                         stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-                                         bufsize=1, universal_newlines=True, env=os.environ)
-
-        ## use this instead to debug the sessison
-        #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
-        #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-        #                                  env=os.environ)
-
-        child_processes.append(notebook_proc)
-
-        # launch browser
-        if browser_urls:
-            child_processes += run_browser(*browser_urls)
-        elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
-            message("Please point your browser to {}".format(" ".join(browser_urls)))
-
-        # pause to let the Jupyter server spin up
-        wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
-
-        if wait is None:
-            if notebook_proc.returncode is not None:
-                bye(ff("jupyter unexpectedly exited with return code {notebook_proc.returncode}"))
-            bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
-
-        message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
-
-        # wait for termination
-        try:
-            notebook_proc.wait()
-            message(ff("The jupyter notebook process has exited with return code {notebook_proc.returncode}"))
-            child_processes.pop(-1)
-        except KeyboardInterrupt:
-            message("Ctrl+C caught")
-    finally:
-        if child_processes:
-            message("Terminating {} remaining child processes".format(len(child_processes)))
-            for proc in child_processes:
-                proc.terminate()
-                proc.wait()
-
+    kill_child_processes()
     message("Exiting")
+
+def kill_child_processes():
+    if child_processes:
+        message("Terminating {} remaining child processes".format(len(child_processes)))
+        for proc in child_processes:
+            proc.terminate()
+        while child_processes:
+            proc = child_processes.pop()
+            proc.wait()

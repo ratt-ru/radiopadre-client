@@ -1,4 +1,4 @@
-import subprocess, glob, os, os.path, re, sys, time, signal
+import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff
@@ -10,6 +10,7 @@ from .backend_utils import await_server_startup, update_server_install
 
 docker = None
 SESSION_INFO_DIR = '.'
+running_container = None
 
 def init(binary):
     global docker
@@ -200,11 +201,14 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         docker_opts.append(notebook_path)
 
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls)
+    global running_container
+    running_container = container_name
+    atexit.register(reap_running_container)
 
     if config.CONTAINER_PERSIST and config.CONTAINER_DETACH:
         message("exiting: container session will remain running.")
+        running_container = None # to avoid reaping
         sys.exit(0)
-
     elif config.REMOTE_MODE_PORTS:
         if config.VERBOSE:
             message("sleeping until signal")
@@ -215,6 +219,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             while True:
                 a = input("Type Q<Enter> to detach from the container session, or Ctrl+C to kill it: ")
                 if a and a[0].upper() == 'Q':
+                    running_container = None  # to avoid reaping
                     sys.exit(0)
         except BaseException as exc:
             if type(exc) is KeyboardInterrupt:
@@ -226,11 +231,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             else:
                 message("Caught exception {} ({})".format(exc, type(exc)))
                 status = 1
-            if status:
-                message("Killing the container")
-                subprocess.call([docker, "kill", container_name], stdout=DEVNULL)
+            if not status:
+                running_container = None  # to avoid reaping
             sys.exit(status)
-
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
 
@@ -268,5 +271,10 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     return docker_process
 
 def kill_container(name):
-    shell(ff("{docker} kill {name}"))
+    message(ff("Killing container {name}"))
+    shell(ff("{docker} kill {name}"), ignore_fail=True)
 
+def reap_running_container():
+    if running_container:
+        kill_container(running_container)
+    running_container = None

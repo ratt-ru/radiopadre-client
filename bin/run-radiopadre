@@ -243,7 +243,8 @@ if session_key in last_sessions:
     del last_sessions[session_key]
 if len(last_sessions) >= 5:
     del last_sessions[last_sessions.keys()[0]]
-last_sessions[session_key] = argv
+non_persisting_options = {"-u", "--update", "--auto-init"}
+last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
 pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 
 
@@ -279,8 +280,9 @@ if options.remote:
     config.BACKEND = config.BACKEND[:1]
 
 def _handle_hup(signum, frame):
-    print("HUP received")
     message("HUP received")
+    logger.flush()
+    sys.exit(1)
 
 import signal
 signal.signal(signal.SIGHUP, _handle_hup)
