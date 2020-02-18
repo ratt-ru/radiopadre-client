@@ -258,6 +258,7 @@ if config.LOG:
     logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
 if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
+message("our PID is {}".format(os.getpid()))
 
 # work out backend
 if not config.BACKEND:
@@ -272,7 +273,6 @@ if remains:
 # fix docker image, if only tag specified
 if config.DOCKER_IMAGE[0] == ":":
     config.DOCKER_IMAGE = config.DefaultConfig['DOCKER_IMAGE'].rsplit(":", 1)[0] + config.DOCKER_IMAGE
-
 
 # when running  a remote session, only accept the first backend, since run_remote_session() will have
 # figured it out for us
