@@ -3,6 +3,17 @@ import sys, os.path, logging, time
 logger = None
 logfile = sys.stderr
 
+class TimestampFilter(logging.Filter):
+    """Adds a timestamp attribute to the LogRecord, if enabled"""
+    time0 = time.time()
+    enable = False
+    def filter(self, record):
+        if self.enable:
+            record.timestamp = "[{:.2f}s] ".format(time.time() - self.time0)
+        else:
+            record.timestamp = ""
+        return True
+
 class MultiplexingHandler(logging.Handler):
     def __init__(self, info_stream=sys.stdout, err_stream=sys.stderr):
         super(MultiplexingHandler, self).__init__()
@@ -26,7 +37,7 @@ class MultiplexingHandler(logging.Handler):
         self.err_handler.setFormatter(fmt)
         self.info_handler.setFormatter(fmt)
 
-_default_format = "%(name)s: %(message)s"
+_default_format = "%(name)s: %(timestamp)s%(message)s"
 _default_formatter = logging.Formatter(_default_format)
 
 _default_console_handler = MultiplexingHandler()
@@ -37,14 +48,15 @@ def init(appname, timestamps=True):
     global _default_formatter
     logging.basicConfig()
     logger = logging.getLogger(appname)
-    if timestamps:
-        _default_format = "%(name)s: %(timestamp)s%(message)s"
-        _default_formatter = logging.Formatter(_default_format)
-        _default_console_handler.setFormatter(_default_formatter)
+    TimestampFilter.enable = timestamps
+    logger.addFilter(TimestampFilter())
     logger.addHandler(_default_console_handler)
     logger.setLevel(logging.INFO)
     logger.propagate = False
     return logger
+
+def enable_timestamps(enable=True):
+    TimestampFilter.enable = enable
 
 def disable_printing():
     logger.removeHandler(_default_console_handler)

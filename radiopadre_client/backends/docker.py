@@ -1,9 +1,11 @@
-import subprocess, glob, os, os.path, re, sys, socket, time, signal
+import subprocess, glob, os, os.path, re, sys, time, signal
 from collections import OrderedDict
 
-from radiopadre_client.utils import message, make_dir, bye, shell, DEVNULL, run_browser, ff
+from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
+from radiopadre_client.server import run_browser
+
 from .backend_utils import await_server_startup, update_server_install
 
 docker = None
@@ -129,7 +131,7 @@ def update_installation():
         subprocess.call([docker, "pull", docker_image])
 
 def _collect_runscript_arguments(ports):
-    from radiopadre_client.iglesia import SHADOW_HOME as PADRE_WORKDIR
+    from iglesia import SHADOW_HOME as PADRE_WORKDIR
 
     run_config = config.get_config_dict()
     run_config["BACKEND"] = "venv"
@@ -147,7 +149,7 @@ def _collect_runscript_arguments(ports):
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
-    from radiopadre_client.iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, ALIEN_MODE
+    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, ALIEN_MODE
 
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")

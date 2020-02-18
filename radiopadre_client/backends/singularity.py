@@ -1,11 +1,11 @@
 import os, subprocess, sys, time
 
-from radiopadre_client.utils import message, make_dir, shell, DEVNULL, ff
+from iglesia.utils import message, make_dir, shell, DEVNULL, ff
 from radiopadre_client import config
 
 singularity = None
 
-from .docker import get_session_info_dir, save_session_info, _run_container, _init_session_dir, _collect_runscript_arguments
+from .docker import get_session_info_dir, _run_container, _init_session_dir, _collect_runscript_arguments
 
 
 def init(binary):
@@ -50,7 +50,7 @@ def update_installation():
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
-    from radiopadre_client.iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")

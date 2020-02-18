@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os.path, select, socket, subprocess, sys, time, logging
 
-from . import logger
+from iglesia import logger
 
 DEVZERO = open("/dev/zero")
 DEVNULL = open("/dev/null", "w")
@@ -10,11 +10,9 @@ time0 = time.time()
 
 def message(x, level=logging.INFO):
     """Prints message"""
-    from . import config
     if type(x) is bytes:
         x = x.decode()
-    timestamp = "{:.2f}: ".format(time.time() - time0) if config.TIMESTAMPS else ""
-    logger.logger.log(level, x, extra=dict(timestamp=timestamp))
+    logger.logger.log(level, x)
 
 def warning(x):
     message(x, logging.WARNING)
@@ -122,50 +120,6 @@ class Poller(object):
 
     def __contains__(self, fobj):
         return fobj.fileno() in self.fdlabels
-
-
-def run_browser(*urls):
-    """
-    Runs a browser pointed to URL(s), in background if config.BROWSER_BG is True.
-
-    If config.BROWSER_MULTI is set, runs a browser per URL, else feeds all URLs to one browser invocation
-
-    Returns list of processes (in BROWSER_BG mode).
-    """
-    from . import config
-    procs = []
-    # open browser if needed
-    if config.BROWSER:
-        message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
-        message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
-        message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
-        if config.BROWSER_MULTI:
-            commands = [[config.BROWSER]+list(urls)]
-        else:
-            commands = [[config.BROWSER, url] for url in urls]
-
-        for command in commands:
-            try:
-                if config.BROWSER_BG:
-                    procs.append(subprocess.Popen(command, stdin=DEVZERO, stdout=sys.stdout, stderr=sys.stderr))
-                else:
-                    subprocess.call(command, stdout=DEVNULL)
-            except OSError as exc:
-                if exc.errno == 2:
-                    message(ff("{config.BROWSER} not found"))
-                else:
-                    raise
-
-    else:
-        message("--no-browser given, or browser not set, not opening a browser for you\r")
-        message("Please browse to: {}\n".format(" ".join(urls)))
-
-    return procs
-
-def make_git_glone_command(repo):
-    if "@" in repo:
-        repo, branch = repo.rsplit("@", 1)
-    return "git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}"
 
 
 class chdir(object):

@@ -2,8 +2,9 @@ import os, sys, subprocess, re, time
 
 from . import config
 
-from .utils import DEVNULL, message, bye, find_unused_port, Poller, run_browser, ff
+from iglesia.utils import DEVNULL, message, bye, find_unused_port, Poller, ff
 
+from radiopadre_client.server import run_browser
 
 # Find remote radiopadre script
 def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):

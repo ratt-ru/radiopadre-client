@@ -5,7 +5,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from .utils import make_dir, message, ff
+from iglesia.utils import make_dir, message, ff
 from .default_config import DefaultConfig
 
 # const object to use as default value in ArgumentParser. Will be replaced by contents

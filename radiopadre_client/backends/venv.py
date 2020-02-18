@@ -1,7 +1,9 @@
 import sys, os, os.path, subprocess
-from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DEVZERO, run_browser, ff
+from iglesia.utils import message, shell, bye, ff
 
-from radiopadre_client import config, iglesia
+from radiopadre_client import config
+from radiopadre_client.server import run_browser
+import iglesia
 from .backend_utils import await_server_startup, update_server_install
 
 def init():
@@ -99,7 +101,7 @@ def update_installation():
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
-    from radiopadre_client.iglesia import ROOTDIR, SHADOW_SESSION_DIR
+    from iglesia import ROOTDIR
     from radiopadre_client.server import JUPYTER_OPTS
 
     # get hostname

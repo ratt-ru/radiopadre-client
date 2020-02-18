@@ -1,14 +1,53 @@
 from __future__ import print_function
-import os, os.path, sys, subprocess, re, time, glob, uuid, shutil, fnmatch
+import os, os.path, sys, subprocess, time, glob, uuid, shutil, fnmatch
 
 from . import config
-from . import iglesia
-from .utils import DEVNULL, message, bye, find_unused_port, find_which, make_dir, make_link, ff
+import iglesia
+from iglesia.utils import DEVNULL, DEVZERO, message, bye, find_unused_port, find_which, ff
 from .notebooks import default_notebook_code
 
 backend = None
 
 JUPYTER_OPTS = LOAD_DIR = LOAD_NOTEBOOK = None
+
+def run_browser(*urls):
+    """
+    Runs a browser pointed to URL(s), in background if config.BROWSER_BG is True.
+
+    If config.BROWSER_MULTI is set, runs a browser per URL, else feeds all URLs to one browser invocation
+
+    Returns list of processes (in BROWSER_BG mode).
+    """
+    from . import config
+    procs = []
+    # open browser if needed
+    if config.BROWSER:
+        message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
+        message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
+        message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
+        if config.BROWSER_MULTI:
+            commands = [[config.BROWSER]+list(urls)]
+        else:
+            commands = [[config.BROWSER, url] for url in urls]
+
+        for command in commands:
+            try:
+                if config.BROWSER_BG:
+                    procs.append(subprocess.Popen(command, stdin=DEVZERO, stdout=sys.stdout, stderr=sys.stderr))
+                else:
+                    subprocess.call(command, stdout=DEVNULL)
+            except OSError as exc:
+                if exc.errno == 2:
+                    message(ff("{config.BROWSER} not found"))
+                else:
+                    raise
+
+    else:
+        message("--no-browser given, or browser not set, not opening a browser for you\r")
+        message("Please browse to: {}\n".format(" ".join(urls)))
+
+    return procs
+
 
 def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     global backend

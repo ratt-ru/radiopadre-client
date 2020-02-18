@@ -1,4 +1,9 @@
-"""Iglesia is radiopadre's runtime environment"""
+"""
+Iglesia is radiopadre's runtime environment
+
+This package provides variables and settings and utilities common to the client and server.
+"""
+
 import os, subprocess, uuid, sys
 
 from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, ff, DEVZERO, DEVNULL, \
@@ -29,8 +34,9 @@ VERBOSE = 0                 # message verbosity level, >0 for debugging
 SELECTED_PORTS = None       # js9helper, http_server, carta, carta_ws
 USERSIDE_PORTS = None       # same on user side (after port forwarding)
 
+JS9_DIR         = None             # JS9 install directory
 HTTPSERVER_PORT = None             # (userside) HTTP port
-JS9HELPER_PORT = None              # (userside) helper port, if set up
+JS9HELPER_PORT  = None             # (userside) helper port, if set up
 CARTA_PORT = CARTA_WS_PORT = None  # (userside) carta ports, if set up
 
 HOSTNAME = "localhost"
@@ -54,7 +60,7 @@ def init():
         LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SESSION_DIR, LOCAL_SESSION_URL, \
         FILE_URL_ROOT, NOTEBOOK_URL_ROOT, SESSION_ID, CACHE_URL_ROOT, \
         CACHE_URL_BASE, VERBOSE, SESSION_ID, HOSTNAME, \
-        SELECTED_PORTS, USERSIDE_PORTS, ALIEN_MODE, \
+        SELECTED_PORTS, USERSIDE_PORTS, ALIEN_MODE, JS9_DIR, \
         JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
 
     def setdefault_path(envvar, default):
@@ -146,9 +152,14 @@ def init_helpers(radiopadre_base):
     """Starts up helper processes, if they are not already running"""
     helper_port, http_port, carta_port, carta_ws_port = SELECTED_PORTS
 
+    # JS9 init
+    global JS9_DIR
+    JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', ff("{sys.prefix}/js9-www"))
+
     # accumulates rewrite rules for HTTP server
     # add radiopadre/html/ to rewrite as /radiopadre-www/
-    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/html/")]
+    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/html/"),
+                     ff("/js9-www/={JS9_DIR}/")]
 
     # are we running inside a container?
     in_container = bool(os.environ.get('RADIOPADRE_CONTAINER_NAME'))
@@ -164,7 +175,6 @@ def init_helpers(radiopadre_base):
     # run JS9 helper
     if 'RADIOPADRE_JS9HELPER_PID' not in os.environ:
         try:
-            JS9_DIR = os.environ.get('RADIOPADRE_JS9_DIR') or ff("{sys.prefix}/js9-www")
             js9helper = JS9_DIR + "/js9Helper.js"
 
             if not os.path.exists(JS9_DIR):
@@ -190,7 +200,7 @@ def init_helpers(radiopadre_base):
                         subprocess.Popen([nodejs.strip(), js9helper,
                             ff('{{"helperPort": {helper_port}, "debug": {VERBOSE}, ') +
                             ff('"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{ABSROOTDIR}|/static/)", ""] }}')],
-                            stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
+                                         stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
                     os.environ['RADIOPADRE_JS9HELPER_PID'] = str(child_processes[-1].pid)
             except Exception as exc:
                 error(ff("error running {nodejs} {js9helper}: {exc}"))
@@ -232,7 +242,7 @@ def init_helpers(radiopadre_base):
                     subprocess.Popen([carta_exec, "--remote",
                                         ff("--root={ABSROOTDIR}"), ff("--folder={ABSROOTDIR}"),
                                         ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
-                                    stdin=subprocess.PIPE, stdout=DEVNULL, stderr=logger.logfile))
+                                     stdin=subprocess.PIPE, stdout=DEVNULL, stderr=logger.logfile))
                 os.environ['RADIOPADRE_CARTA_PID'] = str(child_processes[-1].pid)
     else:
         debug("CARTA backend should be running (pid {})".format(os.environ["RADIOPADRE_CARTA_PID"]))
