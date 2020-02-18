@@ -192,6 +192,8 @@ if resume_session is not None:
     if resume_session >= len(last):
         bye(ff("no such session: {resume_session}"))
     argv = list(last.items())[-(resume_session+1)][1]
+    if options.update:
+        argv.append("-u")
     message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
     options = parser.parse_args(argv)
     arguments = list(options.arguments)
