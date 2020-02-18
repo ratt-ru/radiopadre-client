@@ -130,6 +130,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     radiopadre_base = subprocess.check_output(ff(""". {config.RADIOPADRE_VENV}/bin/activate && \
                         python -c "import importlib; print(importlib.find_loader('radiopadre').get_filename())" """),
                                               shell=True)
+    if type(radiopadre_base) is bytes:
+        radiopadre_base = radiopadre_base.decode()
+
     radiopadre_base = os.path.dirname(os.path.dirname(radiopadre_base))
     message(ff("Detected radiopadre directory within virtualenv as {radiopadre_base}"))
 
