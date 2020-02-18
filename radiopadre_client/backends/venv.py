@@ -1,7 +1,7 @@
 import sys, os, os.path, subprocess
 from radiopadre_client.utils import message, shell, bye, find_which, DEVNULL, DEVZERO, run_browser, ff
 
-from radiopadre_client import config
+from radiopadre_client import config, iglesia
 from .backend_utils import await_server_startup, update_server_install
 
 def init():
@@ -88,19 +88,19 @@ def update_installation():
         _install_radiopadre(init_venv=True)
 
         activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
-        message(ff("Activating the radiopadre virtualenv via {activation_script}"))
+        message(ff("  Activating the radiopadre virtualenv via {activation_script}"))
         with open(activation_script) as f:
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
     if not config.INSIDE_CONTAINER_PORTS:
-        message(ff("  Using radiopadre install at {config.SERVER_INSTALL_PATH}"))
+        message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
 
 
 
-def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path,
-                  browser_urls):
-    from radiopadre_client.server import ROOTDIR, JUPYTER_OPTS, SHADOW_SESSION_DIR
+def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
+    from radiopadre_client.iglesia import ROOTDIR, SHADOW_SESSION_DIR
+    from radiopadre_client.server import JUPYTER_OPTS
 
     # get hostname
     os.environ["HOSTNAME"] = subprocess.check_output("/bin/hostname").decode()
@@ -125,9 +125,18 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     # pass configured ports to radiopadre kernel
     os.environ['RADIOPADRE_SELECTED_PORTS'] = ":".join(map(str, selected_ports[1:]))
     os.environ['RADIOPADRE_USERSIDE_PORTS'] = ":".join(map(str, userside_ports[1:]))
-    os.environ['RADIOPADRE_SHADOW_URLBASE'] = ff("http://localhost:{userside_http_port}/{config.SESSION_ID}/")
 
-    child_processes = []
+    # get base path of radiopadre install
+    radiopadre_base = subprocess.check_output(ff(""". {config.RADIOPADRE_VENV}/bin/activate && \
+                        python -c "import importlib; print(importlib.find_loader('radiopadre').get_filename())" """),
+                                              shell=True)
+    radiopadre_base = os.path.dirname(os.path.dirname(radiopadre_base))
+    message(ff("Detected radiopadre directory within virtualenv as {radiopadre_base}"))
+
+    # default JS9 dir goes off the virtualenv
+    os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
+
+    child_processes = iglesia.init_helpers(radiopadre_base)
 
     try:
         ## start jupyter process
@@ -167,7 +176,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
             message(ff("The jupyter notebook process has exited with return code {notebook_proc.returncode}"))
             child_processes.pop(-1)
         except KeyboardInterrupt:
-            message("Ctril+C caught")
+            message("Ctrl+C caught")
     finally:
         if child_processes:
             message("Terminating {} remaining child processes".format(len(child_processes)))

@@ -22,6 +22,9 @@ def warning(x):
 def error(x):
     message(x, logging.ERROR)
 
+def debug(x):
+    message(x, logging.DEBUG)
+
 def bye(x, code=1):
     """Prints error message, exits with given code"""
     message(x, level=logging.ERROR)

@@ -1,11 +1,11 @@
 #!/usr/bin/python
 from __future__ import print_function
-import sys, os, argparse, glob, pickle, re
+import sys, os, argparse, glob, pickle, re, logging
 from collections import OrderedDict
 
 # ### some globals
 
-from radiopadre_client import config, utils
+from radiopadre_client import config
 from radiopadre_client.utils import message, bye, ff
 
 from radiopadre_client import logger
@@ -250,6 +250,8 @@ config.init_specific_options(remote_host, notebook_path, options)
 
 if config.LOG:
     logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
+if config.VERBOSE:
+    logger.logger.setLevel(logging.DEBUG)
 
 # work out backend
 if not config.BACKEND:

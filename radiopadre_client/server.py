@@ -1,26 +1,19 @@
 from __future__ import print_function
 import os, os.path, sys, subprocess, re, time, glob, uuid, shutil, fnmatch
 
-
 from . import config
-
+from . import iglesia
 from .utils import DEVNULL, message, bye, find_unused_port, find_which, make_dir, make_link, ff
 from .notebooks import default_notebook_code
 
 backend = None
 
-PADRE_WORKDIR = ABSROOTDIR = ROOTDIR = SHADOWDIR = None
-
-LOCAL_SESSION_DIR = SHADOW_SESSION_DIR = None
-
 JUPYTER_OPTS = LOAD_DIR = LOAD_NOTEBOOK = None
-
 
 def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     global backend
 
-    message("Welcome to Radiopadre!")
-
+    # message("Welcome to Radiopadre!")
     USE_VENV = USE_DOCKER = USE_SINGULARITY = False
 
     for backend in config.BACKEND:
@@ -150,7 +143,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         if container_name is not None:
             message(ff("  Container name: {container_name}"))
 
-
     # ### will we be starting a browser?
 
     browser = False
@@ -234,46 +226,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         if kill_sessions:
             backend.kill_sessions(running_session_dict, kill_sessions, ignore_fail=True)
 
-    global PADRE_WORKDIR, ABSROOTDIR, ROOTDIR, SHADOWDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
-
-    # cache and shadow dir base
-    PADRE_WORKDIR = workdir or os.path.expanduser("~/.radiopadre")
-    os.environ['RADIOPADRE_SHADOW_HOME'] = PADRE_WORKDIR
-
     # virtual environment
     os.environ["RADIOPADRE_VENV"] = config.RADIOPADRE_VENV
 
-    # target directory
-    ABSROOTDIR = ROOTDIR = os.path.abspath(os.getcwd())              # e.g. /home/other/path
-
-    # shadow of target directory
-    SHADOWDIR = PADRE_WORKDIR + ROOTDIR                 # e.g. ~/.radiopadre/home/other/path
-    if not os.path.exists(SHADOWDIR):
-        os.system("mkdir -p {}".format(SHADOWDIR))
-    # This is where the per-session js9prefs.js goes. In virtualenv mode, this is just a directory
-    # In docker mode, we mount session_info_dir on this
-    os.environ['RADIOPADRE_LOCAL_SESSION_DIR'] = LOCAL_SESSION_DIR = ABSROOTDIR + "/.radiopadre-session"
-    os.environ['RADIOPADRE_SHADOW_SESSION_DIR'] = SHADOW_SESSION_DIR = SHADOWDIR + "/.radiopadre-session"
-
-    # make .radiopadre and .radiopadre-session in target dir, or in shadow dir
-    cachedir = ABSROOTDIR + "/.radiopadre"
-    cachelink = SHADOWDIR + "/.radiopadre"
-    if os.access(ABSROOTDIR, os.W_OK):
-        make_dir(cachedir)
-        make_link(cachedir, cachelink, rm_fr=True)
-        make_dir(LOCAL_SESSION_DIR)
-        make_link(LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, rm_fr=True)
-    else:
-        if os.path.islink(cachelink):
-            os.unlink(cachelink)
-        make_dir(cachelink)
-        if os.path.islink(SHADOW_SESSION_DIR):
-            os.unlink(SHADOW_SESSION_DIR)
-        make_dir(SHADOW_SESSION_DIR)
-
-    # write JS9 prefs file which will be loaded by the kernel-side JS
-    js9prefs = os.path.join(SHADOW_SESSION_DIR, "js9prefs.js")
-    print("JS9Prefs.globalOpts.helperPort = {};\n".format(userside_helper_port), file=open(js9prefs, "wt"))
+    # init paths & environment
+    iglesia.init()
+    if iglesia.ALIEN_MODE:
+        os.chdir(iglesia.SHADOW_ROOTDIR)
 
     global JUPYTER_OPTS
     JUPYTER_OPTS = [
@@ -283,24 +242,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # update installation etc.
     backend.update_installation()
-
-    # directory where we were originally run
-    os.environ['RADIOPADRE_ABSROOTDIR'] = ABSROOTDIR
-
-    # check if a root directory needs to be faked
-    # if not, make .radiopadre workdir
-    if os.access(ROOTDIR, os.W_OK):
-        os.environ['RADIOPADRE_SERVER_BASEDIR'] = ABSROOTDIR
-        orig_rootdir = None
-    else:
-        message(ff("  Target is {ROOTDIR}, which is not user-writeable. Will use a shadow directory instead."))
-        message(ff("  Shadow directory is {SHADOWDIR}"))
-        orig_rootdir = ROOTDIR
-        os.environ['RADIOPADRE_SERVER_BASEDIR'] = ROOTDIR = SHADOWDIR
-        os.chdir(SHADOWDIR)
-
-    make_dir(".radiopadre")
-
 
     # when running natively (i.e. in a virtual environment), the notebook app doesn't pass the token to
     # the browser command properly... so let it pick its own token then
@@ -314,11 +255,11 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     ALL_NOTEBOOKS = glob.glob("*.ipynb")
 
-    if orig_rootdir and not ALL_NOTEBOOKS:
-        orig_notebooks = glob.glob(os.path.join(orig_rootdir, "*.ipynb"))
+    if iglesia.ALIEN_MODE and not ALL_NOTEBOOKS:
+        orig_notebooks = glob.glob(os.path.join(iglesia.ABSROOTDIR, "*.ipynb"))
         if orig_notebooks:
-            message("  No notebooks in shadow directory, will copy notebooks from target.")
-            message("  Copying {} notebooks from {}".format(len(orig_notebooks), orig_rootdir))
+            message("  Alien mode, and no notebooks in shadow directory: will copy notebooks from target.")
+            message("  Copying {} notebooks from {}".format(len(orig_notebooks), iglesia.ABSROOTDIR))
             for nb in orig_notebooks:
                 shutil.copyfile(nb, './' + os.path.basename(nb))
             ALL_NOTEBOOKS = glob.glob("*.ipynb")
@@ -366,5 +307,5 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # now we're ready to start the session
 
-    backend.start_session(container_name, selected_ports, userside_ports, orig_rootdir,
+    backend.start_session(container_name, selected_ports, userside_ports,
                           notebook_path, browser and urls)

@@ -1,6 +1,7 @@
 import sys, os.path, logging
 
 logger = None
+logfile = sys.stderr
 
 class MultiplexingHandler(logging.Handler):
     def __init__(self, info_stream=sys.stdout, err_stream=sys.stderr):
@@ -48,6 +49,8 @@ def disable_printing():
 
 def enable_logfile(logtype):
     from .utils import make_dir, ff
+    global logfile
+
     make_dir("~/.radiopadre")
     logname = os.path.expanduser(ff("~/.radiopadre/log-{logtype}.txt"))
     logfile = open(logname, 'wt')
