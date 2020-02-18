@@ -60,8 +60,7 @@ def init():
         LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SESSION_DIR, LOCAL_SESSION_URL, \
         FILE_URL_ROOT, NOTEBOOK_URL_ROOT, SESSION_ID, CACHE_URL_ROOT, \
         CACHE_URL_BASE, VERBOSE, SESSION_ID, HOSTNAME, \
-        SELECTED_PORTS, USERSIDE_PORTS, ALIEN_MODE, JS9_DIR, \
-        JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
+        ALIEN_MODE, JS9_DIR
 
     def setdefault_path(envvar, default):
         if envvar in os.environ:
@@ -129,20 +128,6 @@ def init():
     # set verbosity
     VERBOSE = int(os.environ.get('RADIOPADRE_VERBOSE') or 0)
 
-    # set ports, else allocate ports
-    selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
-    if selected_ports:
-        SELECTED_PORTS = map(int, selected_ports.strip().split(":"))
-    else:
-        SELECTED_PORTS = find_unused_ports(4)
-
-    userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
-    if userside_ports:
-        USERSIDE_PORTS = map(int, userside_ports.strip().split(":"))
-    else:
-        USERSIDE_PORTS = SELECTED_PORTS
-    JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = USERSIDE_PORTS
-
     # set hostname
     HOSTNAME = os.environ.get('HOSTNAME')
     if not HOSTNAME:
@@ -150,6 +135,28 @@ def init():
 
 def init_helpers(radiopadre_base):
     """Starts up helper processes, if they are not already running"""
+    global \
+        SELECTED_PORTS, USERSIDE_PORTS, \
+        JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
+
+    # set ports, else allocate ports
+    selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
+    if selected_ports:
+        SELECTED_PORTS = map(int, selected_ports.strip().split(":"))
+        debug(ff("  ports configured as {SELECTED_PORTS}"))
+    else:
+        SELECTED_PORTS = find_unused_ports(4)
+        debug(ff("  ports selected: {SELECTED_PORTS}"))
+
+    userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
+    if userside_ports:
+        USERSIDE_PORTS = map(int, userside_ports.strip().split(":"))
+        debug(ff("  userside ports configured as {USERSIDE_PORTS}"))
+    else:
+        USERSIDE_PORTS = SELECTED_PORTS
+        debug(ff("  userside ports are the same"))
+
+    JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = USERSIDE_PORTS
     helper_port, http_port, carta_port, carta_ws_port = SELECTED_PORTS
 
     # JS9 init
