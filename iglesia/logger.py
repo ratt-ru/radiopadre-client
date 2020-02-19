@@ -24,11 +24,18 @@ class MultiplexingHandler(logging.Handler):
     def emit(self, record):
         handler = self.err_handler if record.levelno > logging.INFO else self.info_handler
         handler.emit(record)
-        handler.flush()
+        # ignore broken pipes, this often happens when cleaning up and exiting
+        try:
+            handler.flush()
+        except BrokenPipeError:
+            pass
 
     def flush(self):
-        self.err_handler.flush()
-        self.info_handler.flush()
+        try:
+            self.err_handler.flush()
+            self.info_handler.flush()
+        except BrokenPipeError:
+            pass
 
     def close(self):
         self.err_handler.close()

@@ -191,6 +191,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         if type(exc) is KeyboardInterrupt:
             message("Caught Ctrl+C")
             status = 1
+        elif type(exc) is EOFError:
+            message("Input channel has closed")
+            status = 1
         elif type(exc) is SystemExit:
             status = getattr(exc, 'code', 0)
             message("Exiting with status {}".format(status))
