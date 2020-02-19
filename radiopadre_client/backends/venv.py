@@ -206,8 +206,7 @@ def kill_child_processes():
             message("Terminating remaining child processes ({})".format(
                     " ".join([str(proc.pid) for proc in child_processes])))
             for proc in child_processes:
-                if proc.poll() is None:
-                    proc.terminate()
+                proc.terminate()
             while child_processes:
                 proc = child_processes.pop()
                 proc.wait()
