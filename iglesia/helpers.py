@@ -131,7 +131,7 @@ def _exit_carta(proc):
     try:
         if proc.poll() is None:
             message("Asking CARTA backend (pid {}) to exit".format(proc.pid))
-            proc.communicate("q\n")
+            proc.stdin.write("q\n")
         else:
             message("CARTA backend already exited with code {}".format(proc.returncode))
     except Exception:
