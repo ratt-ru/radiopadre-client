@@ -35,6 +35,8 @@ parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
+parser.add_argument("-l", "--log", action="store_true", default=0,
+                    help="Enables logging of sessions to see .radiopadre/logs.")
 
 
 ## back-end support
@@ -94,9 +96,6 @@ parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
-
-# debug logging
-parser.add_argument("--log", type=int, default=0, help=argparse.SUPPRESS)
 
 ## other settings from config
 

@@ -30,6 +30,7 @@ BROWSER_BG = False
 BROWSER_MULTI = False
 RADIOPADRE_VENV = "~/.radiopadre/venv"
 SKIP_CHECKS = False
+
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
 
@@ -38,7 +39,7 @@ CLIENT_INSTALL_PIP = "radiopadre-client"
 CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
 CLIENT_INSTALL_BRANCH = "py3"
 
-LOG = 0
+LOG = False
 UPDATE = False
 VERBOSE = 0
 TIMESTAMPS = False
