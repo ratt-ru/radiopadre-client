@@ -218,7 +218,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             subprocess.call([config.BROWSER, url], stdout=DEVNULL)
             time.sleep(1)
         else:
-            message(ff("Browse to URL: {url}"))
+            message(ff("Browse to URL: {url}"), color="GREEN")
         # emit message so remote initiates browsing
         if config.REMOTE_MODE_PORTS:
             message("The Jupyter Notebook is running inside the reattached session, presumably")
@@ -340,7 +340,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
     # if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
     for url in urls:
-        message(ff("Browse to URL: {url}"))
+        message(ff("Browse to URL: {url}"), color="GREEN")
 
     # now we're ready to start the session
 

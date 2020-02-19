@@ -3,7 +3,7 @@ import os, sys, subprocess, re, time
 from . import config
 
 import iglesia
-from iglesia.utils import DEVNULL, message, bye, find_unused_port, Poller, ff
+from iglesia.utils import DEVNULL, message, debug, bye, find_unused_port, Poller, ff
 
 from radiopadre_client.server import run_browser
 
@@ -329,7 +329,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 if not line:
                     poller.unregister_file(fobj)
                     if ssh.stdout not in poller and ssh.stdin not in poller:
-                        message(ff("ssh process to {config.REMOTE_HOST} has exited"))
+                        message(ff("The ssh process to {config.REMOTE_HOST} has exited"))
                         remote_running = None
                         break
                     continue
@@ -420,7 +420,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     for i in range(10, 0, -1):
         if ssh.poll() is not None:
-            message("Remote session has exited")
+            debug("Remote session has exited")
             ssh.wait()
             break
         message(ff("Waiting for remote session to exit ({i})"))
@@ -428,8 +428,5 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     else:
         message(ff("Remote session hasn't exited, killing it"))
         ssh.kill()
-
-    # cleanup children
-    iglesia.kill_helpers()
 
     return status

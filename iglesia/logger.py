@@ -10,9 +10,13 @@ class TimestampFilter(logging.Filter):
     enable = False
     def filter(self, record):
         if self.enable:
-            record.timestamp = "[{:.2f}s] ".format(time.time() - self.time0)
+            record.timestamp = " [{:.2f}s]".format(time.time() - self.time0)
         else:
             record.timestamp = ""
+        if record.levelno != logging.INFO:
+            record.severity = "{}: ".format(logging.getLevelName(record.levelno))
+        else:
+            record.severity = ""
         return True
 
 class MultiplexingHandler(logging.Handler):
@@ -45,8 +49,27 @@ class MultiplexingHandler(logging.Handler):
         self.err_handler.setFormatter(fmt)
         self.info_handler.setFormatter(fmt)
 
-_default_format = "%(name)s: %(timestamp)s%(message)s"
-_default_formatter = logging.Formatter(_default_format)
+class ColorizingFormatter(logging.Formatter):
+    """This Formatter inserts color codes into the string according to severity"""
+    Colors = dict(WARNING = '\033[93m',
+                    ERROR = '\033[91m',
+                    BOLD = '\033[1m',
+                    GREEN = '\033[92m',
+                    ENDC = '\033[0m')
+
+    def format(self, record):
+        style = ""
+        if hasattr(record, 'color'):
+            style = self.Colors[record.color]
+        elif record.levelno >= logging.ERROR:
+            style = self.Colors['ERROR']
+        elif record.levelno >= logging.WARNING:
+            style = self.Colors['WARNING']
+        endstyle = self.Colors['ENDC'] if style else ""
+        return super(ColorizingFormatter, self).format(record).format(style, endstyle)
+
+_default_format = "%(name)s%(timestamp)s: {0}%(severity)s%(message)s{1}"
+_default_formatter = ColorizingFormatter(_default_format)
 
 _default_console_handler = MultiplexingHandler()
 _default_console_handler.setFormatter(_default_formatter)
@@ -80,7 +103,7 @@ def enable_logfile(logtype):
     logfile = open(logname, 'wt')
     logfile_handler = logging.StreamHandler(logfile)
     logfile_handler.setFormatter(logging.Formatter(
-        "%(asctime)s: " + _default_format, "%Y-%m-%d %H:%M:%S"))
+        "%(asctime)s: " + _default_format.format("", ""), "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
     atexit.register(flush)
     return logfile

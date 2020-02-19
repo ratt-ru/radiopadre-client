@@ -11,11 +11,12 @@ try:
 except NameError:
     INPUT = input       # py3
 
-def message(x, level=logging.INFO):
+def message(x, level=logging.INFO, color=None):
     """Prints message"""
     if type(x) is bytes:
         x = x.decode()
-    logger.logger.log(level, x)
+    extra = dict(color=color) if color else {}
+    logger.logger.log(level, x, extra=extra)
 
 def warning(x):
     message(x, logging.WARNING)
