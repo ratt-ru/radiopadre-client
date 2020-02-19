@@ -2,6 +2,7 @@ import os, sys, subprocess, re, time
 
 from . import config
 
+import iglesia
 from iglesia.utils import DEVNULL, message, bye, find_unused_port, Poller, ff
 
 from radiopadre_client.server import run_browser
@@ -12,8 +13,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
-    SSH_OPTS = ["ssh", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
-#    SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+#    SSH_OPTS = ["ssh", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+    SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
 
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
 
@@ -313,7 +314,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     urls = []
     remote_running = False
     status = 0
-    child_processes = []
 
     try:
         while remote_running is not None and poller.fdlabels:
@@ -384,7 +384,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     if "jupyter notebook server is running" in line:
                         remote_running = True
                         time.sleep(1)
-                        child_processes += run_browser(*urls)
+                        iglesia.register_helpers(*run_browser(*urls))
                         message("The remote radiopadre session is now fully up")
                         if USE_VENV or not config.CONTAINER_PERSIST:
                             message("Press Ctrl+C to kill the remote session")
@@ -402,7 +402,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     except Exception as exc:
         message("Exception caught: {}".format(str(exc)))
 
-    ssh.stdin.write("exit\n")
+    if remote_running and ssh.poll() is None:
+        message("Asking remote session to exit nicely")
+        ssh.communicate("exit\n")
 
     # if status and not USE_VENV and container_name:
     #     message(ff("killing remote container {container_name}"))
@@ -427,9 +429,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message(ff("Remote session hasn't exited, killing it"))
         ssh.kill()
 
-    for proc in child_processes:
-        proc.terminate()
-    for proc in child_processes:
-        proc.wait()
+    # cleanup children
+    iglesia.kill_helpers()
 
     return status

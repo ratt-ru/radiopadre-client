@@ -6,8 +6,6 @@ from radiopadre_client.server import run_browser
 import iglesia
 from .backend_utils import await_server_startup, update_server_install
 
-child_processes = []
-
 def init():
     pass
 
@@ -101,7 +99,6 @@ def update_installation():
         message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
 
 
-
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
     from iglesia import ROOTDIR
     from radiopadre_client.server import JUPYTER_OPTS
@@ -141,10 +138,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
-    global child_processes
-    child_processes = iglesia.init_helpers(radiopadre_base)
-
-    atexit.register(kill_child_processes)
+    iglesia.init_helpers(radiopadre_base)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
@@ -159,11 +153,11 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
     #                                  env=os.environ)
 
-    child_processes.append(notebook_proc)
+    iglesia.register_helpers(notebook_proc)
 
     # launch browser
     if browser_urls:
-        child_processes += run_browser(*browser_urls)
+        iglesia.register_helpers(*run_browser(*browser_urls))
     elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
         message("Please point your browser to {}".format(" ".join(browser_urls)))
 
@@ -185,7 +179,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                 sys.exit(0)
             if a.lower() == 'exit':
                 message("Exit request received")
-                child_processes.append(notebook_proc)
                 sys.exit(0)
     except BaseException as exc:
         if type(exc) is KeyboardInterrupt:
@@ -200,21 +193,5 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         else:
             message("Caught exception {} ({})".format(exc, type(exc)))
             status = 1
-        child_processes.append(notebook_proc)
         sys.exit(status)
 
-def kill_child_processes():
-    try:
-        if child_processes:
-            message("Terminating remaining child processes ({})".format(
-                    " ".join([str(proc.pid) for proc in child_processes])))
-            for proc in child_processes:
-                proc.terminate()
-            while child_processes:
-                proc = child_processes.pop()
-                proc.wait()
-        else:
-            message("No child processes remaining")
-    except Exception as exc:
-        err = traceback.format_exc()
-        error(ff("Exception in kill_child_processes: {err}"))

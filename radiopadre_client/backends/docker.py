@@ -1,6 +1,7 @@
 import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
+import iglesia
 from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
@@ -238,8 +239,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
 
-    child_processes = []
-
     message("Running {}".format(" ".join(map(str, docker_opts))))
     if singularity:
         message(
@@ -251,7 +250,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL)
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
-    child_processes.append(docker_process)
+
+    #child_processes.append(docker_process)
 
     # pause to let the Jupyter server spin up
     wait = await_server_startup(jupyter_port, process=docker_process, init_wait=1, server_name="notebook container")
@@ -265,7 +265,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
 
     if browser_urls:
-        child_processes += run_browser(*browser_urls)
+        iglesia.register_helpers(*run_browser(*browser_urls))
         # give things a second (to let the browser command print its stuff, if it wants to)
         time.sleep(1)
 
@@ -276,6 +276,7 @@ def kill_container(name):
     shell(ff("{docker} kill {name}"), ignore_fail=True)
 
 def reap_running_container():
+    global running_container
     if running_container:
         kill_container(running_container)
     running_container = None

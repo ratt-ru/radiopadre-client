@@ -31,9 +31,6 @@ SESSION_URL = None          # usually {SHADOW_URL_PREFIX}/{ABSROOTDIR}/.radiopad
 SESSION_ID = None           # session ID. Used below in paths
 VERBOSE = 0                 # message verbosity level, >0 for debugging
 
-SELECTED_PORTS = None       # js9helper, http_server, carta, carta_ws
-USERSIDE_PORTS = None       # same on user side (after port forwarding)
-
 JS9_DIR         = None             # JS9 install directory
 HTTPSERVER_PORT = None             # (userside) HTTP port
 JS9HELPER_PORT  = None             # (userside) helper port, if set up
@@ -53,6 +50,8 @@ class PadreError(RuntimeError):
     def __init__(self, message):
         super(PadreError, self).__init__(message)
         error(message)
+
+from .helpers import init_helpers, register_helpers, kill_helpers
 
 def init():
     """Initialize padre runtime environment, and setup globals describing it"""
@@ -133,125 +132,8 @@ def init():
     if not HOSTNAME:
         os.environ["HOSTNAME"] = HOSTNAME = subprocess.check_output("/bin/hostname").decode().strip()
 
-def init_helpers(radiopadre_base):
-    """Starts up helper processes, if they are not already running"""
-    global \
-        SELECTED_PORTS, USERSIDE_PORTS, \
-        JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
 
-    # set ports, else allocate ports
-    selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
-    if selected_ports:
-        SELECTED_PORTS = map(int, selected_ports.strip().split(":"))
-        debug(ff("  ports configured as {SELECTED_PORTS}"))
-    else:
-        SELECTED_PORTS = find_unused_ports(4)
-        debug(ff("  ports selected: {SELECTED_PORTS}"))
-
-    userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
-    if userside_ports:
-        USERSIDE_PORTS = map(int, userside_ports.strip().split(":"))
-        debug(ff("  userside ports configured as {USERSIDE_PORTS}"))
-    else:
-        USERSIDE_PORTS = SELECTED_PORTS
-        debug(ff("  userside ports are the same"))
-
-    JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = USERSIDE_PORTS
-    helper_port, http_port, carta_port, carta_ws_port = SELECTED_PORTS
-
-    # JS9 init
-    global JS9_DIR
-    JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', ff("{sys.prefix}/js9-www"))
-
-    # accumulates rewrite rules for HTTP server
-    # add radiopadre/html/ to rewrite as /radiopadre-www/
-    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/html/"),
-                     ff("/js9-www/={JS9_DIR}/")]
-
-    # are we running inside a container?
-    in_container = bool(os.environ.get('RADIOPADRE_CONTAINER_NAME'))
-
-    ## is this even needed?
-    # import notebook
-    # http_rewrites.append("/js9-www/={}/".format(JS9_DIR))
-    # http_rewrites.append(
-    #     "/js9colormaps.js={}/static/js9colormaps.js".format(os.path.dirname(notebook.__file__)))
-    #
-    child_processes = []
-
-    # run JS9 helper
-    if 'RADIOPADRE_JS9HELPER_PID' not in os.environ:
-        try:
-            js9helper = JS9_DIR + "/js9Helper.js"
-
-            if not os.path.exists(JS9_DIR):
-                raise PadreError(ff("{JS9_DIR} does not exist"))
-            if not os.path.exists(js9helper):
-                raise PadreError(ff("{js9helper} does not exist"))
-
-            message(ff("Starting {js9helper} on port {helper_port} in {SHADOW_ROOTDIR}"))
-
-            js9prefs = SESSION_DIR + "/js9prefs.js"
-            if not in_container:
-                # create JS9 settings file (in container mode, this is created and mounted inside container already)
-                open(js9prefs, "w").write(ff("JS9Prefs.globalOpts.helperPort = {JS9HELPER_PORT};\n"))
-                debug(ff("  writing {js9prefs} with helperPort={JS9HELPER_PORT}"))
-
-            message(ff("Starting {js9helper} on port {helper_port} in {SHADOW_ROOTDIR}"))
-            nodejs = find_which("nodejs") or find_which("node")
-            if not nodejs:
-                raise PadreError("unable to find nodejs or node -- can't run js9helper.")
-            try:
-                with chdir(SHADOW_ROOTDIR):
-                    child_processes.append(
-                        subprocess.Popen([nodejs.strip(), js9helper,
-                            ff('{{"helperPort": {helper_port}, "debug": {VERBOSE}, ') +
-                            ff('"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{ABSROOTDIR}|/static/)", ""] }}')],
-                                         stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
-                    os.environ['RADIOPADRE_JS9HELPER_PID'] = str(child_processes[-1].pid)
-            except Exception as exc:
-                error(ff("error running {nodejs} {js9helper}: {exc}"))
-        except PadreError:
-            pass
-    else:
-        debug("JS9 helper should be running (pid {})".format(os.environ["RADIOPADRE_JS9HELPER_PID"]))
-
-    if 'RADIOPADRE_HTTPSERVER_PID' not in os.environ:
-        message(ff("Starting HTTP server process in {SHADOW_HOME} on port {http_port}"))
-        server = find_which("radiopadre-http-server.py")
-        if server:
-            with chdir(SHADOW_HOME):
-                child_processes.append(
-                    subprocess.Popen([server, str(http_port)] + http_rewrites,
-                                     stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
-                os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(child_processes[-1].pid)
-        else:
-            error("HTTP server script radiopadre-http-server.py not found, functionality will be restricted")
-    else:
-        debug("HTTP server should be running (pid {})".format(os.environ["RADIOPADRE_HTTPSERVER_PID"]))
-
-    if 'RADIOPADRE_CARTA_PID' not in os.environ:
-        # start CARTA backend
-        for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{radiopadre_base}/carta/carta"), \
-                          find_which('carta'):
-            if carta_exec and os.access(carta_exec, os.X_OK):
-                break
-        else:
-            carta_exec = None
-
-        if not carta_exec or not os.path.exists(carta_exec):
-            warning("CARTA backend not found, omitting")
-        else:
-            carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
-            message(ff("Running CARTA backend {carta_exec} (in dir {carta_dir})"))
-            with chdir(carta_dir):
-                child_processes.append(
-                    subprocess.Popen([carta_exec, "--remote",
-                                        ff("--root={ABSROOTDIR}"), ff("--folder={ABSROOTDIR}"),
-                                        ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
-                                     stdin=subprocess.PIPE, stdout=DEVNULL, stderr=logger.logfile))
-                os.environ['RADIOPADRE_CARTA_PID'] = str(child_processes[-1].pid)
-    else:
-        debug("CARTA backend should be running (pid {})".format(os.environ["RADIOPADRE_CARTA_PID"]))
-
-    return child_processes
+def set_userside_ports(userside_ports):
+    """Sets the relevant userside port variables"""
+    global JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
+    JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = userside_ports
