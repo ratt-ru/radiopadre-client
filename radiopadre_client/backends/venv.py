@@ -1,5 +1,5 @@
-import sys, os, os.path, subprocess, atexit, traceback
-from iglesia.utils import message, shell, bye, ff, INPUT, error
+import sys, os, os.path, subprocess, time
+from iglesia.utils import message, error, debug, shell, bye, ff, INPUT
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
@@ -173,13 +173,17 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     try:
         while True:
-            a = INPUT("Type 'exit' to kill the session: ")
-            if notebook_proc.poll() is not None:
-                message("The notebook server has exited with code {}".format(notebook_proc.poll()))
-                sys.exit(0)
-            if a.lower() == 'exit':
-                message("Exit request received")
-                sys.exit(0)
+            if config.INSIDE_CONTAINER_PORTS:
+                debug("inside container -- sleeping indefinitely")
+                time.sleep(100000)
+            else:
+                a = INPUT("Type 'exit' to kill the session: ")
+                if notebook_proc.poll() is not None:
+                    message("The notebook server has exited with code {}".format(notebook_proc.poll()))
+                    sys.exit(0)
+                if a.lower() == 'exit':
+                    message("Exit request received")
+                    sys.exit(0)
     except BaseException as exc:
         if type(exc) is KeyboardInterrupt:
             message("Caught Ctrl+C")
