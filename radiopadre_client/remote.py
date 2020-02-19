@@ -3,9 +3,12 @@ import os, sys, subprocess, re, time
 from . import config
 
 import iglesia
-from iglesia.utils import DEVNULL, message, debug, bye, find_unused_port, Poller, ff
+from iglesia.utils import DEVNULL, message, warning, error, debug, bye, find_unused_port, Poller, ff
 
 from radiopadre_client.server import run_browser
+
+# which method to use to dispatch messages from remote. Default is message().
+_dispatch_message = {': WARNING: ':warning, ': ERROR: ':error, ': DEBUG:':debug}
 
 # Find remote radiopadre script
 def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):
@@ -323,25 +326,31 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     line = fobj.readline()
                 except EOFError:
                     line = b''
-                if fobj is sys.stdin and line and line[0].upper() == b'D' and config.CONTAINER_PERSIST:
+                empty_line = not line
+                line = (line.decode() if type(line) is bytes else line).rstrip()
+                if fobj is sys.stdin and line == 'D' and config.CONTAINER_PERSIST:
                     sys.exit(0)
                 # break out if ssh closes
-                if not line:
+                if empty_line:
                     poller.unregister_file(fobj)
-                    if ssh.stdout not in poller and ssh.stdin not in poller:
+                    if ssh.stdout not in poller and ssh.stderr not in poller:
                         message(ff("The ssh process to {config.REMOTE_HOST} has exited"))
                         remote_running = None
                         break
                     continue
-                line = (line.decode() if type(line) is bytes else line).rstrip()
                 # print remote output
                 print_output = False
                 if fobj is ssh.stderr:
                     print_output = not line.startswith("Shared connection to")
                 else:
                     print_output = not line.startswith("radiopadre:") or command != 'load'
-                if config.VERBOSE or print_output:
-                    print("\r{}: {}\r".format(fname, line))
+                if not empty_line and (config.VERBOSE or print_output):
+                    for key, dispatch in _dispatch_message.items():
+                        if key in line:
+                            dispatch("{}: {}".format(fname, line))
+                            break
+                    else:
+                        message("{}: {}".format(fname, line))
                 if not line:
                     continue
                 # if remote is not yet started, check output

@@ -142,14 +142,15 @@ options = parser.parse_args()
 
 message("Welcome to the radiopadre client!")
 
-
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
 copy_initial_notebook = remote_host = command = notebook_path = None
 arguments = list(options.arguments)
 
+manage_last_sessions = not options.remote and not options.inside_container
+
 # recent session management: only done for front-end sessions
-if not options.remote and not options.inside_container:
+if manage_last_sessions:
     last_sessions = resume_session = None
 
     def get_last_sessions(must_exist=True):
@@ -236,15 +237,16 @@ else:
         parser.error("too many arguments")
 
 # save sessions
-last_sessions = get_last_sessions(False) or OrderedDict()
-session_key = remote_host, command, notebook_path
-if session_key in last_sessions:
-    del last_sessions[session_key]
-if len(last_sessions) >= 5:
-    del last_sessions[last_sessions.keys()[0]]
-non_persisting_options = {"-u", "--update", "--auto-init"}
-last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
-pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
+if manage_last_sessions:
+    last_sessions = get_last_sessions(False) or OrderedDict()
+    session_key = remote_host, command, notebook_path
+    if session_key in last_sessions:
+        del last_sessions[session_key]
+    if len(last_sessions) >= 5:
+        del last_sessions[last_sessions.keys()[0]]
+    non_persisting_options = {"-u", "--update", "--auto-init"}
+    last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
+    pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 
 
 ## finalize settings

@@ -110,7 +110,7 @@ class Poller(object):
     def register_file(self, fobj, label):
         self.fdlabels[fobj.fileno()] = label, fobj
 
-    def register_process(self, po, label_stdout='', label_stderr=''):
+    def register_process(self, po, label_stdout='stdout', label_stderr='stderr'):
         self.fdlabels[po.stdout.fileno()] = label_stdout, po.stdout
         self.fdlabels[po.stderr.fileno()] = label_stderr, po.stderr
 
