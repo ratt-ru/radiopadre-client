@@ -6,7 +6,7 @@ from collections import OrderedDict
 # ### some globals
 
 from radiopadre_client import config
-from iglesia.utils import message, bye, ff
+from iglesia.utils import message, bye, ff, INPUT
 
 from iglesia import logger
 
@@ -160,7 +160,7 @@ def get_last_sessions(must_exist=True):
             last_sessions = None
 
     if last_sessions is None and must_exist:
-        parser.error("no recent radiopadre sessions and no arguments given. Run with -h for help.")
+        bye("no recent radiopadre sessions and no arguments given. Run with -h for help.")
 
     return last_sessions
 
@@ -174,10 +174,7 @@ if not arguments:
     message("")
     while resume_session is None:
         prompt = "Press ENTER to run the most recent session [0], or enter number, or Ctrl+C to exit: "
-        try:
-            inp = raw_input(prompt) # try py2
-        except NameError:
-            inp = input(prompt) # py3
+        inp = INPUT(prompt)
         inp = inp.strip()
         if not inp:
             resume_session = 0
@@ -218,17 +215,17 @@ if config.SERVER_INSTALL_PATH == "None":
 # work out command and its arguments
 if command == 'ps':
     if arguments:
-        parser.error("ps takes no arguments")
+        bye("ps command takes no arguments")
 elif command == 'resume':
     if len(arguments) > 1:
-        parser.error("resume takes at most one argument")
+        bye("resume command takes at most one argument")
 elif command == 'kill':
     if not arguments:
-        parser.error("kill: specify at least one arguments")
+        bye("kill: specify at least one arguments")
 else:
     notebook_path = command
     if not remote_host and not glob.glob(notebook_path):
-        parser.error("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
+        bye("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
     command = 'load'
     # in remote mode, allow an optional argument
     if remote_host:

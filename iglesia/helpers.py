@@ -159,7 +159,7 @@ def kill_helpers():
                 proc = _child_processes.pop()
                 proc.wait()
         else:
-            message("No child processes remaining")
+            debug("No child processes remaining")
     except Exception:
         err = traceback.format_exc()
         error(ff("Exception in kill_helpers: {err}"))
