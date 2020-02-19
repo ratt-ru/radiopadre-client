@@ -1,5 +1,5 @@
 import sys, os, os.path, subprocess, atexit
-from iglesia.utils import message, shell, bye, ff, INPUT
+from iglesia.utils import message, shell, bye, ff, INPUT, error
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
@@ -201,14 +201,17 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         sys.exit(status)
 
 def kill_child_processes():
-    if child_processes:
-        message("Terminating remaining child processes ({})".format(
-                " ".join([str(proc.pid) for proc in child_processes])))
-        for proc in child_processes:
-            if proc.poll() is None:
-                proc.terminate()
-        while child_processes:
-            proc = child_processes.pop()
-            proc.wait()
-    else:
-        message("No child processes remaining")
+    try:
+        if child_processes:
+            message("Terminating remaining child processes ({})".format(
+                    " ".join([str(proc.pid) for proc in child_processes])))
+            for proc in child_processes:
+                if proc.poll() is None:
+                    proc.terminate()
+            while child_processes:
+                proc = child_processes.pop()
+                proc.wait()
+        else:
+            message("No child processes remaining")
+    except Exception as exc:
+        error(ff("Exception in kill_child_processes: {exc}"))

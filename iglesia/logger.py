@@ -1,4 +1,4 @@
-import sys, os.path, logging, time
+import sys, os.path, logging, time, atexit
 
 logger = None
 logfile = sys.stderr
@@ -75,6 +75,7 @@ def enable_logfile(logtype):
     logfile_handler.setFormatter(logging.Formatter(
         "%(asctime)s: " + _default_format, "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
+    atexit.register(flush)
     return logfile
 
 def flush():
