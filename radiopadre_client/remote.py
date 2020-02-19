@@ -12,8 +12,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
-#    SSH_OPTS = ["ssh", "-tt"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
-    SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+    SSH_OPTS = ["ssh", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+#    SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+
+# See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
 
     # master ssh connection, to be closed when we exit
     if config.VERBOSE:
@@ -321,7 +323,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     line = fobj.readline()
                 except EOFError:
                     line = b''
-                if fobj is sys.stdin and line and line[0].upper() == b'Q' and config.CONTAINER_PERSIST:
+                if fobj is sys.stdin and line and line[0].upper() == b'D' and config.CONTAINER_PERSIST:
                     sys.exit(0)
                 # break out if ssh closes
                 if not line:
@@ -387,7 +389,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         if USE_VENV or not config.CONTAINER_PERSIST:
                             message("Press Ctrl+C to kill the remote session")
                         else:
-                            message("Press Q<Enter> to detach from remote session, or Ctrl+C to kill it")
+                            message("Press D<Enter> to detach from remote session, or Ctrl+C to kill it")
 
     except SystemExit as exc:
         message(ff("SystemExit: {exc.code}"))
@@ -397,21 +399,37 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("Ctrl+C caught")
         status = 1
 
-    if status and not USE_VENV and container_name:
-        message(ff("killing remote container {container_name}"))
-        try:
-            if has_docker:
-                ssh_remote(ff("{has_docker} kill {container_name}"))
-            elif has_singularity:
-                from .backends.singularity import get_singularity_image
-                singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-                ssh_remote(ff("{has_singularity} instance.stop {singularity_image} {container_name}"))
-        except subprocess.CalledProcessError as exc:
-            message(exc.output.decode())
+    except Exception as exc:
+        message("Exception caught: {}".format(str(exc)))
 
-    ssh.kill()
+    ssh.stdin.write("exit\n")
+
+    # if status and not USE_VENV and container_name:
+    #     message(ff("killing remote container {container_name}"))
+    #     try:
+    #         if has_docker:
+    #             ssh_remote(ff("{has_docker} kill {container_name}"))
+    #         elif has_singularity:
+    #             from .backends.singularity import get_singularity_image
+    #             singularity_image = get_singularity_image(config.DOCKER_IMAGE)
+    #             ssh_remote(ff("{has_singularity} instance.stop {singularity_image} {container_name}"))
+    #     except subprocess.CalledProcessError as exc:
+    #         message(exc.output.decode())
+
+    for i in range(10, 0, -1):
+        if ssh.poll() is not None:
+            message("Remote session has exited")
+            ssh.wait()
+            break
+        message(ff("Waiting for remote session to exit ({i})"))
+        time.sleep(1)
+    else:
+        message(ff("Remote session hasn't exited, killing it"))
+        ssh.kill()
+
     for proc in child_processes:
         proc.terminate()
+    for proc in child_processes:
         proc.wait()
 
     return status

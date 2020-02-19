@@ -1,5 +1,5 @@
 import sys, os, os.path, subprocess, atexit
-from iglesia.utils import message, shell, bye, ff
+from iglesia.utils import message, shell, bye, ff, INPUT
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
@@ -177,23 +177,35 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
 
-    # wait for termination
     try:
-        notebook_proc.wait()
-        message(ff("The jupyter notebook process has exited with return code {notebook_proc.returncode}"))
-        child_processes.pop(-1)
-    except KeyboardInterrupt:
-        message("Ctrl+C caught")
-
-    kill_child_processes()
-    message("Exiting")
+        while True:
+            a = INPUT("Type 'exit' to kill the container session: ")
+            if notebook_proc.poll() is not None:
+                message("The notebook server has exited with code {}".format(notebook_proc.poll()))
+                sys.exit(0)
+            if a.lower() == 'exit':
+                child_processes.append(notebook_proc)
+                sys.exit(0)
+    except BaseException as exc:
+        if type(exc) is KeyboardInterrupt:
+            message("Caught Ctrl+C")
+            status = 1
+        elif type(exc) is SystemExit:
+            status = getattr(exc, 'code', 0)
+            message("Exiting with status {}".format(status))
+        else:
+            message("Caught exception {} ({})".format(exc, type(exc)))
+            status = 1
+        child_processes.append(notebook_proc)
+        sys.exit(status)
 
 def kill_child_processes():
     if child_processes:
         message("Terminating remaining child processes ({})".format(
                 " ".join([str(proc.pid) for proc in child_processes])))
         for proc in child_processes:
-            proc.terminate()
+            if proc.poll() is None:
+                proc.terminate()
         while child_processes:
             proc = child_processes.pop()
             proc.wait()

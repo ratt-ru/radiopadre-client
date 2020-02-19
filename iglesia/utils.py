@@ -6,7 +6,10 @@ from iglesia import logger
 DEVZERO = open("/dev/zero")
 DEVNULL = open("/dev/null", "w")
 
-time0 = time.time()
+try:
+    INPUT = raw_input   # py2
+except NameError:
+    INPUT = input       # py3
 
 def message(x, level=logging.INFO):
     """Prints message"""

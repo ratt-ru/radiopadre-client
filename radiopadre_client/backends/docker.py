@@ -1,7 +1,7 @@
 import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
-from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff
+from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
@@ -209,16 +209,17 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         message("exiting: container session will remain running.")
         running_container = None # to avoid reaping
         sys.exit(0)
-    elif config.REMOTE_MODE_PORTS:
-        if config.VERBOSE:
-            message("sleeping until signal")
-        while True:
-            signal.pause()
     else:
+        if config.CONTAINER_PERSIST:
+            prompt = "Type 'exit' to kill the container session, or 'D' to detach: "
+        else:
+            prompt = "Type 'exit' to kill the container session: "
         try:
             while True:
-                a = input("Type Q<Enter> to detach from the container session, or Ctrl+C to kill it: ")
-                if a and a[0].upper() == 'Q':
+                a = INPUT(prompt)
+                if a.lower() == 'exit':
+                    sys.exit(0)
+                if a.upper() == 'D' and config.CONTAINER_PERSIST and container_name:
                     running_container = None  # to avoid reaping
                     sys.exit(0)
         except BaseException as exc:

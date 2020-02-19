@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from iglesia.utils import message, make_dir, shell, DEVNULL, ff
+from iglesia.utils import message, make_dir, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 
 singularity = None
@@ -97,30 +97,25 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls,
                    singularity=True)
 
-
-    if config.REMOTE_MODE_PORTS:
-        if config.VERBOSE:
-            message("sleeping")
+    try:
         while True:
-            time.sleep(1000000)
-    else:
-        try:
-            while True:
-                input("Use Ctrl+C to kill the container session")
-        except BaseException as exc:
-            if type(exc) is KeyboardInterrupt:
-                message("Caught Ctrl+C")
-                status = 1
-            elif type(exc) is SystemExit:
-                status = getattr(exc, 'code', 0)
-                message("Exiting with status {}".format(status))
-            else:
-                message("Caught exception {} ({})".format(exc, type(exc)))
-                status = 1
-            if status:
-                message("Killing the container")
-                subprocess.call([singularity, "instance.stop", singularity_image, container_name], stdout=DEVNULL)
-            sys.exit(status)
+            a = INPUT("Type 'exit' to kill the container session: ")
+            if a.lower() == 'exit':
+                sys.exit(0)
+    except BaseException as exc:
+        if type(exc) is KeyboardInterrupt:
+            message("Caught Ctrl+C")
+            status = 1
+        elif type(exc) is SystemExit:
+            status = getattr(exc, 'code', 0)
+            message("Exiting with status {}".format(status))
+        else:
+            message("Caught exception {} ({})".format(exc, type(exc)))
+            status = 1
+        if status:
+            message("Killing the container")
+            subprocess.call([singularity, "instance.stop", singularity_image, container_name], stdout=DEVNULL)
+        sys.exit(status)
 
 
 def kill_container(name):
