@@ -5,7 +5,7 @@ from radiopadre_client import config
 
 singularity = None
 
-from .docker import get_session_info_dir, _run_container, _init_session_dir, _collect_runscript_arguments
+from .docker import get_session_info_dir, save_session_info, _run_container, _init_session_dir, _collect_runscript_arguments
 
 
 def init(binary):
