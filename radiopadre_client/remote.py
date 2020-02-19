@@ -413,7 +413,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     if remote_running and ssh.poll() is None:
         message("Asking remote session to exit nicely")
-        ssh.stdin.write("exit\n")
+        try:
+            ssh.communicate("exit\n")
+        except TypeError:
+            ssh.communicate(b"exit\n")  # because fuck you python
+
 
     # if status and not USE_VENV and container_name:
     #     message(ff("killing remote container {container_name}"))
