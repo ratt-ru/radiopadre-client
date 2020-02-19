@@ -179,11 +179,12 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     try:
         while True:
-            a = INPUT("Type 'exit' to kill the container session: ")
+            a = INPUT("Type 'exit' to kill the session: ")
             if notebook_proc.poll() is not None:
                 message("The notebook server has exited with code {}".format(notebook_proc.poll()))
                 sys.exit(0)
             if a.lower() == 'exit':
+                message("Exit request received")
                 child_processes.append(notebook_proc)
                 sys.exit(0)
     except BaseException as exc:
@@ -209,3 +210,5 @@ def kill_child_processes():
         while child_processes:
             proc = child_processes.pop()
             proc.wait()
+    else:
+        message("No child processes remaining")
