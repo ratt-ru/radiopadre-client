@@ -1,4 +1,4 @@
-import sys, os, os.path, subprocess, atexit
+import sys, os, os.path, subprocess, atexit, traceback
 from iglesia.utils import message, shell, bye, ff, INPUT, error
 
 from radiopadre_client import config
@@ -213,4 +213,5 @@ def kill_child_processes():
         else:
             message("No child processes remaining")
     except Exception as exc:
-        error(ff("Exception in kill_child_processes: {exc}"))
+        err = traceback.format_exc()
+        error(ff("Exception in kill_child_processes: {err}"))
