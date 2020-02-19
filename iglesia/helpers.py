@@ -13,7 +13,7 @@ def init_helpers(radiopadre_base):
     # set ports, else allocate ports
     selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
     if selected_ports:
-        selected_ports = map(int, selected_ports.strip().split(":"))
+        selected_ports = list(map(int, selected_ports.strip().split(":")))
         debug(ff("  ports configured as {selected_ports}"))
     else:
         selected_ports = find_unused_ports(4)
@@ -21,7 +21,7 @@ def init_helpers(radiopadre_base):
 
     userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
     if userside_ports:
-        userside_ports = map(int, userside_ports.strip().split(":"))
+        userside_ports = list(map(int, userside_ports.strip().split(":")))
         debug(ff("  userside ports configured as {userside_ports}"))
     else:
         userside_ports = selected_ports
@@ -47,7 +47,7 @@ def init_helpers(radiopadre_base):
     # http_rewrites.append(
     #     "/js9colormaps.js={}/static/js9colormaps.js".format(os.path.dirname(notebook.__file__)))
     #
-    child_processes = []
+    global _child_processes
 
     # run JS9 helper
     if 'RADIOPADRE_JS9HELPER_PID' not in os.environ:
@@ -71,12 +71,13 @@ def init_helpers(radiopadre_base):
                 raise PadreError("unable to find nodejs or node -- can't run js9helper.")
             try:
                 with chdir(iglesia.SHADOW_ROOTDIR):
-                    child_processes.append(
+                    _child_processes.append(
                         subprocess.Popen([nodejs.strip(), js9helper,
                             ff('{{"helperPort": {helper_port}, "debug": {iglesia.VERBOSE}, ') +
                             ff('"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}')],
                                          stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
-                    os.environ['RADIOPADRE_JS9HELPER_PID'] = str(child_processes[-1].pid)
+                    os.environ['RADIOPADRE_JS9HELPER_PID'] = str(_child_processes[-1].pid)
+                    message("  started as PID {}".format(_child_processes[-1].pid))
             except Exception as exc:
                 error(ff("error running {nodejs} {js9helper}: {exc}"))
         except PadreError:
@@ -89,10 +90,11 @@ def init_helpers(radiopadre_base):
         server = find_which("radiopadre-http-server.py")
         if server:
             with chdir(iglesia.SHADOW_HOME):
-                child_processes.append(
+                _child_processes.append(
                     subprocess.Popen([server, str(http_port)] + http_rewrites,
                                      stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
-                os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(child_processes[-1].pid)
+                os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(_child_processes[-1].pid)
+                message("  started as PID {}".format(_child_processes[-1].pid))
         else:
             error("HTTP server script radiopadre-http-server.py not found, functionality will be restricted")
     else:
@@ -113,23 +115,28 @@ def init_helpers(radiopadre_base):
             carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
             message(ff("Running CARTA backend {carta_exec} (in dir {carta_dir})"))
             with chdir(carta_dir):
-                child_processes.append(
+                _child_processes.append(
                     subprocess.Popen([carta_exec, "--remote",
                                         ff("--root={iglesia.ABSROOTDIR}"), ff("--folder={iglesia.ABSROOTDIR}"),
                                         ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
                                      stdin=subprocess.PIPE, stdout=DEVNULL, stderr=logger.logfile))
-                os.environ['RADIOPADRE_CARTA_PID'] = str(child_processes[-1].pid)
-                atexit.register(_exit_carta, child_processes[-1])
+                os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
+                atexit.register(_exit_carta, _child_processes[-1])
+                message("  started as PID {}".format(_child_processes[-1].pid))
     else:
         debug("CARTA backend should be running (pid {})".format(os.environ["RADIOPADRE_CARTA_PID"]))
 
 
 def _exit_carta(proc):
-    if proc.poll() is None:
-        message("Asking CARTA backend (pid {}) to exit".format(proc.pid))
-        proc.communicate("Q\n")
-    else:
-        message("CARTA backend already exited with code {}".format(proc.returncode))
+    try:
+        if proc.poll() is None:
+            message("Asking CARTA backend (pid {}) to exit".format(proc.pid))
+            proc.communicate(b"q\n")
+        else:
+            message("CARTA backend already exited with code {}".format(proc.returncode))
+    except Exception:
+        err = traceback.format_exc()
+        error(ff("Exception in _exit_carta: {err}"))
 
 
 def register_helpers(*procs):
