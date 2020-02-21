@@ -151,7 +151,7 @@ def _collect_runscript_arguments(ports):
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
-    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, ALIEN_MODE
+    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SNOOP_MODE
 
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
@@ -175,7 +175,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # setup mounts for work dir and home dir, if needed
     homedir = os.path.expanduser("~")
     docker_opts += [
-                     "-v", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ":ro" if ALIEN_MODE else ""),
+                     "-v", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ":ro" if SNOOP_MODE else ""),
                      "-v", "{}:{}".format(homedir, homedir),
                      # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
                      "-v", "{}:{}/.local".format(docker_local, homedir),

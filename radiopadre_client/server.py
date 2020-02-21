@@ -3,7 +3,7 @@ import os, os.path, sys, subprocess, time, glob, uuid, shutil, fnmatch
 
 from . import config
 import iglesia
-from iglesia.utils import DEVNULL, DEVZERO, message, bye, find_unused_port, find_which, ff
+from iglesia.utils import DEVNULL, DEVZERO, message, warning, bye, find_unused_port, find_which, ff
 from .notebooks import default_notebook_code
 
 backend = None
@@ -289,13 +289,17 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     ]
 
     #=== figure out whether we initialize or load a notebook
+    os.chdir(iglesia.SERVER_BASEDIR)
+    if iglesia.SNOOP_MODE:
+        warning(ff("{iglesia.ABSROOTDIR} is not writable for you, so radiopadre is operating in snoop mode."))
+        warning(ff("Copies of notebooks will be created under the shadow directory {iglesia.SERVER_BASEDIR}."))
 
     ALL_NOTEBOOKS = glob.glob("*.ipynb")
 
-    if iglesia.ALIEN_MODE and not ALL_NOTEBOOKS:
+    if iglesia.SNOOP_MODE and not ALL_NOTEBOOKS:
         orig_notebooks = glob.glob(os.path.join(iglesia.ABSROOTDIR, "*.ipynb"))
         if orig_notebooks:
-            message("  Alien mode, and no notebooks in shadow directory: will copy notebooks from target.")
+            message("  No notebooks in shadow directory: will copy notebooks from target.")
             message("  Copying {} notebooks from {}".format(len(orig_notebooks), iglesia.ABSROOTDIR))
             for nb in orig_notebooks:
                 shutil.copyfile(nb, './' + os.path.basename(nb))
