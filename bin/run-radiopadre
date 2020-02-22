@@ -23,7 +23,7 @@ parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
-                    help=ff("if no notebooks are found in the specified directory, will create a ") +
+                    help=ff("if no notebooks are found in the specified directory, will create a \n") +
                          ff("{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename."))
 parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
                     help="disable default notebook creation.")
@@ -31,6 +31,8 @@ parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFA
                     help=ff("auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}."))
 parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
                     help="disable auto-load.")
+parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
+                    help="Do not open a separate tab with a CARTA browser on startup.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,

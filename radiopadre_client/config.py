@@ -17,6 +17,7 @@ CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
 AUTO_LOAD = "radiopadre-auto*.ipynb"
 DEFAULT_NOTEBOOK = "radiopadre-default.ipynb"
 DOCKER_IMAGE = "osmirnov/radiopadre:latest"
+CARTA_BROWSER = True
 CONTAINER_DEBUG = False
 CONTAINER_DETACH = False
 CONTAINER_PERSIST = False

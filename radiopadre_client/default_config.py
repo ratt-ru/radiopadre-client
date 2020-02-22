@@ -15,6 +15,7 @@ DefaultConfig = OrderedDict(
     SKIP_CHECKS=False,
     BACKEND="",
     BROWSER="default",
+    CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
     DOCKER_IMAGE="osmirnov/radiopadre:1.0pre3",         # change for each release
