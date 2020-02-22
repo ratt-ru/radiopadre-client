@@ -143,7 +143,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     if config.CARTA_BROWSER:
         url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
         message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
-        browser_urls.append(url)
+        if browser_urls:
+            browser_urls.append(url)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
