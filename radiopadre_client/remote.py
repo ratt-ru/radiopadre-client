@@ -22,13 +22,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
 
     # master ssh connection, to be closed when we exit
-    if config.VERBOSE:
-        message("Opening initial master connection to {} {}. You may be prompted for your password.".format(
-            config.REMOTE_HOST,
-            SSH_OPTS))
-    else:
-        message("Opening initial master connection to {}. You may be prompted for your password.".format(
-            config.REMOTE_HOST))
+    message(ff("Opening ssh connection to {config.REMOTE_HOST}. You may be prompted for your password."))
+    debug("  {}".format(" ".join(SSH_OPTS)))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
 
 
@@ -379,13 +374,13 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         continue
 
                     # check for launch URL
-                    match = re.match(".*Browse to URL: ([^\s]+)", line)
+                    match = re.match(".*Browse to URL: ([^\s\033]+)", line)
                     if match:
                         urls.append(match.group(1))
                         continue
 
                     # check for container name
-                    match = re.match(".*Container name: ([^\s]+)", line)
+                    match = re.match(".*Container name: ([^\s\033]+)", line)
                     if match:
                         container_name = match.group(1)
                         continue

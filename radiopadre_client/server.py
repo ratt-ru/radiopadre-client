@@ -339,9 +339,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     if LOAD_NOTEBOOK:
         urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
                  for nb in LOAD_NOTEBOOK]
-    if config.CARTA_BROWSER:
-        carta_port, carta_ws_port = selected_ports[-2:]
-        urls += [ff("http://localhost:{carta_port}/?socketUrl=ws://localhost:{carta_ws_port}")]
 
     # # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
     # if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
