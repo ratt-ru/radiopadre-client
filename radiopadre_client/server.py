@@ -292,7 +292,6 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     os.chdir(iglesia.SERVER_BASEDIR)
     if iglesia.SNOOP_MODE:
         warning(ff("{iglesia.ABSROOTDIR} is not writable for you, so radiopadre is operating in snoop mode."))
-        warning(ff("Copies of notebooks will be created under the shadow directory {iglesia.SERVER_BASEDIR}."))
 
     ALL_NOTEBOOKS = glob.glob("*.ipynb")
 

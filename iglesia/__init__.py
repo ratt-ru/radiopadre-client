@@ -97,17 +97,18 @@ def init():
                 error(ff("Target {ABSROOTDIR} corresponding to current shadow directory doesn't exist!"))
         else:
             debug(ff("Orthodox native, running under {ABSROOTDIR}"))
-        SHADOW_BASEDIR = os.environ.get('RADIOPADRE_SHADOW_BASEDIR', SHADOW_HOME+ABSROOTDIR)
+        SHADOW_BASEDIR = os.environ.get('RADIOPADRE_SHADOW_BASEDIR', SHADOW_HOME + ABSROOTDIR)
     else:
         # (2) Pagan:  we're snooping if cwd is non-writable
-        SERVER_BASEDIR = ABSROOTDIR
         SNOOP_MODE = not os.access(ABSROOTDIR, os.W_OK)
+        os.environ['RADIOPADRE_SHADOW_BASEDIR'] = SHADOW_BASEDIR = SHADOW_HOME + ABSROOTDIR
         if SNOOP_MODE:
+            SERVER_BASEDIR = SHADOW_BASEDIR
             debug(ff("  pagan snoop mode, setting SERVER_BASEDIR to {SERVER_BASEDIR}. Bat country!"))
         else:
+            SERVER_BASEDIR = ABSROOTDIR
             debug(ff("  setting SERVER_BASEDIR to {SERVER_BASEDIR}"))
         os.environ['RADIOPADRE_SERVER_BASEDIR'] = SERVER_BASEDIR
-        os.environ['RADIOPADRE_SHADOW_BASEDIR'] = SHADOW_BASEDIR = SHADOW_HOME + ABSROOTDIR
 
     SHADOW_ROOTDIR = SHADOW_HOME + ABSROOTDIR
     if not os.path.exists(SHADOW_ROOTDIR):
