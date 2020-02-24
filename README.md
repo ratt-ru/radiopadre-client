@@ -29,10 +29,10 @@ tight integration with JS9 and CARTA, however, works smoother if you start your 
 via ``run-radiopadre``, which takes care of starting up and stopping appropriate 
 helper processes and such.
 
-``run-radiopadre`` can also take care of starting radiopadre inside remote 
-Jupyter sessions using virtualenv, Docker or Singularity. It will manage  
-port forwarding for you, so that your local browser can talk to the 
-remote Jupyter server (and CARTA/JS9 backends).
+``run-radiopadre`` can also take care of 
+starting radiopadre inside remote Jupyter 
+sessions using virtualenv, Docker or Singularity. 
+It will manage port forwarding for you, so that your local browser can talk to the  remote Jupyter server (and CARTA/JS9 backends).
 
 ## Installation notes
 
@@ -65,8 +65,8 @@ installation. (Python 3.6+ required.)
 If, for whatever reason, you want to install radiopadre in a custom 
 virtualenv, then create [a Python 3.6+] one yourself and install radiopadre inside it
 following [the instructions](https://github.com/ratt-ru/radiopadre). 
-This follows normal pip practice. You can use ``pip install`` or 
-``pip install -e`` to install from a local directory. Since ``radiopadre`` depends on 
+This follows normal pip practice. You can use ``pip install``, or else 
+``pip install -e`` for an "editable" install from a local directory. Since ``radiopadre`` depends on 
 ``radiopadre-client``, it will automatically install the latter as well 
 (though you may well want to pre-install a local version with ``pip install -e``).
 
@@ -120,7 +120,7 @@ and drives a browser to it (see ``--browser`` option).
 If no notebooks are present, creates a minimalistic starter notebook 
 called ``radiopadre-default.ipynb``. If a notebook called 
 ``radiopadre-auto.ipynb`` is present, opens it automatically (see 
-``--auto-load`` option.)
+``--auto-load`` option.) Also opens the CARTA browser in a separate tab.
 
 ```
 $ run-radiopadre -V remote_box:project

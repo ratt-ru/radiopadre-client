@@ -189,7 +189,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     if not runscript:
         message(ff("No {runscript0} script found on {config.REMOTE_HOST}"))
         if not config.AUTO_INIT:
-            bye(ff("Try --auto-init?"))
+            bye(ff("Try re-running with --auto-init to install radiopadre-client on {config.REMOTE_HOST}."))
         if not config.RADIOPADRE_VENV:
             bye(ff("Can't do --auto-init because --virtual-env is not set"))
 
@@ -407,11 +407,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("Exception caught: {}".format(str(exc)))
 
     if remote_running and ssh.poll() is None:
-        message("Asking remote session to exit nicely")
+        message("Asking remote session to exit, nicely")
         try:
-            ssh.communicate("exit\n")
-        except TypeError:
-            ssh.communicate(b"exit\n")  # because fuck you python
+            try:
+                ssh.stdin.write("exit\n")
+            except TypeError:
+                ssh.stdin.write(b"exit\n")  # because fuck you python
+        except IOError:
+            debug("  looks like it's already exited")
 
 
     # if status and not USE_VENV and container_name:
@@ -434,7 +437,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message(ff("Waiting for remote session to exit ({i})"))
         time.sleep(1)
     else:
-        message(ff("Remote session hasn't exited, killing it"))
+        message(ff("Remote session hasn't exited, killing the ssh process"))
         ssh.kill()
 
     return status
