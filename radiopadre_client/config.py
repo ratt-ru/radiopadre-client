@@ -1,4 +1,5 @@
 import os, os.path, subprocess, re
+import six
 
 try:
     import configparser
@@ -71,14 +72,14 @@ _CMDLINE_DEFAULTS = {}
 
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())
-    if globalval is None or type(globalval) is str:
+    if globalval is None or isinstance(globalval, six.string_types):
         return section[key]
     elif type(globalval) is bool:
         return section.getboolean(key)
     elif type(globalval) is int:
         return section.getint(key)
     else:
-        raise TypeError(ff("unsupported type for {key}"))
+        raise TypeError("unsupported type {} for option {}".format(type(globalval), key))
 
 def _set_config_value(key):
     value = globals()[key]
