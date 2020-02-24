@@ -8,10 +8,15 @@ Quick start:
 ```
 $ pip install radiopadre-client
 $ run-radiopadre interesting_local_directory --auto-init
-## or: 
-# $ run-radiopadre remote_host:interesting_remote_directory --auto-init
-## assuming you have ssh access to the host
 ```
+
+Or for a remote session, assuming you have ssh access to the host:
+
+```
+$ run-radiopadre remote_host:interesting_remote_directory --auto-init
+```
+
+(With any luck, the --auto-init option will cause an automatic installation on the remote end.)
 
 ## Overview
 
