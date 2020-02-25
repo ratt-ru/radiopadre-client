@@ -1,11 +1,16 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 from __future__ import print_function
-import sys, os.path, os, argparse, glob
+import sys, os, argparse, glob, pickle, re, logging
+from collections import OrderedDict
 
 # ### some globals
 
-from radiopadre_client import config, utils
-from radiopadre_client.utils import message, bye
+from radiopadre_client import config
+from iglesia.utils import message, bye, ff, INPUT
+
+from iglesia import logger
+
+logger.init('radiopadre.client')
 
 parser = argparse.ArgumentParser(description="""
     Manages local or remote Jupyter sessions with radiopadre notebooks.
@@ -13,23 +18,27 @@ parser = argparse.ArgumentParser(description="""
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
-                    help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER).")
+                    help=ff("browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER)."))
 parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
-                    help=f"if no notebooks are found in the specified directory, will create a "
-                         f"{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename.")
+                    help=ff("if no notebooks are found in the specified directory, will create a \n") +
+                         ff("{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename."))
 parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
                     help="disable default notebook creation.")
 parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFAULT_VALUE,
-                    help=f"auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}.")
+                    help=ff("auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}."))
 parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
                     help="disable auto-load.")
+parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
+                    help="Do not open a separate tab with a CARTA browser on startup.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
+parser.add_argument("-l", "--log", action="store_true", default=0,
+                    help="Enables logging of sessions to see .radiopadre/logs.")
 
 
 ## back-end support
@@ -49,7 +58,7 @@ group.add_argument("-C", "--container-dev", action="store_true", default=0,
                          "Intended for developers and bleeding-edge users.")
 
 group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
-                   help=f"Which Docker image to use. Default is {config.DOCKER_IMAGE}.")
+                   help=ff("Which Docker image to use. Default is {config.DOCKER_IMAGE}."))
 group.add_argument("--container-persist", action="store_true", default=0,
                    help="Allow persistent container sessions (Docker only). Default is to kill the container " 
                         "when radiopadre disconnects.")
@@ -79,7 +88,7 @@ group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks. "
                    "This can make for faster startup, but less informative failure modes.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help=f"directory in which remote radiopadre_client will be installed with --auto-init.")
+                    help=ff("directory in which remote radiopadre_client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
                     help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
                          "in docker mode: update docker container using docker pull.")
@@ -89,9 +98,6 @@ parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
-
-# debug logging
-parser.add_argument("--log", type=int, default=0, help=argparse.SUPPRESS)
 
 ## other settings from config
 
@@ -132,42 +138,98 @@ parser.add_argument("arguments", nargs="*",
 
 ### PARSE ARGUMENTS
 #
+argv = sys.argv[1:]
 options = parser.parse_args()
+
+message("Welcome to the radiopadre client!")
 
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
 copy_initial_notebook = remote_host = command = notebook_path = None
 arguments = list(options.arguments)
 
-# figure out if remote mode is being invoked
-if not arguments:
-    remote_host, command = None, '.'
+manage_last_sessions = not options.remote and not options.inside_container
+
+# recent session management: only done for front-end sessions
+if manage_last_sessions:
+    last_sessions = resume_session = None
+
+    def get_last_sessions(must_exist=True):
+        global last_sessions
+        if os.path.exists(config.LAST_SESSIONS_FILE):
+            try:
+                last_sessions = pickle.load(open(config.LAST_SESSIONS_FILE, "rb"))
+            except Exception as exc:
+                message(ff("Error reading {config.LAST_SESSIONS_FILE}: {exc}"))
+                last_sessions = None
+
+        if last_sessions is None and must_exist:
+            bye("no recent radiopadre sessions and no arguments given. Run with -h for help.")
+
+        return last_sessions
+
+    if not arguments:
+        last = get_last_sessions()
+
+        message("Your most recent radiopadre sessions are:")
+        message("")
+        for i, (_, opts) in enumerate(list(last.items())[::-1]):
+            message("    [{0}] {1}".format(i, " ".join(opts)), color="GREEN")
+        message("")
+        while resume_session is None:
+            prompt = "Press ENTER to run the most recent session [0], or enter number, or Ctrl+C to exit: "
+            inp = INPUT(prompt)
+            inp = inp.strip()
+            if not inp:
+                resume_session = 0
+            elif re.match("^\d$", inp):
+                resume_session = int(inp)
+
+    # a single-digit argument is also a resume command
+    if len(arguments) == 1 and re.match("^\d$", arguments[0]):
+        resume_session = int(arguments[0])
+
+    if resume_session is not None:
+        last = get_last_sessions()
+        if resume_session >= len(last):
+            bye(ff("no such session: {resume_session}"))
+        argv = list(last.items())[-(resume_session+1)][1]
+        if options.update:
+            argv.append("-u")
+        message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
+        options = parser.parse_args(argv)
+        arguments = list(options.arguments)
+
+if ':' in arguments[0]:
+    remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
+    if not command and arguments:
+        command = arguments.pop(0)
 else:
-    if ':' in arguments[0]:
-        remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
-        if not command and arguments:
-            command = arguments.pop(0)
-    else:
-        remote_host, command = None, arguments.pop(0)
+    remote_host, command = None, arguments.pop(0)
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
 config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":"))) if options.inside_container else []
 
+if config.CLIENT_INSTALL_PATH == "None":
+    config.CLIENT_INSTALL_PATH = None
+if config.SERVER_INSTALL_PATH == "None":
+    config.SERVER_INSTALL_PATH = None
+
 # work out command and its arguments
 if command == 'ps':
     if arguments:
-        parser.error("ps takes no arguments")
+        bye("ps command takes no arguments")
 elif command == 'resume':
     if len(arguments) > 1:
-        parser.error("resume takes at most one argument")
+        bye("resume command takes at most one argument")
 elif command == 'kill':
     if not arguments:
-        parser.error("kill: specify at least one arguments")
+        bye("kill: specify at least one arguments")
 else:
     notebook_path = command
     if not remote_host and not glob.glob(notebook_path):
-        parser.error("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
+        bye("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
     command = 'load'
     # in remote mode, allow an optional argument
     if remote_host:
@@ -175,20 +237,36 @@ else:
     if arguments:
         parser.error("too many arguments")
 
-message("Welcome to the radiopadre client!")
+# save sessions
+if manage_last_sessions:
+    last_sessions = get_last_sessions(False) or OrderedDict()
+    session_key = remote_host, command, notebook_path
+    if session_key in last_sessions:
+        del last_sessions[session_key]
+    if len(last_sessions) >= 5:
+        del last_sessions[last_sessions.keys()[0]]
+    non_persisting_options = {"-u", "--update", "--auto-init"}
+    last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
+    pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
+
 
 ## finalize settings
 
 config.init_specific_options(remote_host, notebook_path, options)
 
+# config logger
+logger.enable_timestamps(config.TIMESTAMPS)
 if config.LOG:
-    utils.enable_logging("remote" if options.remote else "container" if options.inside_container else "local")
+    logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
+if config.VERBOSE:
+    logger.logger.setLevel(logging.DEBUG)
+message("our PID is {}".format(os.getpid()))
 
 # work out backend
 if not config.BACKEND:
     config.BACKEND = ['singularity', 'docker']
-elif type(config.BACKEND) is str:
-    config.BACKEND = config.BACKEND.split(",")
+elif type(config.BACKEND) not in (list, tuple):
+    config.BACKEND = str(config.BACKEND).split(",")
 
 remains = set(config.BACKEND) - {"docker", "singularity", "venv"}
 if remains:
@@ -198,15 +276,15 @@ if remains:
 if config.DOCKER_IMAGE[0] == ":":
     config.DOCKER_IMAGE = config.DefaultConfig['DOCKER_IMAGE'].rsplit(":", 1)[0] + config.DOCKER_IMAGE
 
-
 # when running  a remote session, only accept the first backend, since run_remote_session() will have
 # figured it out for us
 if options.remote:
     config.BACKEND = config.BACKEND[:1]
 
 def _handle_hup(signum, frame):
-    print("HUP received")
     message("HUP received")
+    logger.flush()
+    sys.exit(1)
 
 import signal
 signal.signal(signal.SIGHUP, _handle_hup)
@@ -234,8 +312,8 @@ if remote_host:
 
 # expand "~" in various config settings
 config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
-config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH)
-config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH)
+config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH or "")
+config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH or "")
 
 import radiopadre_client.server
 

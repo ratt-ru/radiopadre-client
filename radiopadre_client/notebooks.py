@@ -4,7 +4,7 @@ default_notebook_code = """{
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "### This is a very basic default radiopadre_client notebook to start you browsing"
+    "### This is a very basic default radiopadre notebook to start you browsing"
    ]
   },
   {
@@ -31,7 +31,7 @@ default_notebook_code = """{
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "radiopadre_client",
+   "display_name": "radiopadre",
    "language": "python",
    "name": "radiopadre_client"
   },

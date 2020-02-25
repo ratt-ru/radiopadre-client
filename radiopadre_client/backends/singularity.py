@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from radiopadre_client.utils import message, make_dir, shell, DEVNULL
+from iglesia.utils import message, make_dir, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 
 singularity = None
@@ -31,29 +31,32 @@ def get_singularity_image(docker_image):
 def update_installation():
     global docker_image
     global singularity_image
+    from .venv import update_server_install
+    if config.CONTAINER_DEV:
+        update_server_install()
     docker_image = config.DOCKER_IMAGE
     singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if config.UPDATE and os.path.exists(singularity_image):
         os.unlink(singularity_image)
     if not os.path.exists(singularity_image):
-        message(f"  Rebuilding radiopadre Singularity image {singularity_image} from docker://{docker_image}")
-        message(f"  (This may take a few minutes....)")
+        message(ff("  Rebuilding radiopadre Singularity image {singularity_image} from docker://{docker_image}"))
+        message(ff("  (This may take a few minutes....)"))
         subprocess.check_call([singularity, "build", singularity_image, "docker://{}".format(docker_image)])
     else:
-        message(f"  Using radiopadre Singularity image {singularity_image}")
+        message(ff("  Using radiopadre Singularity image {singularity_image}"))
 
     # not supported with Singularity
     config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
 
 
-def start_session(container_name, selected_ports, userside_ports, orig_rootdir, notebook_path, browser_urls):
-    from radiopadre_client.server import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
+    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
 
     docker_local = make_dir("~/.radiopadre/.docker-local")
     js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
-    message(f"Container name: {container_name}")  # remote script will parse it
+    message(ff("Container name: {container_name}"))  # remote script will parse it
 
     os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
     os.environ["XDG_RUNTIME_DIR"] = ""
@@ -78,7 +81,7 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     if not config.CONTAINER_DEBUG:
         command = [singularity, "instance.start"] + docker_opts + \
                   [singularity_image, container_name]
-        message("running {}".format(" ".join(map(str,command))))
+        message("running {}".format(" ".join(map(str, command))))
         subprocess.call(command)
         docker_opts = [singularity, "exec", "instance://{}".format(container_name)]
     else:
@@ -94,32 +97,27 @@ def start_session(container_name, selected_ports, userside_ports, orig_rootdir, 
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls,
                    singularity=True)
 
-
-    if config.REMOTE_MODE_PORTS:
-        if config.VERBOSE:
-            message("sleeping")
+    try:
         while True:
-            time.sleep(1000000)
-    else:
-        try:
-            while True:
-                input("Use Ctrl+C to kill the container session")
-        except BaseException as exc:
-            if type(exc) is KeyboardInterrupt:
-                message("Caught Ctrl+C")
-                status = 1
-            elif type(exc) is SystemExit:
-                status = getattr(exc, 'code', 0)
-                message("Exiting with status {}".format(status))
-            else:
-                message("Caught exception {} ({})".format(exc, type(exc)))
-                status = 1
-            if status:
-                message("Killing the container")
-                subprocess.call([singularity, "instance.stop", singularity_image, container_name], stdout=DEVNULL)
-            sys.exit(status)
+            a = INPUT("Type 'exit' to kill the container session: ")
+            if a.lower() == 'exit':
+                sys.exit(0)
+    except BaseException as exc:
+        if type(exc) is KeyboardInterrupt:
+            message("Caught Ctrl+C")
+            status = 1
+        elif type(exc) is SystemExit:
+            status = getattr(exc, 'code', 0)
+            message("Exiting with status {}".format(status))
+        else:
+            message("Caught exception {} ({})".format(exc, type(exc)))
+            status = 1
+        if status:
+            message("Killing the container")
+            subprocess.call([singularity, "instance.stop", singularity_image, container_name], stdout=DEVNULL)
+        sys.exit(status)
 
 
 def kill_container(name):
     singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-    shell(f"{singularity} instance.stop {singularity_image} {name}")
+    shell(ff("{singularity} instance.stop {singularity_image} {name}"))
