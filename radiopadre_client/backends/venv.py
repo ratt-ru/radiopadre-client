@@ -130,9 +130,49 @@ def update_installation():
         install_info = dict([x.split(": ", 1) for x in have_install.split("\n")])
         version = install_info.get("Version", "unknown")
         if config.UPDATE:
-            message(ff("A radiopadre package is installed in this virtualenv"))
+            message(ff("radiopadre (version {version}) is installed, but --update specified."))
         else:
-            message(ff("  however --update is in effect Radiopadre package is installed in this virtualenv"))
+            message(ff("radiopadre (version {version}) is installed."))
+
+    if not have_install or config.UPDATE:
+        pass
+        # if config.CLIENT_INSTALL_PATH and check_remote_file(config.CLIENT_INSTALL_PATH, "-d"):
+        #     message(ff("CLIENT_INSTALL_PATH {config.REMOTE_HOST}:{config.CLIENT_INSTALL_PATH} is configured and exists."))
+        #     message(ff("I will therefore try to pip install -e {config.CLIENT_INSTALL_PATH} in {remote_venv}"))
+        #     install_path = config.CLIENT_INSTALL_PATH
+        #     ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
+        #
+        # elif config.CLIENT_INSTALL_REPO:
+        #     install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
+        #     message("I could try to install {}:{} from {}".format(config.REMOTE_HOST, install_path,
+        #                                                           config.CLIENT_INSTALL_REPO))
+        #
+        #     if not has_git:
+        #         help_yourself(ff("However, I don't see git installed on {config.REMOTE_HOST}"),
+        #                       ff("Try 'sudo apt install git' on {config.REMOTE_HOST}"))
+        #
+        #     if check_remote_file(install_path, "-d"):
+        #         message(
+        #             ff("However, the directory {config.REMOTE_HOST}:{install_path} already exists, so I'd rather not!"))
+        #         help_yourself(ff("This may be a sign of a broken radiopadre installation on {config.REMOTE_HOST},"),
+        #                       ff("For example, remove {config.REMOTE_HOST}:{install_path} to bootstrap from scratch."))
+        #
+        #     # try git clone
+        #     cmd = ff("git clone -b {config.CLIENT_INSTALL_BRANCH} {config.CLIENT_INSTALL_REPO} {install_path}")
+        #     message(ff("Running {cmd} on {config.REMOTE_HOST}"))
+        #     ssh_remote_interactive(cmd)
+        #
+        #     # now pip install
+        #     message(ff("Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}"))
+        #     ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
+        #
+        # # else need to use pip
+        # elif config.CLIENT_INSTALL_PIP:
+        #     message(ff("Doing pip install {config.CLIENT_INSTALL_PIP} in {config.RADIOPADRE_VENV}"))
+        #     ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install {config.CLIENT_INSTALL_PIP}"))
+        #
+        # else:
+        #     bye("To use auto-init, set CLIENT_INSTALL_PATH and/or CLIENT_INSTALL_PIP and/or CLIENT_INSTALL_REPO")
 
     if not config.INSIDE_CONTAINER_PORTS:
         message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
