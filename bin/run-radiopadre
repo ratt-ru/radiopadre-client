@@ -73,7 +73,7 @@ group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper",
 ## virtualenv support
 group = parser.add_argument_group("Virtualenv back-end options")
 group.add_argument("--venv-reinstall", action="store_true",
-                    help="virtualenv: reinstall radiopadre_client virtual environment before running.")
+                    help="virtualenv: reinstall radiopadre virtual environment before running.")
 group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
@@ -150,6 +150,9 @@ arguments = list(options.arguments)
 
 manage_last_sessions = not options.remote and not options.inside_container
 
+# set of options that don't get persisted in the recent sessions file
+non_persisting_options = {"-u", "--update", "--auto-init"}
+
 # recent session management: only done for front-end sessions
 if manage_last_sessions:
     last_sessions = resume_session = None
@@ -193,9 +196,12 @@ if manage_last_sessions:
         last = get_last_sessions()
         if resume_session >= len(last):
             bye(ff("no such session: {resume_session}"))
+        # form up list of fake args to be re-parsed
         argv = list(last.items())[-(resume_session+1)][1]
-        if options.update:
-            argv.append("-u")
+        # non-persisting options raised in command line shall be appended to the fake args
+        for opt in non_persisting_options:
+            if opt.startswith("--") and getattr(options, opt[2:].replace("-", "_"), None):
+                argv.append(opt)
         message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
         options = parser.parse_args(argv)
         arguments = list(options.arguments)
@@ -245,7 +251,6 @@ if manage_last_sessions:
         del last_sessions[session_key]
     if len(last_sessions) >= 5:
         del last_sessions[last_sessions.keys()[0]]
-    non_persisting_options = {"-u", "--update", "--auto-init"}
     last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
     pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 

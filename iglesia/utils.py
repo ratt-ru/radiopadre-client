@@ -48,6 +48,17 @@ def shell(cmd, ignore_fail=False):
             return None
         raise
 
+def check_output(command, fail_retcode=1):
+    """
+    Equivalent to subprocess.check_output(command, shell=True), but will return None
+    if the subprocess exits with the given failure retcode
+    """
+    try:
+        return subprocess.check_output(command, shell=True).strip().decode()
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode == 1:
+            return None
+        raise
 
 def make_dir(name):
     """Makes directory, if one does not exist. Interpolates '~' in names."""
@@ -70,13 +81,7 @@ def find_which(command):
     """
     Returns the equivalent of `which command`, or None is command is not found
     """
-    try:
-        binary = subprocess.check_output("which {}".format(command), shell=True).strip()
-    except subprocess.CalledProcessError as exc:
-        if exc.returncode == 1:
-            return None
-        raise
-    return binary.decode()
+    return check_output("which " + command, fail_retcode=1)
 
 
 def find_unused_port(base=1025, maxtries=10000):

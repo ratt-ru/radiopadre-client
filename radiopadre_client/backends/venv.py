@@ -1,10 +1,10 @@
 import sys, os, os.path, subprocess, time
-from iglesia.utils import message, error, debug, shell, bye, ff, INPUT
+from iglesia.utils import message, warning, error, debug, shell, bye, ff, INPUT, check_output
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
 import iglesia
-from .backend_utils import await_server_startup, update_server_install
+from .backend_utils import await_server_startup, update_server_from_repository
 
 def init():
     pass
@@ -21,14 +21,15 @@ def identify_session(session_dict, arg):
 def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in virtualenv mode")
 
-def _install_radiopadre(init_venv=False):
-
+def _install_radiopadre():
+    """Installs radiopadre. If init_venv=True, allowed to initialize a venv if it doesn't exist"""
     # check for existing venv
     if config.VENV_REINSTALL:
         init_venv = True
     else:
         if os.path.exists(ff("{config.RADIOPADRE_VENV}/bin/activate_this.py")):
-            if os.path.exists(ff("{config.RADIOPADRE_VENV}/{config.COMPLETE_INSTALL_COOKIE}")):
+            if subprocess.check_output()
+                os.path.exists(ff("{config.RADIOPADRE_VENV}/{config.COMPLETE_INSTALL_COOKIE}")):
                 message(ff("Found complete radiopadre virtualenv in {config.RADIOPADRE_VENV}"))
                 return
             else:
@@ -71,32 +72,71 @@ def _install_radiopadre(init_venv=False):
         bye("Installation script failed.")
 
 def update_installation():
-    update_server_install()
-    # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
-    # are we already running inside a virtualenv?
+    # are we already running inside a virtualenv? Proceed directly if so
+    #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
+
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
-            message("Already running inside radiopadre virtual environment")
+            message(ff("Running inside radiopadre virtual environment {sys.prefix}"))
         else:
             message(ff("Running inside non-default virtual environment {sys.prefix}"))
             message(ff("Will assume radiopadre has been installed here."))
             config.RADIOPADRE_VENV = sys.prefix
 
         if config.VENV_REINSTALL:
-            bye("Can't --venv-reinstall from inside a virtualenv.")
+            bye("Can't --venv-reinstall from inside the virtualenv itself.")
 
-        _install_radiopadre(init_venv=False)
+    # Otherwise check for virtualenv, nuke/remake one if needed, then activate it
     else:
-        _install_radiopadre(init_venv=True)
+        config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
+        activation_script = os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py")
 
-        activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
+        # see if a reinstall is needed
+        if config.AUTO_INIT and config.VENV_REINSTALL and os.path.exists(config.RADIOPADRE_VENV):
+            if not os.path.exists(activation_script):
+                error(ff("{activation_script} does not exist. Bat country!"))
+                bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
+            cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
+            warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
+            warning("However, --auto-init and --venv-reinstall is specified. About to run:")
+            warning("    " + cmd)
+            warning(ff("Your informed consent for this is required!"))
+            inp = INPUT(ff("Please enter 'yes' to rm -fr {config.RADIOPADRE_VENV}: ")).strip()
+            if inp != "yes":
+                bye(ff("'{inp}' is not a 'yes'. Phew!"))
+            message("OK, nuking it!")
+            shell(cmd)
+
+        if not os.path.exists(config.RADIOPADRE_VENV):
+            if config.AUTO_INIT:
+                message(ff("Creating virtualenv {config.RADIOPADRE_VENV}"))
+                shell(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
+            else:
+                error(ff("Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist."))
+                bye(ff("Try re-running with --auto-init to reinstall it."))
+
         message(ff("  Activating the radiopadre virtualenv via {activation_script}"))
         with open(activation_script) as f:
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
+    # see if we have a server repo cloned that needs an update
+    update_server_from_repository()
+
+    # now check for a radiopadre install inside the venv
+    have_install = check_output("pip show radiopadre") is not None
+
+    if have_install:
+        install_info = dict([x.split(": ", 1) for x in have_install.split("\n")])
+        version = install_info.get("Version", "unknown")
+        if config.UPDATE:
+            message(ff("A radiopadre package is installed in this virtualenv"))
+        else:
+            message(ff("  however --update is in effect Radiopadre package is installed in this virtualenv"))
+
     if not config.INSIDE_CONTAINER_PORTS:
         message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
+
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):

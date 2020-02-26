@@ -7,7 +7,7 @@ from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
 
-from .backend_utils import await_server_startup, update_server_install
+from .backend_utils import await_server_startup, update_server_from_repository
 
 docker = None
 SESSION_INFO_DIR = '.'
@@ -124,7 +124,7 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
 def update_installation():
     global docker_image
     if config.CONTAINER_DEV:
-        update_server_install()
+        update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
     message(ff("  Using radiopadre Docker image {docker_image}"))
     if config.UPDATE:

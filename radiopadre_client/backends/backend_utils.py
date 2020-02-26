@@ -3,7 +3,7 @@ import socket, time, os, os.path
 from iglesia.utils import message, bye, ff, shell
 from radiopadre_client import config
 
-def update_server_install():
+def update_server_from_repository():
     """
     Updates the radiopadre git working directory, if necessary
     :return:
