@@ -42,7 +42,7 @@ def ff(fstring):
 def shell(cmd, ignore_fail=False):
     """Runs shell command. If ignore_fail is set, returns None on failure"""
     try:
-       return subprocess.call(cmd, shell=True)
+       return subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
         if ignore_fail:
             return None

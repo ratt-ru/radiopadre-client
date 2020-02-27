@@ -50,6 +50,7 @@ TIMESTAMPS = False
 VENV_REINSTALL = False
 VENV_IGNORE_JS9 = False
 VENV_IGNORE_CASACORE = False
+VENV_EXTRAS = ""
 
 # set to the unique session ID
 SESSION_ID = None

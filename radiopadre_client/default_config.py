@@ -39,5 +39,6 @@ DefaultConfig = OrderedDict(
     VENV_REINSTALL=None,
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
+    VENV_EXTRAS="",
 )
 

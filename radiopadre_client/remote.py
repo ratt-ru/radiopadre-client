@@ -213,6 +213,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
             message(ff("Creating virtualenv {remote_venv}"))
             ssh_remote_v(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
+            if config.VENV_EXTRAS:
+                extras = " ".join(config.VENV_EXTRAS.split(","))
+                message(ff("Installing specified extras: {extras}"))
+                ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install {extras}"))
         else:
             message(ff("Installing into existing virtualenv {remote_venv}"))
 

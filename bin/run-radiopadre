@@ -78,6 +78,9 @@ group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
                     help="virtualenv: ignore JS9 installation errors, if bootstrapping.")
+group.add_argument("--venv-extras", type=str, default='',
+                    help="virtualenv: additional packages to install when creating a new virtual environment\n"
+                         "(comma-separated list).")
 
 ## remote init support
 group = parser.add_argument_group("Remote installation options")
@@ -88,10 +91,9 @@ group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks. "
                    "This can make for faster startup, but less informative failure modes.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help=ff("directory in which remote radiopadre_client will be installed with --auto-init."))
+                    help=ff("directory in which remote radiopadre-client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
-                    help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
-                         "in docker mode: update docker container using docker pull.")
+                    help="update installations, container images, etc. as appropriate.")
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)

@@ -58,10 +58,12 @@ def update_installation():
             message("OK, nuking it!")
             shell(cmd)
 
+        new_venv = False
         if not os.path.exists(config.RADIOPADRE_VENV):
             if config.AUTO_INIT:
                 message(ff("Creating virtualenv {config.RADIOPADRE_VENV}"))
                 shell(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
+                new_venv = True
             else:
                 error(ff("Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist."))
                 bye(ff("Try re-running with --auto-init to reinstall it."))
@@ -70,6 +72,11 @@ def update_installation():
         with open(activation_script) as f:
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
+
+        if new_venv and config.VENV_EXTRAS:
+            extras = " ".join(config.VENV_EXTRAS.split(","))
+            message(ff("Installing specified extras: {extras}"))
+            shell(ff("pip install {extras}"))
 
     # now check for a radiopadre install inside the venv
     have_install = check_output("pip show radiopadre")
@@ -181,8 +188,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # launch browser
     if browser_urls:
         iglesia.register_helpers(*run_browser(*browser_urls))
-    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
-        message("Please point your browser to {}".format(" ".join(browser_urls)))
+#    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
+#        message("Please point your browser to {}".format(" ".join(browser_urls)))
 
     # pause to let the Jupyter server spin up
     wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
