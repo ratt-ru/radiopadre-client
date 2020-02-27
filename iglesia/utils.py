@@ -16,7 +16,8 @@ def message(x, level=logging.INFO, color=None):
     if type(x) is bytes:
         x = x.decode()
     extra = dict(color=color) if color else {}
-    logger.logger.log(level, x, extra=extra)
+    if logger.logger is not None:
+        logger.logger.log(level, x, extra=extra)
 
 def warning(x):
     message(x, logging.WARNING)

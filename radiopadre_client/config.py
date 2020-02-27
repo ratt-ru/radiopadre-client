@@ -32,6 +32,7 @@ BROWSER_BG = False
 BROWSER_MULTI = False
 RADIOPADRE_VENV = "~/.radiopadre/venv"
 SKIP_CHECKS = False
+CONTAINER_TEST = False
 
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = DEFAULT_SERVER_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre.git"
@@ -45,12 +46,14 @@ CLIENT_INSTALL_BRANCH = "master"
 
 LOG = False
 UPDATE = False
+FULL_CONSENT = None
 VERBOSE = 0
 TIMESTAMPS = False
 VENV_REINSTALL = False
 VENV_IGNORE_JS9 = False
 VENV_IGNORE_CASACORE = False
 VENV_EXTRAS = ""
+VENV_DRY_RUN = None
 
 # set to the unique session ID
 SESSION_ID = None
@@ -165,8 +168,8 @@ def init_specific_options(remote_host, notebook_path, options):
     if use_config_files and config_exists:
         parser.read(CONFIG_FILE)
         for sect_key in "global defaults", hostname, session:
-            if sect_key in parser:
-                section = parser[sect_key]
+            if parser.has_section(sect_key):
+                section = dict(parser.items(sect_key))
                 if section:
                     message(ff("  loading settings from {CONFIG_FILE} [{sect_key}]"))
                     for key in _DEFAULT_KEYS:
@@ -188,7 +191,7 @@ def init_specific_options(remote_host, notebook_path, options):
                 continue
             if type(value) is list:
                 value = ",".join(value)
-            if value is not _CMDLINE_DEFAULTS[key]:
+            if value is not _CMDLINE_DEFAULTS.get(key, None):
                 if use_config_files:
                     # do not mark options such as --update for saving
                     if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None:
@@ -200,21 +203,23 @@ def init_specific_options(remote_host, notebook_path, options):
     if use_config_files and command_line_updated:
         if options.save_config_host:
             message(ff("  saving command-line settings to {CONFIG_FILE} [{hostname}]"))
-            parser.setdefault(hostname, {})
+            if not parser.has_section(hostname):
+                parser.add_section(hostname)
             for key in command_line_updated:
-                parser[hostname][key] = _set_config_value(key)
+                parser.set(hostname, key, _set_config_value(key))
         if options.save_config_session:
-            parser.setdefault(session, {})
+            if not parser.has_section(session):
+                parser.add_section(session)
             message(ff("  saving command-line settings to {CONFIG_FILE} [{session}]"))
             for key in command_line_updated:
-                parser[session][key] = _set_config_value(key)
+                parser.set(session, key, _set_config_value(key))
 
         if options.save_config_host or options.save_config_session:
             make_dir("~/.radiopadre")
             with open(CONFIG_FILE + ".new", "w") as configfile:
                 if not config_exists:
                     message(ff("  creating new config file {CONFIG_FILE}"))
-                if 'global defaults' not in parser:
+                if not parser.has_section('global defaults'):
                     configfile.write("[global defaults]\n# defaults that apply to all sessions go here\n\n")
 
                 parser.write(configfile)

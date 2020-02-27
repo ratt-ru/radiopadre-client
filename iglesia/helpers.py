@@ -102,7 +102,7 @@ def init_helpers(radiopadre_base):
 
     if 'RADIOPADRE_CARTA_PID' not in os.environ:
         # start CARTA backend
-        for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{radiopadre_base}/carta/carta"), \
+        for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{sys.prefix}/carta/carta"), \
                           find_which('carta'):
             if carta_exec and os.access(carta_exec, os.X_OK):
                 break

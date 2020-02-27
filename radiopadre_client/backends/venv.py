@@ -51,11 +51,14 @@ def update_installation():
             warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
             warning("However, --auto-init and --venv-reinstall is specified. About to run:")
             warning("    " + cmd)
-            warning(ff("Your informed consent is required!"))
-            inp = INPUT(ff("Please enter 'yes' to rm -fr {config.RADIOPADRE_VENV}: ")).strip()
-            if inp != "yes":
-                bye(ff("'{inp}' is not a 'yes'. Phew!"))
-            message("OK, nuking it!")
+            if config.FULL_CONSENT:
+                warning("--full-consent given, so not asking for confirmation.")
+            else:
+                warning(ff("Your informed consent is required!"))
+                inp = INPUT(ff("Please enter 'yes' to rm -fr {config.RADIOPADRE_VENV}: ")).strip()
+                if inp != "yes":
+                    bye(ff("'{inp}' is not a 'yes'. Phew!"))
+                message("OK, nuking it!")
             shell(cmd)
 
         new_venv = False
@@ -141,7 +144,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
-    if config.INSIDE_CONTAINER_PORTS:
+    if config.INSIDE_CONTAINER_PORTS or config.CONTAINER_TEST:
         JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
 
     # if LOAD_NOTEBOOK:
@@ -200,6 +203,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
 
     message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+
+    if config.CONTAINER_TEST:
+        message(ff("--container-test was specified, dry run is complete"))
+        sys.exit(0)
 
     try:
         while True:

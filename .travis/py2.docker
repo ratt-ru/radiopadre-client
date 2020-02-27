@@ -1,4 +1,8 @@
 FROM kernsuite/base:5
+RUN docker-apt-install libboost-python-dev python3-pip virtualenv python3-virtualenv
+RUN docker-apt-install libcfitsio-dev wcslib-dev
+RUN docker-apt-install nodejs wget git iproute2 lsof
+RUN docker-apt-install casacore-dev
 RUN docker-apt-install python-pip
 
 ADD . /code
@@ -6,4 +10,31 @@ RUN pip install /code
 WORKDIR /code
 ENV USER=root
 
-RUN run-radiopadre --help
+RUN mkdir /root/.config
+
+RUN python2.7 `which run-radiopadre` --help
+
+## we don't want to install radiopadre from pip (might be the wrong release etc.), so
+## force the use of the same git branch
+
+RUN echo "#!/usr/bin/python" >version.py
+RUN echo "import radiopadre_client.config; print(radiopadre_client.config.SERVER_INSTALL_BRANCH)" >>version.py
+RUN chmod 755 version.py
+
+RUN git clone -b `./version.py` https://github.com/ratt-ru/radiopadre ~/radiopadre
+
+## Scenario 1. Default virtualenv init from ~/radiopadre
+## ""-V -browser None" will get stored into config file
+
+RUN python2.7 `which run-radiopadre` . -V --browser None -s --container-test --auto-init
+
+## Scenario 2. Update default virtualenv init
+
+RUN python2.7 `which run-radiopadre` . --container-test --update
+
+## Scenario 3. Reinstall from repository
+
+RUN python2.7 `which run-radiopadre` . --container-test --auto-init --venv-reinstall --full-consent --server-install-repo default --server-install-path radiopadre-server
+
+RUN python2.7 `which run-radiopadre` . --container-test --auto-init --venv-reinstall --full-consent --server-install-path radiopadre-server --update
+

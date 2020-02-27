@@ -163,11 +163,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 warning(ff("Found a virtualenv in {remote_venv}."))
                 warning("However, --auto-init and --venv-reinstall is specified. About to run:")
                 warning(ff("    ssh {config.REMOTE_HOST} "+cmd))
-                warning(ff("Your informed consent is required!"))
-                inp = INPUT(ff("Please enter 'yes' to rm -fr {remote_venv}: ")).strip()
-                if inp != "yes":
-                    bye(ff("'{inp}' is not a 'yes'. Phew!"))
-                message("OK, nuking it!")
+                if config.FULL_CONSENT:
+                    warning("--full-consent given, so not asking for confirmation.")
+                else:
+                    warning(ff("Your informed consent is required!"))
+                    inp = INPUT(ff("Please enter 'yes' to rm -fr {remote_venv}: ")).strip()
+                    if inp != "yes":
+                        bye(ff("'{inp}' is not a 'yes'. Phew!"))
+                    message("OK, nuking it!")
                 ssh_remote(cmd)
             # force update
             do_update = True

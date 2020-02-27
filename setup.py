@@ -19,7 +19,7 @@ setup(
     license="MIT",
     keywords="ipython notebook fits dataset resultset visualisation",
     url="http://github.com/ratt-ru/radiopadre-client",
-    packages=['radiopadre_client', 'iglesia'],
+    packages=['radiopadre_client', 'radiopadre_client.backends', 'iglesia'],
     scripts=scripts,
     classifiers=[
         "Development Status :: 4 - Beta",

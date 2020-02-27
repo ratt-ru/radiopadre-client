@@ -39,7 +39,8 @@ parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
 parser.add_argument("-l", "--log", action="store_true", default=0,
                     help="Enables logging of sessions to see .radiopadre/logs.")
-
+parser.add_argument("--full-consent", action="store_true",
+                    help="Automatically consent to dangerous operations such a removing a virtualenv.")
 
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
@@ -97,6 +98,7 @@ group.add_argument("-u", "--update", action="store_true",
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
+parser.add_argument("--container-test", action="store_true", default=0, help=argparse.SUPPRESS) 
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
@@ -153,7 +155,7 @@ arguments = list(options.arguments)
 manage_last_sessions = not options.remote and not options.inside_container
 
 # set of options that don't get persisted in the recent sessions file
-non_persisting_options = {"-u", "--update", "--auto-init"}
+non_persisting_options = {"-u", "--update", "--auto-init", "--venv-dry-run", "--full-consent"}
 
 # recent session management: only done for front-end sessions
 if manage_last_sessions:
@@ -217,7 +219,11 @@ else:
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
-config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":"))) if options.inside_container else []
+
+config.INSIDE_CONTAINER_PORTS = []
+if options.inside_container:
+    config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":")))
+config.CONTAINER_TEST = options.container_test
 
 if config.CLIENT_INSTALL_PATH == "None":
     config.CLIENT_INSTALL_PATH = None

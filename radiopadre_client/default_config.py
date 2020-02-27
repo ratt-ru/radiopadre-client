@@ -22,6 +22,7 @@ DefaultConfig = OrderedDict(
     CONTAINER_DEBUG=False,
     CONTAINER_DETACH=False,
     CONTAINER_PERSIST=False,
+    FULL_CONSENT=None,
     GRIM_REAPER=True,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
@@ -40,5 +41,6 @@ DefaultConfig = OrderedDict(
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
     VENV_EXTRAS="",
+    VENV_DRY_RUN=None,
 )
 
