@@ -21,55 +21,6 @@ def identify_session(session_dict, arg):
 def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in virtualenv mode")
 
-def _install_radiopadre():
-    """Installs radiopadre. If init_venv=True, allowed to initialize a venv if it doesn't exist"""
-    # check for existing venv
-    if config.VENV_REINSTALL:
-        init_venv = True
-    else:
-        if os.path.exists(ff("{config.RADIOPADRE_VENV}/bin/activate_this.py")):
-            if subprocess.check_output()
-                os.path.exists(ff("{config.RADIOPADRE_VENV}/{config.COMPLETE_INSTALL_COOKIE}")):
-                message(ff("Found complete radiopadre virtualenv in {config.RADIOPADRE_VENV}"))
-                return
-            else:
-                message(ff("Radiopadre virtualenv in {config.RADIOPADRE_VENV} is incomplete"))
-        else:
-            message(ff("Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist"))
-            init_venv = True
-        if not config.AUTO_INIT:
-            bye("Try running with --auto-init to (re)install it.")
-
-    if init_venv:
-        message("Will try to completely reinstall radiopadre virtualenv using install-radiopadre")
-    else:
-        message("Will try complete radiopadre virtualenv installation using install-radiopadre")
-
-    # find install-radiopadre
-    install_script = ff("{config.SERVER_INSTALL_PATH}/bin/bootstrap-radiopadre-install")
-
-    if not os.path.exists(install_script):
-        message(ff("{install_script} not found"))
-        if not config.SERVER_INSTALL_REPO:
-            bye("Try running with a --server-install-repo?")
-        cmd = ff("git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}")
-        message(ff("Running {cmd}"))
-        if shell(cmd):
-            bye("git clone failed")
-    elif config.UPDATE:
-        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
-        message(ff("--update specified: {cmd}"))
-        if shell(ff("{cmd}")):
-            bye("update failed")
-
-    cmd = "{} --venv {} {} {} {}".format(install_script, config.RADIOPADRE_VENV,
-                "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
-                "--no-js9" if config.VENV_IGNORE_JS9 else "",
-                "reinstall" if init_venv else "install",
-                )
-    message(ff("Running {cmd}"))
-    if shell(cmd):
-        bye("Installation script failed.")
 
 def update_installation():
     # are we already running inside a virtualenv? Proceed directly if so
@@ -100,7 +51,7 @@ def update_installation():
             warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
             warning("However, --auto-init and --venv-reinstall is specified. About to run:")
             warning("    " + cmd)
-            warning(ff("Your informed consent for this is required!"))
+            warning(ff("Your informed consent is required!"))
             inp = INPUT(ff("Please enter 'yes' to rm -fr {config.RADIOPADRE_VENV}: ")).strip()
             if inp != "yes":
                 bye(ff("'{inp}' is not a 'yes'. Phew!"))
@@ -120,14 +71,11 @@ def update_installation():
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
-    # see if we have a server repo cloned that needs an update
-    update_server_from_repository()
-
     # now check for a radiopadre install inside the venv
-    have_install = check_output("pip show radiopadre") is not None
+    have_install = check_output("pip show radiopadre")
 
     if have_install:
-        install_info = dict([x.split(": ", 1) for x in have_install.split("\n")])
+        install_info = dict([x.split(": ", 1) for x in have_install.split("\n") if ': ' in x])
         version = install_info.get("Version", "unknown")
         if config.UPDATE:
             message(ff("radiopadre (version {version}) is installed, but --update specified."))
@@ -135,47 +83,36 @@ def update_installation():
             message(ff("radiopadre (version {version}) is installed."))
 
     if not have_install or config.UPDATE:
-        pass
-        # if config.CLIENT_INSTALL_PATH and check_remote_file(config.CLIENT_INSTALL_PATH, "-d"):
-        #     message(ff("CLIENT_INSTALL_PATH {config.REMOTE_HOST}:{config.CLIENT_INSTALL_PATH} is configured and exists."))
-        #     message(ff("I will therefore try to pip install -e {config.CLIENT_INSTALL_PATH} in {remote_venv}"))
-        #     install_path = config.CLIENT_INSTALL_PATH
-        #     ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
-        #
-        # elif config.CLIENT_INSTALL_REPO:
-        #     install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
-        #     message("I could try to install {}:{} from {}".format(config.REMOTE_HOST, install_path,
-        #                                                           config.CLIENT_INSTALL_REPO))
-        #
-        #     if not has_git:
-        #         help_yourself(ff("However, I don't see git installed on {config.REMOTE_HOST}"),
-        #                       ff("Try 'sudo apt install git' on {config.REMOTE_HOST}"))
-        #
-        #     if check_remote_file(install_path, "-d"):
-        #         message(
-        #             ff("However, the directory {config.REMOTE_HOST}:{install_path} already exists, so I'd rather not!"))
-        #         help_yourself(ff("This may be a sign of a broken radiopadre installation on {config.REMOTE_HOST},"),
-        #                       ff("For example, remove {config.REMOTE_HOST}:{install_path} to bootstrap from scratch."))
-        #
-        #     # try git clone
-        #     cmd = ff("git clone -b {config.CLIENT_INSTALL_BRANCH} {config.CLIENT_INSTALL_REPO} {install_path}")
-        #     message(ff("Running {cmd} on {config.REMOTE_HOST}"))
-        #     ssh_remote_interactive(cmd)
-        #
-        #     # now pip install
-        #     message(ff("Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}"))
-        #     ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
-        #
-        # # else need to use pip
-        # elif config.CLIENT_INSTALL_PIP:
-        #     message(ff("Doing pip install {config.CLIENT_INSTALL_PIP} in {config.RADIOPADRE_VENV}"))
-        #     ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install {config.CLIENT_INSTALL_PIP}"))
-        #
-        # else:
-        #     bye("To use auto-init, set CLIENT_INSTALL_PATH and/or CLIENT_INSTALL_PIP and/or CLIENT_INSTALL_REPO")
+        if config.SERVER_INSTALL_PATH and os.path.exists(config.SERVER_INSTALL_PATH):
+            message(ff("--server-install-path {config.SERVER_INSTALL_PATH} is configured and exists."))
+            update_server_from_repository()
+            install = ff("-e {config.SERVER_INSTALL_PATH}")
 
-    if not config.INSIDE_CONTAINER_PORTS:
-        message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
+        elif config.SERVER_INSTALL_REPO:
+            if config.SERVER_INSTALL_REPO == "default":
+                config.SERVER_INSTALL_REPO = config.DEFAULT_SERVER_INSTALL_REPO
+            branch = config.SERVER_INSTALL_BRANCH or "master"
+            if config.SERVER_INSTALL_PATH:
+                message(ff("--server-install-path and --server-install-repo configured, will clone and install"))
+                cmd = ff("git clone -b {branch} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}")
+                message(ff("Running {cmd}"))
+                shell(cmd)
+                install = ff("-e {config.SERVER_INSTALL_PATH}")
+            else:
+                message(ff("only --server-install-repo specified, will install directly from git"))
+                install = ff("git+{config.SERVER_INSTALL_REPO}@{branch}")
+        elif config.SERVER_INSTALL_PIP:
+            message("--server-install-pip {config.SERVER_INSTALL_PIP} is configured.")
+            install = config.SERVER_INSTALL_PIP
+        else:
+            bye("no radiopadre installation method specified (see --server-install options)")
+
+        cmd = ff("pip install -U {install}")
+        message(ff("Running {cmd}"))
+        shell(cmd)
+
+    # if not config.INSIDE_CONTAINER_PORTS:
+    #     message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
 
 
 

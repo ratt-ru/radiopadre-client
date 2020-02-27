@@ -55,7 +55,7 @@ def init_helpers(radiopadre_base):
             js9helper = iglesia.JS9_DIR + "/js9Helper.js"
 
             if not os.path.exists(iglesia.JS9_DIR):
-                raise PadreError(ff("{JS9_DIR} does not exist"))
+                raise PadreError(ff("{iglesia.JS9_DIR} does not exist"))
             if not os.path.exists(js9helper):
                 raise PadreError(ff("{js9helper} does not exist"))
 

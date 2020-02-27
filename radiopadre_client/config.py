@@ -34,12 +34,14 @@ RADIOPADRE_VENV = "~/.radiopadre/venv"
 SKIP_CHECKS = False
 
 SERVER_INSTALL_PATH = "~/radiopadre"
-SERVER_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre.git"
+SERVER_INSTALL_REPO = DEFAULT_SERVER_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre.git"
+SERVER_INSTALL_BRANCH = "master"
+SERVER_INSTALL_PIP = "radiopadre"
 
 CLIENT_INSTALL_PATH = "~/radiopadre-client"
 CLIENT_INSTALL_PIP = "radiopadre-client"
-CLIENT_INSTALL_REPO = "git@github.com:ratt-ru/radiopadre-client.git"
-CLIENT_INSTALL_BRANCH = "py3"
+CLIENT_INSTALL_REPO = DEFAULT_CLIENT_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre-client.git"
+CLIENT_INSTALL_BRANCH = "master"
 
 LOG = False
 UPDATE = False

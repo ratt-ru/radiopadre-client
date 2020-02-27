@@ -132,16 +132,20 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     if remote_config["BACKEND"] != "docker":
         config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
 
-    ## Look for remote launch script
-    # (a) under VIRTUAL_ENV/bin
-    # (b) with which
-
+    # which runscript to look for
     runscript0 = "run-radiopadre"
+
+    # shorthand for remote virtualenv
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
+    # do we want to do an install/update -- will be forced to True (if we must install),
+    # or False if we can't update
+    do_update = config.UPDATE
+
     if config.SKIP_CHECKS:
-        runscript=ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
+        runscript = ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
                      "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
+        do_update = False
     else:
         runscript = None
 
@@ -159,12 +163,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 warning(ff("Found a virtualenv in {remote_venv}."))
                 warning("However, --auto-init and --venv-reinstall is specified. About to run:")
                 warning(ff("    ssh {config.REMOTE_HOST} "+cmd))
-                warning(ff("Your informed consent for this is required!"))
+                warning(ff("Your informed consent is required!"))
                 inp = INPUT(ff("Please enter 'yes' to rm -fr {remote_venv}: ")).strip()
                 if inp != "yes":
                     bye(ff("'{inp}' is not a 'yes'. Phew!"))
                 message("OK, nuking it!")
                 ssh_remote(cmd)
+            # force update
+            do_update = True
 
         # (b) look inside venv
         if runscript is None and config.RADIOPADRE_VENV:
@@ -185,10 +191,15 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             runscript = check_remote_command(runscript0)
             if runscript:
                 message(ff("Using remote client script at {runscript}"))
+                do_update = False
+                if config.UPDATE:
+                    warning(ff("ignoring --update for client since it isn't in a virtualenv"))
             else:
                 message(ff("No remote client script {runscript0} found"))
                 runscript = None
 
+    ## No runscript found on remote?
+    ## First, figure out whether to reinstall a virtualenv for it
     if not runscript:
         message(ff("No {runscript0} script found on {config.REMOTE_HOST}"))
         if not config.AUTO_INIT:
@@ -205,68 +216,62 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             message(ff("Installing into existing virtualenv {remote_venv}"))
 
-        # try to auto-init a client installation
+    # Now, figure out how to install or update the client package
+    if not runscript or do_update:
+        # installing from a specified existing path
         if config.CLIENT_INSTALL_PATH and check_remote_file(config.CLIENT_INSTALL_PATH, "-d"):
-            message(ff("CLIENT_INSTALL_PATH {config.REMOTE_HOST}:{config.CLIENT_INSTALL_PATH} is configured and exists."))
-            message(ff("I will therefore try to pip install -e {config.CLIENT_INSTALL_PATH} in {remote_venv}"))
             install_path = config.CLIENT_INSTALL_PATH
-            ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
-
+            message(ff("--client-install-path {install_path} is configured and exists on {config.REMOTE_HOST}."))
+            # update if managed by git
+            if check_remote_file(ff("{install_path}/.git"), "-d") and config.UPDATE:
+                if has_git:
+                    if config.CLIENT_INSTALL_BRANCH:
+                        cmd = ff("cd {install_path} && git fetch origin && git checkout {config.CLIENT_INSTALL_BRANCH} && git pull")
+                    else:
+                        cmd = ff("cd {install_path} && git pull")
+                    message(ff(
+                        "--update specified and git detected, will attempt to update via"))
+                    message(ff("    {cmd}"))
+                    ssh_remote_v(cmd)
+                else:
+                    warning(ff("--update specified, but no git command found on {config.REMOTE_HOST}"))
+            install_path = "-e " + install_path
+        # else, installing from git
         elif config.CLIENT_INSTALL_REPO:
-            install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
-            message("I could try to install {}:{} from {}".format(config.REMOTE_HOST, install_path,
-                                                                  config.CLIENT_INSTALL_REPO))
-
-            if not has_git:
-                help_yourself(ff("However, I don't see git installed on {config.REMOTE_HOST}"),
-                              ff("Try 'sudo apt install git' on {config.REMOTE_HOST}"))
-
-            if check_remote_file(install_path, "-d"):
-                message(
-                    ff("However, the directory {config.REMOTE_HOST}:{install_path} already exists, so I'd rather not!"))
-                help_yourself(ff("This may be a sign of a broken radiopadre installation on {config.REMOTE_HOST},"),
-                              ff("For example, remove {config.REMOTE_HOST}:{install_path} to bootstrap from scratch."))
-
-            # try git clone
-            cmd = ff("git clone -b {config.CLIENT_INSTALL_BRANCH} {config.CLIENT_INSTALL_REPO} {install_path}")
-            message(ff("Running {cmd} on {config.REMOTE_HOST}"))
-            ssh_remote_interactive(cmd)
+            if config.CLIENT_INSTALL_REPO == "default":
+                config.CLIENT_INSTALL_REPO = config.DEFAULT_CLIENT_INSTALL_REPO
+            branch = config.CLIENT_INSTALL_BRANCH or "master"
+            if config.CLIENT_INSTALL_PATH:
+                message(ff("--client-install-path and --client-install-repo configured, will attempt"))
+                cmd = ff("git clone -b {branch} {config.CLIENT_INSTALL_REPO} {config.CLIENT_INSTALL_PATH}")
+                message(ff("    ssh {config.REMOTE_HOST} {cmd}"))
+                ssh_remote_v(cmd)
+                install_path = ff("-e {config.CLIENT_INSTALL_PATH}")
+            else:
+                message(ff("--client-install-repo is configured, will try to install directly from git"))
+                install_path = ff("git+{config.CLIENT_INSTALL_REPO}@{branch}")
 
             # now pip install
             message(ff("Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}"))
             ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
-
-        # else need to use pip
+        # else, installing directly from pip
         elif config.CLIENT_INSTALL_PIP:
-            message(ff("Doing pip install {config.CLIENT_INSTALL_PIP} in {config.RADIOPADRE_VENV}"))
-            ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install {config.CLIENT_INSTALL_PIP}"))
-
+            message("--client-install-pip {config.CLIENT_INSTALL_PIP} is configured.")
+            install_path = config.CLIENT_INSTALL_PIP
         else:
-            bye("To use auto-init, set CLIENT_INSTALL_PATH and/or CLIENT_INSTALL_PIP and/or CLIENT_INSTALL_REPO")
+            bye("no radiopadre-client installation method specified (see --client-install options)")
+
+        # now install
+        message(ff("Will attempt to pip install -U {install_path} in {remote_venv}"))
+        ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -U {install_path}"))
 
         # sanity check
         if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):
             runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
         else:
-            help_yourself(ff("Something went wrong during installation, I still don't see the {runscript0} script"))
+            bye(ff("Something went wrong during installation on {config.REMOTE_HOST}, since I still don't see the {runscript0} script"))
 
         message("Success!")
-
-    # do we need an update of the client install?
-    if config.UPDATE:
-        install_path = config.CLIENT_INSTALL_PATH or "~/radiopadre-client"
-        if config.CLIENT_INSTALL_REPO and check_remote_file(ff("{install_path}/.git"), "-d"):
-            message(ff("--update specified, will attempt a git pull in {config.REMOTE_HOST}:{install_path}"))
-            if has_git:
-                ssh_remote_interactive(ff("cd {install_path} && git fetch origin && ") +
-                                       ff("git checkout {config.CLIENT_INSTALL_BRANCH} && git pull && ") +
-                                       ff("source {config.RADIOPADRE_VENV}/bin/activate && pip3 install -U -e .")
-                                       )
-            else:
-                message("No git installed on remote, ignoring --update flag for the client")
-        elif config.CLIENT_INSTALL_PIP:
-            message(ff("Doing pip install -U {config.CLIENT_INSTALL_PIP} in {remote_venv}"))
-            ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip3 install -U {config.CLIENT_INSTALL_PIP}"))
 
     # copy notebook to remote
     if copy_initial_notebook:
