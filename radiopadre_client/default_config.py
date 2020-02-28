@@ -31,7 +31,7 @@ DefaultConfig = OrderedDict(
     SERVER_INSTALL_PATH="~/radiopadre",
     SERVER_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre.git", # empty for pip release
     SERVER_INSTALL_BRANCH="b1.0-pre4", #"b1.0-pre3",                   # change for each release
-    SERVER_INSTALL_PIP="radiopadre",
+    SERVER_INSTALL_PIP="radiopadre==1.0rc4",
     UPDATE=None,
     VERBOSE=0,
     LOG=False,

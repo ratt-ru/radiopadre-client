@@ -112,7 +112,7 @@ def update_installation():
                 message(ff("only --server-install-repo specified, will install directly from git"))
                 install = ff("git+{config.SERVER_INSTALL_REPO}@{branch}")
         elif config.SERVER_INSTALL_PIP:
-            message("--server-install-pip {config.SERVER_INSTALL_PIP} is configured.")
+            message(ff("--server-install-pip {config.SERVER_INSTALL_PIP} is configured."))
             install = config.SERVER_INSTALL_PIP
         else:
             bye("no radiopadre installation method specified (see --server-install options)")

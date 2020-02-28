@@ -66,9 +66,11 @@ class ColorizingFormatter(logging.Formatter):
         elif record.levelno >= logging.WARNING:
             style = self.Colors['WARNING']
         endstyle = self.Colors['ENDC'] if style else ""
-        return super(ColorizingFormatter, self).format(record).format(style, endstyle)
+        msg = super(ColorizingFormatter, self).format(record)
+        return msg.replace("{<{<", style).replace(">}>}", endstyle)
 
-_default_format = "%(name)s%(timestamp)s: {0}%(severity)s%(message)s{1}"
+_default_format = "%(name)s%(timestamp)s: {<{<%(severity)s%(message)s>}>}"
+_default_format_boring = "%(name)s%(timestamp)s: %(severity)s%(message)s"
 _default_formatter = ColorizingFormatter(_default_format)
 
 _default_console_handler = MultiplexingHandler()
@@ -103,7 +105,8 @@ def enable_logfile(logtype):
     logfile = open(logname, 'wt')
     logfile_handler = logging.StreamHandler(logfile)
     logfile_handler.setFormatter(logging.Formatter(
-        "%(asctime)s: " + _default_format.format("", ""), "%Y-%m-%d %H:%M:%S"))
+                "%(asctime)s: " + _default_format_boring,
+                "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
     atexit.register(flush)
     return logfile

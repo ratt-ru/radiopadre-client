@@ -263,7 +263,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
         # else, installing directly from pip
         elif config.CLIENT_INSTALL_PIP:
-            message("--client-install-pip {config.CLIENT_INSTALL_PIP} is configured.")
+            message(ff("--client-install-pip {config.CLIENT_INSTALL_PIP} is configured."))
             install_path = config.CLIENT_INSTALL_PIP
         else:
             bye("no radiopadre-client installation method specified (see --client-install options)")

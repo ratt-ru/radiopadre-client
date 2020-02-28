@@ -32,7 +32,7 @@ BROWSER_BG = False
 BROWSER_MULTI = False
 RADIOPADRE_VENV = "~/.radiopadre/venv"
 SKIP_CHECKS = False
-CONTAINER_TEST = False
+CONTAINER_TEST = None
 
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = DEFAULT_SERVER_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre.git"
@@ -76,14 +76,15 @@ COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
 
+
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())
     if globalval is None or isinstance(globalval, six.string_types):
         return section[key]
     elif type(globalval) is bool:
-        return section.getboolean(key)
+        return bool(section[key])
     elif type(globalval) is int:
-        return section.getint(key)
+        return int(section[key])
     else:
         raise TypeError("unsupported type {} for option {}".format(type(globalval), key))
 
