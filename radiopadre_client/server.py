@@ -150,12 +150,12 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     else:
         if not USE_VENV:
             container_name = "radiopadre-{}-{}".format(config.USER, uuid.uuid4().hex)
-            message(ff("  Starting new session in container {container_name}"))
+            message(ff("Starting new session in container {container_name}"))
             # get dict of running sessions (for GRIM_REAPER later)
             running_session_dict = backend.list_sessions()
         else:
             container_name = None
-            message("  Starting new session in virtual environment")
+            message("Starting new session in virtual environment")
         selected_ports = [find_unused_port(1024)]
         for i in range(4):
             selected_ports.append(find_unused_port(selected_ports[-1] + 1))
