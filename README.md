@@ -1,5 +1,10 @@
 # radiopadre-client
 
+[![Build Status](https://travis-ci.org/ratt-ru/radiopadre-client.svg?branch=master](https://travis-ci.org/radio-astro/radiopadre-client/)
+[![PyPI version shields.io](https://img.shields.io/pypi/v/radiopadre-client.svg)](https://pypi.python.org/pypi/radiopadre-client/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/radiopadre-client.svg)](https://pypi.python.org/pypi/radiopadre-client/)
+[![PyPI status](https://img.shields.io/pypi/status/radiopadre-client.svg)](https://pypi.python.org/pypi/radiopadre-client/)
+
 Your one-stop client-side script to run [radiopadre](https://github.com/ratt-ru/radiopadre) notebooks 
 locally and on remote machines.
 
