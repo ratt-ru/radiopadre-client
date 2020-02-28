@@ -6,6 +6,11 @@ __version__ = "1.0-pre4"
 with open("requirements.txt") as stdr:
     install_requires = stdr.readlines()
 
+def readme():
+    """Get readme content for package long description"""
+    with open(os.path.join(build_root, 'README.rst')) as f:
+        return f.read()
+
 scripts = ["bin/" + i for i in os.listdir("bin")]
 
 setup(
@@ -16,6 +21,7 @@ setup(
     author="Oleg Smirnov",
     author_email="osmirnov@gmail.com",
     description=("Radiopadre client-side script"),
+    long_description=readme(),
     license="MIT",
     keywords="ipython notebook fits dataset resultset visualisation",
     url="http://github.com/ratt-ru/radiopadre-client",
