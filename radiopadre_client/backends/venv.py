@@ -26,6 +26,9 @@ def update_installation():
     # are we already running inside a virtualenv? Proceed directly if so
     #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
 
+    # pip install command with -v repeated for each VERBOSE increment
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
             message(ff("Running inside radiopadre virtual environment {sys.prefix}"))
@@ -49,7 +52,7 @@ def update_installation():
                 bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
             cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
             warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
-            warning("However, --auto-init and --venv-reinstall is specified. About to run:")
+            warning("However, --venv-reinstall wass specified. About to run:")
             warning("    " + cmd)
             if config.FULL_CONSENT:
                 warning("--full-consent given, so not asking for confirmation.")
@@ -79,7 +82,7 @@ def update_installation():
         if new_venv and config.VENV_EXTRAS:
             extras = " ".join(config.VENV_EXTRAS.split(","))
             message(ff("Installing specified extras: {extras}"))
-            shell(ff("pip install {extras}"))
+            shell(ff("{pip_install} {extras}"))
 
     # now check for a radiopadre install inside the venv
     have_install = check_output("pip show radiopadre")
@@ -117,7 +120,7 @@ def update_installation():
         else:
             bye("no radiopadre installation method specified (see --server-install options)")
 
-        cmd = ff("pip install -U {install}")
+        cmd = ff("{pip_install} -U {install}")
         message(ff("Running {cmd}"))
         shell(cmd)
 

@@ -138,6 +138,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # shorthand for remote virtualenv
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
+    # pip install command with -v repeated for each VERBOSE increment
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+
     # do we want to do an install/update -- will be forced to True (if we must install),
     # or False if we can't update
     do_update = config.UPDATE
@@ -161,7 +164,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
                 cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
                 warning(ff("Found a virtualenv in {remote_venv}."))
-                warning("However, --auto-init and --venv-reinstall is specified. About to run:")
+                warning("However, --venv-reinstall was specified. About to run:")
                 warning(ff("    ssh {config.REMOTE_HOST} "+cmd))
                 if config.FULL_CONSENT:
                     warning("--full-consent given, so not asking for confirmation.")
@@ -219,7 +222,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             if config.VENV_EXTRAS:
                 extras = " ".join(config.VENV_EXTRAS.split(","))
                 message(ff("Installing specified extras: {extras}"))
-                ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install {extras}"))
+                ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} {extras}"))
         else:
             message(ff("Installing into existing virtualenv {remote_venv}"))
 
@@ -260,7 +263,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
             # now pip install
             message(ff("Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}"))
-            ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -e {install_path}"))
+            ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -e {install_path}"))
         # else, installing directly from pip
         elif config.CLIENT_INSTALL_PIP:
             message(ff("--client-install-pip {config.CLIENT_INSTALL_PIP} is configured."))
@@ -270,7 +273,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
         # now install
         message(ff("Will attempt to pip install -U {install_path} in {remote_venv}"))
-        ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && pip install -U {install_path}"))
+        ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {install_path}"))
 
         # sanity check
         if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):

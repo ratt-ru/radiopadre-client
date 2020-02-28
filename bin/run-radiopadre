@@ -74,7 +74,8 @@ group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper",
 ## virtualenv support
 group = parser.add_argument_group("Virtualenv back-end options")
 group.add_argument("--venv-reinstall", action="store_true",
-                    help="virtualenv: reinstall radiopadre virtual environment before running.")
+                    help="virtualenv: reinstall radiopadre virtual environment before running. \n"
+                         "Implies --auto-init.")
 group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
@@ -98,7 +99,7 @@ group.add_argument("-u", "--update", action="store_true",
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
-parser.add_argument("--container-test", action="store_true", default=0, help=argparse.SUPPRESS) 
+parser.add_argument("--container-test", action="store_true", default=None, help=argparse.SUPPRESS)
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
@@ -220,11 +221,6 @@ else:
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
 
-config.INSIDE_CONTAINER_PORTS = []
-if options.inside_container:
-    config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":")))
-config.CONTAINER_TEST = options.container_test
-
 if config.CLIENT_INSTALL_PATH == "None":
     config.CLIENT_INSTALL_PATH = None
 if config.SERVER_INSTALL_PATH == "None":
@@ -267,13 +263,22 @@ if manage_last_sessions:
 
 config.init_specific_options(remote_host, notebook_path, options)
 
+config.INSIDE_CONTAINER_PORTS = []
+if options.inside_container:
+    config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":")))
+config.CONTAINER_TEST = options.container_test
+
+if config.VENV_REINSTALL:
+    config.AUTO_INIT = True
+
+
 # config logger
 logger.enable_timestamps(config.TIMESTAMPS)
 if config.LOG:
     logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
 if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
-message("our PID is {}".format(os.getpid()))
+message("PID is {}".format(os.getpid()))
 
 # work out backend
 if not config.BACKEND:
