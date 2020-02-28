@@ -76,6 +76,8 @@ COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
 
+# set of options that don't get saved into the config file
+NON_PERSISTING_OPTIONS = {"-u", "--update", "--auto-init", "--venv-dry-run", "--full-consent"}
 
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())
@@ -147,7 +149,7 @@ def add_to_parser(parser):
             _CMDLINE_DEFAULTS[key] = default_conf
         # else check for opposite-value switch
         else:
-            if type(DefaultConfig[key]) is bool:
+            if type(DefaultConfig[key]) is bool and "--" + optname not in NON_PERSISTING_OPTIONS:
                 if default_cmdline is 0:
                     parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
                                         help=ff("opposite of --{optname}."))
@@ -186,6 +188,7 @@ def init_specific_options(remote_host, notebook_path, options):
     for key in globals().keys():
         if re.match("^[A-Z]", key):
             optname = key.lower()
+            opt_switch = "--" + optname.replace("_", "-")
             value = getattr(options, optname, None)
             # skip DEFAULT_VALUE placeholders, trust in config
             if value is DEFAULT_VALUE or value is None:
@@ -195,7 +198,8 @@ def init_specific_options(remote_host, notebook_path, options):
             if value is not _CMDLINE_DEFAULTS.get(key, None):
                 if use_config_files:
                     # do not mark options such as --update for saving
-                    if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None:
+                    if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None \
+                                and opt_switch not in NON_PERSISTING_OPTIONS:
                         command_line_updated.append(key)
                     message(ff("  command line specifies {key} = {value}"))
                 globals()[key] = value

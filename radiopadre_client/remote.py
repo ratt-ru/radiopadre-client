@@ -1,4 +1,4 @@
-import os, sys, subprocess, re, time
+import os, sys, subprocess, re, time, traceback
 
 from . import config
 
@@ -45,7 +45,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         Any other non-zero exit status (or any other error) will result in an exception.
         """
         try:
-            return subprocess.check_output(SSH_OPTS + [command], stderr=stderr).decode()
+            return subprocess.check_output(SSH_OPTS + [command], stderr=stderr).decode('utf-8')
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
@@ -190,7 +190,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     message(ff(
                         "Remote virtualenv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
             else:
-                message(ff("No remote virtualenv found at {config.RADIOPADRE_VENV}"))
+                message(ff("No remote virtualenv found at {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"))
 
         # (c) just try `which` directly
         if runscript is None:
@@ -341,7 +341,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 except EOFError:
                     line = b''
                 empty_line = not line
-                line = (line.decode() if type(line) is bytes else line).rstrip()
+                line = (line.decode('utf-8') if type(line) is bytes else line).rstrip()
                 if fobj is sys.stdin and line == 'D' and config.CONTAINER_PERSIST:
                     sys.exit(0)
                 # break out if ssh closes
@@ -361,10 +361,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 if not empty_line and (config.VERBOSE or print_output):
                     for key, dispatch in _dispatch_message.items():
                         if key in line:
-                            dispatch("{}: {}".format(fname, line))
+                            dispatch(u"{}: {}".format(fname, line))
                             break
                     else:
-                        message("{}: {}".format(fname, line))
+                        message(u"{}: {}".format(fname, line))
                 if not line:
                     continue
                 # if remote is not yet started, check output
@@ -423,6 +423,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         status = 1
 
     except Exception as exc:
+        traceback.print_exc()
         message("Exception caught: {}".format(str(exc)))
 
     if remote_running and ssh.poll() is None:

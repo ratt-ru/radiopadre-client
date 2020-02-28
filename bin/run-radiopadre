@@ -6,7 +6,7 @@ from collections import OrderedDict
 # ### some globals
 
 from radiopadre_client import config
-from iglesia.utils import message, bye, ff, INPUT
+from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
 
@@ -33,7 +33,7 @@ parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto
                     help="disable auto-load.")
 parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
                     help="Do not open a separate tab with a CARTA browser on startup.")
-parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
+parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=config.DEFAULT_VALUE,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
@@ -80,7 +80,7 @@ group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
                     help="virtualenv: ignore JS9 installation errors, if bootstrapping.")
-group.add_argument("--venv-extras", type=str, default='',
+group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
                     help="virtualenv: additional packages to install when creating a new virtual environment\n"
                          "(comma-separated list).")
 
@@ -155,9 +155,6 @@ arguments = list(options.arguments)
 
 manage_last_sessions = not options.remote and not options.inside_container
 
-# set of options that don't get persisted in the recent sessions file
-non_persisting_options = {"-u", "--update", "--auto-init", "--venv-dry-run", "--full-consent"}
-
 # recent session management: only done for front-end sessions
 if manage_last_sessions:
     last_sessions = resume_session = None
@@ -204,7 +201,7 @@ if manage_last_sessions:
         # form up list of fake args to be re-parsed
         argv = list(last.items())[-(resume_session+1)][1]
         # non-persisting options raised in command line shall be appended to the fake args
-        for opt in non_persisting_options:
+        for opt in config.NON_PERSISTING_OPTIONS:
             if opt.startswith("--") and getattr(options, opt[2:].replace("-", "_"), None):
                 argv.append(opt)
         message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
@@ -255,7 +252,7 @@ if manage_last_sessions:
         del last_sessions[session_key]
     if len(last_sessions) >= 5:
         del last_sessions[last_sessions.keys()[0]]
-    last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
+    last_sessions[session_key] = [a for a in argv if a not in config.NON_PERSISTING_OPTIONS]
     pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
 
 
@@ -269,7 +266,9 @@ if options.inside_container:
 config.CONTAINER_TEST = options.container_test
 
 if config.VENV_REINSTALL:
-    config.AUTO_INIT = True
+    if not config.AUTO_INIT:
+        message("--venv-reinstall implies --auto-init.")
+        config.AUTO_INIT = True
 
 
 # config logger
@@ -278,7 +277,7 @@ if config.LOG:
     logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
 if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
-message("PID is {}".format(os.getpid()))
+debug("PID is {}".format(os.getpid()))
 
 # work out backend
 if not config.BACKEND:

@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-__version__ = "1.0-pre4"
+__version__ = "1.0-pre5"
 build_root = os.path.dirname(__file__)
 
 with open("requirements.txt") as stdr:
