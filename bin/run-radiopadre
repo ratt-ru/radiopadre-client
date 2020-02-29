@@ -270,6 +270,8 @@ if config.VENV_REINSTALL:
         message("--venv-reinstall implies --auto-init.")
         config.AUTO_INIT = True
 
+if config.VENV_EXTRAS.lower() == "none":
+    config.VENV_EXTRAS = None
 
 # config logger
 logger.enable_timestamps(config.TIMESTAMPS)

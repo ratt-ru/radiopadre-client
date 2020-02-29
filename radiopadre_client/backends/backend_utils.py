@@ -1,5 +1,6 @@
 import socket, time, os, os.path
 
+import iglesia
 from iglesia.utils import message, bye, ff, shell
 from radiopadre_client import config
 
@@ -53,3 +54,4 @@ def await_server_startup(port, process=None, server_name="jupyter notebook serve
                 return None
         time.sleep(.1)
     return None
+

@@ -270,6 +270,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # init paths & environment
     iglesia.init()
+    iglesia.set_userside_ports(userside_ports[1:])
 
     global JUPYTER_OPTS
     JUPYTER_OPTS = [
@@ -340,10 +341,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
                  for nb in LOAD_NOTEBOOK]
 
-    # # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
-    # if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
     for url in urls:
         message(ff("Browse to URL: {url}"), color="GREEN")
+
+    if config.CARTA_BROWSER:
+        url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
+        message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
+        urls.append(url)
 
     # now we're ready to start the session
 
