@@ -25,6 +25,8 @@ def run_browser(*urls):
         message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
         message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
         message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
+        # sometimes the notebook does not respond immediately, so take a second
+        time.sleep(1)
         if config.BROWSER_MULTI:
             commands = [[config.BROWSER]+list(urls)]
         else:
