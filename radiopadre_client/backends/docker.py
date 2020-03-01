@@ -177,7 +177,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     docker_opts += [
                      "-v", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ":ro" if SNOOP_MODE else ""),
                      "-v", "{}:{}".format(homedir, homedir),
-                     # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
+                     ## hides /home/user/.local, which can confuse jupyter and ipython
+                     ## into seeing e.g. kernelspecs that they should not see
                      "-v", "{}:{}/.local".format(docker_local, homedir),
                      # mount session info directory (needed to serve e.g. js9prefs.js)
                      "-v", "{}:{}".format(session_info_dir, LOCAL_SESSION_DIR),
