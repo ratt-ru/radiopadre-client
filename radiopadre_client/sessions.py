@@ -1,6 +1,7 @@
-import os, pickle, re
+import os, pickle, re, traceback
 import readline
 from collections import OrderedDict
+
 
 from radiopadre_client import config
 from iglesia.utils import message, warning, error, bye, ff, INPUT, make_radiopadre_dir
@@ -48,6 +49,7 @@ def check_recent_sessions(options, argv, parser=None):
                     Where options and argv may have been loaded from the recent
                     options file
     """
+    make_radiopadre_dir()
     # load history
     try:
         readline.read_history_file(HISTORY_FILE)
@@ -132,7 +134,13 @@ def save_recent_session(session_key, argv):
         if cmd != readline.get_history_item(readline.get_current_history_length()):
             readline.add_history(cmd)
 
-    readline.write_history_file(HISTORY_FILE)
+    make_radiopadre_dir()
+    try:
+        readline.write_history_file(HISTORY_FILE)
+    except IOError:
+        traceback.print_exc()
+        warning("Error writing history file (see above). Proceeding anyway.")
+
     readline.clear_history()
 
     recents = _load_recent_sessions(False) or OrderedDict()
