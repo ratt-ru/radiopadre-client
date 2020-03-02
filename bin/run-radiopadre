@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 # ### some globals
 
-from radiopadre_client import config
+from radiopadre_client import config, sessions
 from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
@@ -148,65 +148,16 @@ options = parser.parse_args()
 
 message("Welcome to the radiopadre client!")
 
+# recent session management: only done for front-end sessions
+manage_last_sessions = not options.remote and not options.inside_container
+if manage_last_sessions:
+    options, argv = sessions.check_recent_sessions(options, argv, parser=parser)
+
+arguments = list(options.arguments)
+
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
 copy_initial_notebook = remote_host = command = notebook_path = None
-arguments = list(options.arguments)
-
-manage_last_sessions = not options.remote and not options.inside_container
-
-# recent session management: only done for front-end sessions
-if manage_last_sessions:
-    last_sessions = resume_session = None
-
-    def get_last_sessions(must_exist=True):
-        global last_sessions
-        if os.path.exists(config.LAST_SESSIONS_FILE):
-            try:
-                last_sessions = pickle.load(open(config.LAST_SESSIONS_FILE, "rb"))
-            except Exception as exc:
-                message(ff("Error reading {config.LAST_SESSIONS_FILE}: {exc}"))
-                last_sessions = None
-
-        if last_sessions is None and must_exist:
-            bye("no recent radiopadre sessions and no arguments given. Run with -h for help.")
-
-        return last_sessions
-
-    if not arguments:
-        last = get_last_sessions()
-
-        message("Your most recent radiopadre sessions are:")
-        message("")
-        for i, (_, opts) in enumerate(list(last.items())[::-1]):
-            message("    [{0}] {1}".format(i, " ".join(opts)), color="GREEN")
-        message("")
-        while resume_session is None:
-            prompt = "Press ENTER to run the most recent session [0], or enter number, or Ctrl+C to exit: "
-            inp = INPUT(prompt)
-            inp = inp.strip()
-            if not inp:
-                resume_session = 0
-            elif re.match("^\d$", inp):
-                resume_session = int(inp)
-
-    # a single-digit argument is also a resume command
-    if len(arguments) == 1 and re.match("^\d$", arguments[0]):
-        resume_session = int(arguments[0])
-
-    if resume_session is not None:
-        last = get_last_sessions()
-        if resume_session >= len(last):
-            bye(ff("no such session: {resume_session}"))
-        # form up list of fake args to be re-parsed
-        argv = list(last.items())[-(resume_session+1)][1]
-        # non-persisting options raised in command line shall be appended to the fake args
-        for opt in config.NON_PERSISTING_OPTIONS:
-            if opt.startswith("--") and getattr(options, opt[2:].replace("-", "_"), None):
-                argv.append(opt)
-        message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
-        options = parser.parse_args(argv)
-        arguments = list(options.arguments)
 
 if ':' in arguments[0]:
     remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
@@ -246,16 +197,7 @@ else:
 
 # save sessions
 if manage_last_sessions:
-    last_sessions = get_last_sessions(False) or OrderedDict()
-    session_key = remote_host, command, notebook_path
-    if session_key in last_sessions:
-        del last_sessions[session_key]
-    if len(last_sessions) >= 5:
-        del last_sessions[last_sessions.keys()[0]]
-    last_sessions[session_key] = [a for a in argv if a not in config.NON_PERSISTING_OPTIONS]
-    pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
-
-
+    sessions.save_recent_session(session_key=(remote_host, notebook_path, command), argv=argv)
 ## finalize settings
 
 config.init_specific_options(remote_host, notebook_path, options)

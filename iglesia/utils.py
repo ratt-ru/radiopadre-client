@@ -68,6 +68,10 @@ def make_dir(name):
         os.mkdir(name)
     return name
 
+def make_radiopadre_dir():
+    """Makes ~/.radiopadre directory"""
+    return make_dir("~/.radiopadre")
+
 def make_link(src, dest, rm_fr=False):
     """Makes links."""
     if os.path.exists(dest):

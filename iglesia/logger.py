@@ -4,6 +4,7 @@ logger = None
 logfile = sys.stderr
 logfile_handler = None
 
+
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
     time0 = time.time()
@@ -95,13 +96,13 @@ def disable_printing():
     logger.removeHandler(_default_console_handler)
 
 def enable_logfile(logtype):
-    from .utils import make_dir, ff
+    from .utils import make_dir, make_radiopadre_dir, ff
     global logfile, logfile_handler
 
-    make_dir("~/.radiopadre")
-    make_dir("~/.radiopadre/logs")
+    radiopadre_dir = make_radiopadre_dir()
+    make_dir(ff("{radiopadre_dir}/logs"))
     datetime = time.strftime("%Y%m%d%H%M%S")
-    logname = os.path.expanduser(ff("~/.radiopadre/logs/log-{logtype}-{datetime}.txt"))
+    logname = os.path.expanduser(ff("{radiopadre_dir}/logs/log-{logtype}-{datetime}.txt"))
     logfile = open(logname, 'wt')
     logfile_handler = logging.StreamHandler(logfile)
     logfile_handler.setFormatter(logging.Formatter(

@@ -6,7 +6,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from iglesia.utils import make_dir, message, ff
+from iglesia.utils import make_dir, message, ff, make_radiopadre_dir
 from .default_config import DefaultConfig
 
 # const object to use as default value in ArgumentParser. Will be replaced by contents
@@ -66,10 +66,7 @@ REMOTE_MODE_PORTS = False
 # set to port assignments, when running inside container
 INSIDE_CONTAINER_PORTS = False
 
-CONFIG_FILE = os.path.expanduser("~/.config/radiopadre-client")
-
-LAST_SESSIONS_FILE = os.path.expanduser("~/.config/radiopadre-client.last")
-
+CONFIG_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.config")
 
 COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 
@@ -77,7 +74,7 @@ _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
 
 # set of options that don't get saved into the config file
-NON_PERSISTING_OPTIONS = {"-u", "--update", "--auto-init", "--venv-dry-run", "--full-consent"}
+NON_PERSISTING_OPTIONS = {"-u", "--update", "--auto-init", "--venv-dry-run", "--venv-reinstall", "--full-consent"}
 
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())
@@ -220,7 +217,7 @@ def init_specific_options(remote_host, notebook_path, options):
                 parser.set(session, key, _set_config_value(key))
 
         if options.save_config_host or options.save_config_session:
-            make_dir("~/.radiopadre")
+            radiopadre_dir = make_radiopadre_dir()
             with open(CONFIG_FILE + ".new", "w") as configfile:
                 if not config_exists:
                     message(ff("  creating new config file {CONFIG_FILE}"))

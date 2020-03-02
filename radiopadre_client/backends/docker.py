@@ -2,7 +2,7 @@ import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 import iglesia
-from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
@@ -19,9 +19,9 @@ def init(binary):
     _init_session_dir()
 
 def _init_session_dir():
-    make_dir("~/.radiopadre")
+    radiopadre_dir = make_radiopadre_dir()
     global SESSION_INFO_DIR
-    SESSION_INFO_DIR = os.path.expanduser("~/.radiopadre/sessions")
+    SESSION_INFO_DIR = ff("{radiopadre_dir}/sessions")
     make_dir(SESSION_INFO_DIR)
 
 def _ps_containers():
@@ -152,9 +152,9 @@ def _collect_runscript_arguments(ports):
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SNOOP_MODE
-
-    docker_local = make_dir("~/.radiopadre/.docker-local")
-    js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
+    radiopadre_dir = make_radiopadre_dir()
+    docker_local = make_dir(radiopadre_dir + "/.docker-local")
+    js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
     message(ff("Container name: {container_name}"))  # remote script will parse it

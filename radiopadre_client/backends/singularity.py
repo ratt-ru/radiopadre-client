@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from iglesia.utils import message, make_dir, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, make_dir, make_radiopadre_dir, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 
 singularity = None
@@ -51,9 +51,9 @@ def update_installation():
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
-
-    docker_local = make_dir("~/.radiopadre/.docker-local")
-    js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
+    radiopadre_dir = make_radiopadre_dir()
+    docker_local = make_dir(radiopadre_dir + "/.docker-local")
+    js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
     message(ff("Container name: {container_name}"))  # remote script will parse it
