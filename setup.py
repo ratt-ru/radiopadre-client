@@ -9,7 +9,7 @@ with open("requirements.txt") as stdr:
 
 def readme():
     """Get readme content for package long description"""
-    with open(os.path.join(build_root, 'README.md')) as f:
+    with open(os.path.join(build_root, 'README.rst')) as f:
         return f.read()
 
 scripts = ["bin/" + i for i in os.listdir("bin")]
