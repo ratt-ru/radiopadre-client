@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from radiopadre_client import config
 from iglesia.utils import message, warning, error, bye, ff, INPUT, make_radiopadre_dir
+from iglesia import logger
 
 _recent_sessions = None
 _last_input = None
@@ -74,9 +75,10 @@ def check_recent_sessions(options, argv, parser=None):
         message("Your most recent radiopadre sessions are:")
         message("")
         for i, (_, opts) in enumerate(list(last.items())[::-1]):
-            message("    [{0}] {1}".format(i, " ".join(opts)), color="GREEN")
+            message("    [#{0}] {1}".format(i, " ".join(opts)), color="GREEN")
         message("")
-        print("Edit arguments and press Enter to run. Ctrl+U + <number> + Enter will load another session from the list above.")
+        print("\nInteractive startup mode. Edit arguments and press Enter to run, or Ctrl+C to bail out. ")
+        print("    (Ctrl+U + <NUM> + Enter will paste other recent session arguments from the list above)\n")
 
         inp = None
         cmdline = ''
@@ -93,7 +95,9 @@ def check_recent_sessions(options, argv, parser=None):
             # make the recent session into a string
             cmdline = " ".join([x or "''" for x in argv])
 
-            prompt = ff("[#{resume_session}]: ")
+            ## colors confuse Ctrl+U and such
+            # prompt = ff("{logger.Colors.GREEN}[#{resume_session}]:{logger.Colors.ENDC} ")
+            prompt = ff("[#{resume_session}] ")
             inp = INPUT(prompt)
             inp = inp.strip()
             if not inp:

@@ -50,23 +50,25 @@ class MultiplexingHandler(logging.Handler):
         self.err_handler.setFormatter(fmt)
         self.info_handler.setFormatter(fmt)
 
+class Colors():
+    WARNING = '\033[93m' if sys.stdin.isatty() else ''
+    ERROR   = '\033[91m' if sys.stdin.isatty() else ''
+    BOLD    = '\033[1m'  if sys.stdin.isatty() else ''
+    GREEN   = '\033[92m' if sys.stdin.isatty() else ''
+    ENDC    = '\033[0m'  if sys.stdin.isatty() else ''
+
 class ColorizingFormatter(logging.Formatter):
     """This Formatter inserts color codes into the string according to severity"""
-    Colors = dict(WARNING = '\033[93m',
-                    ERROR = '\033[91m',
-                    BOLD = '\033[1m',
-                    GREEN = '\033[92m',
-                    ENDC = '\033[0m')
 
     def format(self, record):
         style = ""
         if hasattr(record, 'color'):
-            style = self.Colors[record.color]
+            style = getattr(Colors, record.color, "")
         elif record.levelno >= logging.ERROR:
-            style = self.Colors['ERROR']
+            style = Colors.ERROR
         elif record.levelno >= logging.WARNING:
-            style = self.Colors['WARNING']
-        endstyle = self.Colors['ENDC'] if style else ""
+            style = Colors.WARNING
+        endstyle = Colors.ENDC if style else ""
         msg = super(ColorizingFormatter, self).format(record)
         return msg.replace("{<{<", style).replace(">}>}", endstyle)
 

@@ -146,7 +146,7 @@ parser.add_argument("arguments", nargs="*",
 argv = sys.argv[1:]
 options = parser.parse_args()
 
-message("Welcome to the radiopadre client!")
+message("Welcome to the radiopadre client!", color="GREEN")
 
 # recent session management: only done for front-end sessions
 manage_last_sessions = not options.remote and not options.inside_container
