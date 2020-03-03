@@ -16,7 +16,8 @@ def message(x, level=logging.INFO, color=None):
     if type(x) is bytes:
         x = x.decode()
     extra = dict(color=color) if color else {}
-    logger.logger.log(level, x, extra=extra)
+    if logger.logger is not None:
+        logger.logger.log(level, x, extra=extra)
 
 def warning(x):
     message(x, logging.WARNING)
@@ -42,12 +43,23 @@ def ff(fstring):
 def shell(cmd, ignore_fail=False):
     """Runs shell command. If ignore_fail is set, returns None on failure"""
     try:
-       return subprocess.call(cmd, shell=True)
+       return subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as exc:
         if ignore_fail:
             return None
         raise
 
+def check_output(command, fail_retcode=1):
+    """
+    Equivalent to subprocess.check_output(command, shell=True), but will return None
+    if the subprocess exits with the given failure retcode
+    """
+    try:
+        return subprocess.check_output(command, shell=True).strip().decode()
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode == 1:
+            return None
+        raise
 
 def make_dir(name):
     """Makes directory, if one does not exist. Interpolates '~' in names."""
@@ -55,6 +67,10 @@ def make_dir(name):
     if not os.path.exists(name):
         os.mkdir(name)
     return name
+
+def make_radiopadre_dir():
+    """Makes ~/.radiopadre directory"""
+    return make_dir("~/.radiopadre")
 
 def make_link(src, dest, rm_fr=False):
     """Makes links."""
@@ -70,13 +86,7 @@ def find_which(command):
     """
     Returns the equivalent of `which command`, or None is command is not found
     """
-    try:
-        binary = subprocess.check_output("which {}".format(command), shell=True).strip()
-    except subprocess.CalledProcessError as exc:
-        if exc.returncode == 1:
-            return None
-        raise
-    return binary.decode()
+    return check_output("which " + command, fail_retcode=1)
 
 
 def find_unused_port(base=1025, maxtries=10000):

@@ -2,12 +2,12 @@ import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 import iglesia
-from iglesia.utils import message, make_dir, bye, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
 
-from .backend_utils import await_server_startup, update_server_install
+from .backend_utils import await_server_startup, update_server_from_repository
 
 docker = None
 SESSION_INFO_DIR = '.'
@@ -19,9 +19,9 @@ def init(binary):
     _init_session_dir()
 
 def _init_session_dir():
-    make_dir("~/.radiopadre")
+    radiopadre_dir = make_radiopadre_dir()
     global SESSION_INFO_DIR
-    SESSION_INFO_DIR = os.path.expanduser("~/.radiopadre/sessions")
+    SESSION_INFO_DIR = ff("{radiopadre_dir}/sessions")
     make_dir(SESSION_INFO_DIR)
 
 def _ps_containers():
@@ -124,7 +124,7 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
 def update_installation():
     global docker_image
     if config.CONTAINER_DEV:
-        update_server_install()
+        update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
     message(ff("  Using radiopadre Docker image {docker_image}"))
     if config.UPDATE:
@@ -152,9 +152,9 @@ def _collect_runscript_arguments(ports):
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SNOOP_MODE
-
-    docker_local = make_dir("~/.radiopadre/.docker-local")
-    js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
+    radiopadre_dir = make_radiopadre_dir()
+    docker_local = make_dir(radiopadre_dir + "/.docker-local")
+    js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
     message(ff("Container name: {container_name}"))  # remote script will parse it
@@ -177,7 +177,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     docker_opts += [
                      "-v", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ":ro" if SNOOP_MODE else ""),
                      "-v", "{}:{}".format(homedir, homedir),
-                     # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
+                     ## hides /home/user/.local, which can confuse jupyter and ipython
+                     ## into seeing e.g. kernelspecs that they should not see
                      "-v", "{}:{}/.local".format(docker_local, homedir),
                      # mount session info directory (needed to serve e.g. js9prefs.js)
                      "-v", "{}:{}".format(session_info_dir, LOCAL_SESSION_DIR),

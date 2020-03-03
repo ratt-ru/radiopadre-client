@@ -55,7 +55,7 @@ def init_helpers(radiopadre_base):
             js9helper = iglesia.JS9_DIR + "/js9Helper.js"
 
             if not os.path.exists(iglesia.JS9_DIR):
-                raise PadreError(ff("{JS9_DIR} does not exist"))
+                raise PadreError(ff("{iglesia.JS9_DIR} does not exist"))
             if not os.path.exists(js9helper):
                 raise PadreError(ff("{js9helper} does not exist"))
 
@@ -102,7 +102,7 @@ def init_helpers(radiopadre_base):
 
     if 'RADIOPADRE_CARTA_PID' not in os.environ:
         # start CARTA backend
-        for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{radiopadre_base}/carta/carta"), \
+        for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{sys.prefix}/carta/carta"), \
                           find_which('carta'):
             if carta_exec and os.access(carta_exec, os.X_OK):
                 break

@@ -1,10 +1,10 @@
 import sys, os, os.path, subprocess, time
-from iglesia.utils import message, error, debug, shell, bye, ff, INPUT
+from iglesia.utils import message, warning, error, debug, shell, bye, ff, INPUT, check_output
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
 import iglesia
-from .backend_utils import await_server_startup, update_server_install
+from .backend_utils import await_server_startup, update_server_from_repository
 
 def init():
     pass
@@ -21,82 +21,112 @@ def identify_session(session_dict, arg):
 def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in virtualenv mode")
 
-def _install_radiopadre(init_venv=False):
-
-    # check for existing venv
-    if config.VENV_REINSTALL:
-        init_venv = True
-    else:
-        if os.path.exists(ff("{config.RADIOPADRE_VENV}/bin/activate_this.py")):
-            if os.path.exists(ff("{config.RADIOPADRE_VENV}/{config.COMPLETE_INSTALL_COOKIE}")):
-                message(ff("Found complete radiopadre virtualenv in {config.RADIOPADRE_VENV}"))
-                return
-            else:
-                message(ff("Radiopadre virtualenv in {config.RADIOPADRE_VENV} is incomplete"))
-        else:
-            message(ff("Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist"))
-            init_venv = True
-        if not config.AUTO_INIT:
-            bye("Try running with --auto-init to (re)install it.")
-
-    if init_venv:
-        message("Will try to completely reinstall radiopadre virtualenv using install-radiopadre")
-    else:
-        message("Will try complete radiopadre virtualenv installation using install-radiopadre")
-
-    # find install-radiopadre
-    install_script = ff("{config.SERVER_INSTALL_PATH}/bin/bootstrap-radiopadre-install")
-
-    if not os.path.exists(install_script):
-        message(ff("{install_script} not found"))
-        if not config.SERVER_INSTALL_REPO:
-            bye("Try running with a --server-install-repo?")
-        cmd = ff("git clone -b {config.SERVER_INSTALL_BRANCH} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}")
-        message(ff("Running {cmd}"))
-        if shell(cmd):
-            bye("git clone failed")
-    elif config.UPDATE:
-        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
-        message(ff("--update specified: {cmd}"))
-        if shell(ff("{cmd}")):
-            bye("update failed")
-
-    cmd = "{} --venv {} {} {} {}".format(install_script, config.RADIOPADRE_VENV,
-                "--no-casacore" if config.VENV_IGNORE_CASACORE else "",
-                "--no-js9" if config.VENV_IGNORE_JS9 else "",
-                "reinstall" if init_venv else "install",
-                )
-    message(ff("Running {cmd}"))
-    if shell(cmd):
-        bye("Installation script failed.")
 
 def update_installation():
-    update_server_install()
-    # See https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
-    # are we already running inside a virtualenv?
+    # are we already running inside a virtualenv? Proceed directly if so
+    #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
+
+    # pip install command with -v repeated for each VERBOSE increment
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
-            message("Already running inside radiopadre virtual environment")
+            message(ff("Running inside radiopadre virtual environment {sys.prefix}"))
         else:
             message(ff("Running inside non-default virtual environment {sys.prefix}"))
             message(ff("Will assume radiopadre has been installed here."))
             config.RADIOPADRE_VENV = sys.prefix
 
         if config.VENV_REINSTALL:
-            bye("Can't --venv-reinstall from inside a virtualenv.")
+            bye("Can't --venv-reinstall from inside the virtualenv itself.")
 
-        _install_radiopadre(init_venv=False)
+    # Otherwise check for virtualenv, nuke/remake one if needed, then activate it
     else:
-        _install_radiopadre(init_venv=True)
+        config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
+        activation_script = os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py")
 
-        activation_script = os.path.expanduser(os.path.join(config.RADIOPADRE_VENV, "bin/activate_this.py"))
+        # see if a reinstall is needed
+        if config.AUTO_INIT and config.VENV_REINSTALL and os.path.exists(config.RADIOPADRE_VENV):
+            if not os.path.exists(activation_script):
+                error(ff("{activation_script} does not exist. Bat country!"))
+                bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
+            cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
+            warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
+            warning("However, --venv-reinstall wass specified. About to run:")
+            warning("    " + cmd)
+            if config.FULL_CONSENT:
+                warning("--full-consent given, so not asking for confirmation.")
+            else:
+                warning(ff("Your informed consent is required!"))
+                inp = INPUT(ff("Please enter 'yes' to rm -fr {config.RADIOPADRE_VENV}: ")).strip()
+                if inp != "yes":
+                    bye(ff("'{inp}' is not a 'yes'. Phew!"))
+                message("OK, nuking it!")
+            shell(cmd)
+
+        new_venv = False
+        if not os.path.exists(config.RADIOPADRE_VENV):
+            if config.AUTO_INIT:
+                message(ff("Creating virtualenv {config.RADIOPADRE_VENV}"))
+                shell(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
+                new_venv = True
+            else:
+                error(ff("Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist."))
+                bye(ff("Try re-running with --auto-init to reinstall it."))
+
         message(ff("  Activating the radiopadre virtualenv via {activation_script}"))
         with open(activation_script) as f:
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
-    if not config.INSIDE_CONTAINER_PORTS:
-        message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
+        if new_venv and config.VENV_EXTRAS:
+            extras = " ".join(config.VENV_EXTRAS.split(","))
+            message(ff("Installing specified extras: {extras}"))
+            shell(ff("{pip_install} {extras}"))
+
+    # now check for a radiopadre install inside the venv
+    have_install = check_output("pip show radiopadre")
+
+    if have_install:
+        install_info = dict([x.split(": ", 1) for x in have_install.split("\n") if ': ' in x])
+        version = install_info.get("Version", "unknown")
+        if config.UPDATE:
+            message(ff("radiopadre (version {version}) is installed, but --update specified."))
+        else:
+            message(ff("radiopadre (version {version}) is installed."))
+
+    if not have_install or config.UPDATE:
+        if config.SERVER_INSTALL_PATH and os.path.exists(config.SERVER_INSTALL_PATH):
+            message(ff("--server-install-path {config.SERVER_INSTALL_PATH} is configured and exists."))
+            update_server_from_repository()
+            install = ff("-e {config.SERVER_INSTALL_PATH}")
+
+        elif config.SERVER_INSTALL_REPO:
+            if config.SERVER_INSTALL_REPO == "default":
+                config.SERVER_INSTALL_REPO = config.DEFAULT_SERVER_INSTALL_REPO
+            branch = config.SERVER_INSTALL_BRANCH or "master"
+            if config.SERVER_INSTALL_PATH:
+                message(ff("--server-install-path and --server-install-repo configured, will clone and install"))
+                cmd = ff("git clone -b {branch} {config.SERVER_INSTALL_REPO} {config.SERVER_INSTALL_PATH}")
+                message(ff("Running {cmd}"))
+                shell(cmd)
+                install = ff("-e {config.SERVER_INSTALL_PATH}")
+            else:
+                message(ff("only --server-install-repo specified, will install directly from git"))
+                install = ff("git+{config.SERVER_INSTALL_REPO}@{branch}")
+        elif config.SERVER_INSTALL_PIP:
+            message(ff("--server-install-pip {config.SERVER_INSTALL_PIP} is configured."))
+            install = config.SERVER_INSTALL_PIP
+        else:
+            bye("no radiopadre installation method specified (see --server-install options)")
+
+        cmd = ff("{pip_install} -U {install}")
+        message(ff("Running {cmd}"))
+        shell(cmd)
+
+    # if not config.INSIDE_CONTAINER_PORTS:
+    #     message(ff("  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}"))
+
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
@@ -117,7 +147,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
-    if config.INSIDE_CONTAINER_PORTS:
+    if config.INSIDE_CONTAINER_PORTS or config.CONTAINER_TEST:
         JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
 
     # if LOAD_NOTEBOOK:
@@ -140,12 +170,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     iglesia.init_helpers(radiopadre_base)
 
-    if config.CARTA_BROWSER:
-        url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
-        message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
-        if browser_urls:
-            browser_urls.append(url)
-
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
     message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), ROOTDIR))
@@ -164,8 +188,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # launch browser
     if browser_urls:
         iglesia.register_helpers(*run_browser(*browser_urls))
-    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
-        message("Please point your browser to {}".format(" ".join(browser_urls)))
+#    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
+#        message("Please point your browser to {}".format(" ".join(browser_urls)))
 
     # pause to let the Jupyter server spin up
     wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
@@ -176,6 +200,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
 
     message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+
+    if config.CONTAINER_TEST:
+        message(ff("--container-test was specified, dry run is complete"))
+        sys.exit(0)
 
     try:
         while True:

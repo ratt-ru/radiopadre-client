@@ -18,19 +18,20 @@ DefaultConfig = OrderedDict(
     CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
-    DOCKER_IMAGE="osmirnov/radiopadre:1.0pre3",         # change for each release
+    DOCKER_IMAGE="osmirnov/radiopadre:1.0pre5",         # change for each release
     CONTAINER_DEBUG=False,
     CONTAINER_DETACH=False,
     CONTAINER_PERSIST=False,
+    FULL_CONSENT=None,
     GRIM_REAPER=True,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
-    CLIENT_INSTALL_BRANCH="", #"b1.0-pre3",                   # change for each release
+    CLIENT_INSTALL_BRANCH="b1.0-pre5", #"b1.0-pre3",                   # change for each release
     CLIENT_INSTALL_PIP="radiopadre-client",
     SERVER_INSTALL_PATH="~/radiopadre",
     SERVER_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre.git", # empty for pip release
-    SERVER_INSTALL_BRANCH="", #"b1.0-pre3",                   # change for each release
-    SERVER_INSTALL_PIP="radiopadre",
+    SERVER_INSTALL_BRANCH="b1.0-pre5", #"b1.0-pre3",                   # change for each release
+    SERVER_INSTALL_PIP="radiopadre==1.0rc5",
     UPDATE=None,
     VERBOSE=0,
     LOG=False,
@@ -39,5 +40,7 @@ DefaultConfig = OrderedDict(
     VENV_REINSTALL=None,
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
+    VENV_EXTRAS="None",
+    VENV_DRY_RUN=None,
 )
 

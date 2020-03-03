@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 # ### some globals
 
-from radiopadre_client import config
-from iglesia.utils import message, bye, ff, INPUT
+from radiopadre_client import config, sessions
+from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
 
@@ -33,13 +33,14 @@ parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto
                     help="disable auto-load.")
 parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
                     help="Do not open a separate tab with a CARTA browser on startup.")
-parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=0,
+parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=config.DEFAULT_VALUE,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
 parser.add_argument("-l", "--log", action="store_true", default=0,
                     help="Enables logging of sessions to see .radiopadre/logs.")
-
+parser.add_argument("--full-consent", action="store_true",
+                    help="Automatically consent to dangerous operations such a removing a virtualenv.")
 
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
@@ -73,11 +74,15 @@ group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper",
 ## virtualenv support
 group = parser.add_argument_group("Virtualenv back-end options")
 group.add_argument("--venv-reinstall", action="store_true",
-                    help="virtualenv: reinstall radiopadre_client virtual environment before running.")
+                    help="virtualenv: reinstall radiopadre virtual environment before running. \n"
+                         "Implies --auto-init.")
 group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
                     help="virtualenv: ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
                     help="virtualenv: ignore JS9 installation errors, if bootstrapping.")
+group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
+                    help="virtualenv: additional packages to install when creating a new virtual environment\n"
+                         "(comma-separated list).")
 
 ## remote init support
 group = parser.add_argument_group("Remote installation options")
@@ -88,13 +93,13 @@ group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks. "
                    "This can make for faster startup, but less informative failure modes.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help=ff("directory in which remote radiopadre_client will be installed with --auto-init."))
+                    help=ff("directory in which remote radiopadre-client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
-                    help="in virtualenv mode: update remote radiopadre_client installation using git pull. "
-                         "in docker mode: update docker container using docker pull.")
+                    help="update installations, container images, etc. as appropriate.")
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
+parser.add_argument("--container-test", action="store_true", default=None, help=argparse.SUPPRESS)
 parser.add_argument("--workdir", type=str, help=argparse.SUPPRESS)
 # internal switch to run script in remote mode.
 parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
@@ -141,64 +146,18 @@ parser.add_argument("arguments", nargs="*",
 argv = sys.argv[1:]
 options = parser.parse_args()
 
-message("Welcome to the radiopadre client!")
+message("Welcome to the radiopadre client!", color="GREEN")
+
+# recent session management: only done for front-end sessions
+manage_last_sessions = not options.remote and not options.inside_container
+if manage_last_sessions:
+    options, argv = sessions.check_recent_sessions(options, argv, parser=parser)
+
+arguments = list(options.arguments)
 
 # remote_host: user@remote, or None in local mode
 # command: command part, could still be a notebook/directory at this stage
 copy_initial_notebook = remote_host = command = notebook_path = None
-arguments = list(options.arguments)
-
-manage_last_sessions = not options.remote and not options.inside_container
-
-# recent session management: only done for front-end sessions
-if manage_last_sessions:
-    last_sessions = resume_session = None
-
-    def get_last_sessions(must_exist=True):
-        global last_sessions
-        if os.path.exists(config.LAST_SESSIONS_FILE):
-            try:
-                last_sessions = pickle.load(open(config.LAST_SESSIONS_FILE, "rb"))
-            except Exception as exc:
-                message(ff("Error reading {config.LAST_SESSIONS_FILE}: {exc}"))
-                last_sessions = None
-
-        if last_sessions is None and must_exist:
-            bye("no recent radiopadre sessions and no arguments given. Run with -h for help.")
-
-        return last_sessions
-
-    if not arguments:
-        last = get_last_sessions()
-
-        message("Your most recent radiopadre sessions are:")
-        message("")
-        for i, (_, opts) in enumerate(list(last.items())[::-1]):
-            message("    [{0}] {1}".format(i, " ".join(opts)), color="GREEN")
-        message("")
-        while resume_session is None:
-            prompt = "Press ENTER to run the most recent session [0], or enter number, or Ctrl+C to exit: "
-            inp = INPUT(prompt)
-            inp = inp.strip()
-            if not inp:
-                resume_session = 0
-            elif re.match("^\d$", inp):
-                resume_session = int(inp)
-
-    # a single-digit argument is also a resume command
-    if len(arguments) == 1 and re.match("^\d$", arguments[0]):
-        resume_session = int(arguments[0])
-
-    if resume_session is not None:
-        last = get_last_sessions()
-        if resume_session >= len(last):
-            bye(ff("no such session: {resume_session}"))
-        argv = list(last.items())[-(resume_session+1)][1]
-        if options.update:
-            argv.append("-u")
-        message("re-running session #{0}: {1}".format(resume_session, " ".join(argv)))
-        options = parser.parse_args(argv)
-        arguments = list(options.arguments)
 
 if ':' in arguments[0]:
     remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
@@ -209,7 +168,6 @@ else:
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
-config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":"))) if options.inside_container else []
 
 if config.CLIENT_INSTALL_PATH == "None":
     config.CLIENT_INSTALL_PATH = None
@@ -239,20 +197,23 @@ else:
 
 # save sessions
 if manage_last_sessions:
-    last_sessions = get_last_sessions(False) or OrderedDict()
-    session_key = remote_host, command, notebook_path
-    if session_key in last_sessions:
-        del last_sessions[session_key]
-    if len(last_sessions) >= 5:
-        del last_sessions[last_sessions.keys()[0]]
-    non_persisting_options = {"-u", "--update", "--auto-init"}
-    last_sessions[session_key] = [a for a in argv if a not in non_persisting_options]
-    pickle.dump(last_sessions, open(config.LAST_SESSIONS_FILE, 'wb'))
-
-
+    sessions.save_recent_session(session_key=(remote_host, notebook_path, command), argv=argv)
 ## finalize settings
 
 config.init_specific_options(remote_host, notebook_path, options)
+
+config.INSIDE_CONTAINER_PORTS = []
+if options.inside_container:
+    config.INSIDE_CONTAINER_PORTS = list(map(int, options.inside_container.split(":")))
+config.CONTAINER_TEST = options.container_test
+
+if config.VENV_REINSTALL:
+    if not config.AUTO_INIT:
+        message("--venv-reinstall implies --auto-init.")
+        config.AUTO_INIT = True
+
+if config.VENV_EXTRAS.lower() == "none":
+    config.VENV_EXTRAS = None
 
 # config logger
 logger.enable_timestamps(config.TIMESTAMPS)
@@ -260,7 +221,7 @@ if config.LOG:
     logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
 if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
-message("our PID is {}".format(os.getpid()))
+debug("PID is {}".format(os.getpid()))
 
 # work out backend
 if not config.BACKEND:

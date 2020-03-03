@@ -1,19 +1,23 @@
 import socket, time, os, os.path
 
+import iglesia
 from iglesia.utils import message, bye, ff, shell
 from radiopadre_client import config
 
-def update_server_install():
+def update_server_from_repository():
     """
     Updates the radiopadre git working directory, if necessary
     :return:
     """
     if config.UPDATE and config.SERVER_INSTALL_PATH and os.path.isdir(config.SERVER_INSTALL_PATH + "/.git"):
-        cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
+        if config.SERVER_INSTALL_BRANCH:
+            cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
+        else:
+            cmd = ff("cd {config.SERVER_INSTALL_PATH} && git pull")
         message(ff(
-            "--update specified, existing --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
+            "--update specified, --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
         message(ff("    {cmd}"))
-        if shell(ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")):
+        if shell(cmd):
             bye("update failed")
 
 
@@ -50,3 +54,4 @@ def await_server_startup(port, process=None, server_name="jupyter notebook serve
                 return None
         time.sleep(.1)
     return None
+

@@ -4,6 +4,7 @@ logger = None
 logfile = sys.stderr
 logfile_handler = None
 
+
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
     time0 = time.time()
@@ -49,26 +50,30 @@ class MultiplexingHandler(logging.Handler):
         self.err_handler.setFormatter(fmt)
         self.info_handler.setFormatter(fmt)
 
+class Colors():
+    WARNING = '\033[93m' if sys.stdin.isatty() else ''
+    ERROR   = '\033[91m' if sys.stdin.isatty() else ''
+    BOLD    = '\033[1m'  if sys.stdin.isatty() else ''
+    GREEN   = '\033[92m' if sys.stdin.isatty() else ''
+    ENDC    = '\033[0m'  if sys.stdin.isatty() else ''
+
 class ColorizingFormatter(logging.Formatter):
     """This Formatter inserts color codes into the string according to severity"""
-    Colors = dict(WARNING = '\033[93m',
-                    ERROR = '\033[91m',
-                    BOLD = '\033[1m',
-                    GREEN = '\033[92m',
-                    ENDC = '\033[0m')
 
     def format(self, record):
         style = ""
         if hasattr(record, 'color'):
-            style = self.Colors[record.color]
+            style = getattr(Colors, record.color, "")
         elif record.levelno >= logging.ERROR:
-            style = self.Colors['ERROR']
+            style = Colors.ERROR
         elif record.levelno >= logging.WARNING:
-            style = self.Colors['WARNING']
-        endstyle = self.Colors['ENDC'] if style else ""
-        return super(ColorizingFormatter, self).format(record).format(style, endstyle)
+            style = Colors.WARNING
+        endstyle = Colors.ENDC if style else ""
+        msg = super(ColorizingFormatter, self).format(record)
+        return msg.replace("{<{<", style).replace(">}>}", endstyle)
 
-_default_format = "%(name)s%(timestamp)s: {0}%(severity)s%(message)s{1}"
+_default_format = "%(name)s%(timestamp)s: {<{<%(severity)s%(message)s>}>}"
+_default_format_boring = "%(name)s%(timestamp)s: %(severity)s%(message)s"
 _default_formatter = ColorizingFormatter(_default_format)
 
 _default_console_handler = MultiplexingHandler()
@@ -93,17 +98,18 @@ def disable_printing():
     logger.removeHandler(_default_console_handler)
 
 def enable_logfile(logtype):
-    from .utils import make_dir, ff
+    from .utils import make_dir, make_radiopadre_dir, ff
     global logfile, logfile_handler
 
-    make_dir("~/.radiopadre")
-    make_dir("~/.radiopadre/logs")
+    radiopadre_dir = make_radiopadre_dir()
+    make_dir(ff("{radiopadre_dir}/logs"))
     datetime = time.strftime("%Y%m%d%H%M%S")
-    logname = os.path.expanduser(ff("~/.radiopadre/logs/log-{logtype}-{datetime}.txt"))
+    logname = os.path.expanduser(ff("{radiopadre_dir}/logs/log-{logtype}-{datetime}.txt"))
     logfile = open(logname, 'wt')
     logfile_handler = logging.StreamHandler(logfile)
     logfile_handler.setFormatter(logging.Formatter(
-        "%(asctime)s: " + _default_format.format("", ""), "%Y-%m-%d %H:%M:%S"))
+                "%(asctime)s: " + _default_format_boring,
+                "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
     atexit.register(flush)
     return logfile

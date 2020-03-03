@@ -25,6 +25,8 @@ def run_browser(*urls):
         message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
         message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
         message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
+        # sometimes the notebook does not respond immediately, so take a second
+        time.sleep(1)
         if config.BROWSER_MULTI:
             commands = [[config.BROWSER]+list(urls)]
         else:
@@ -56,7 +58,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     USE_VENV = USE_DOCKER = USE_SINGULARITY = False
 
     for backend in config.BACKEND:
-        if backend == "venv" and find_which("virtualenv") and find_which("pip"):
+        if backend == "venv" and find_which("virtualenv"):
             USE_VENV = True
             import radiopadre_client.backends.venv
             backend = radiopadre_client.backends.venv
@@ -150,12 +152,12 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     else:
         if not USE_VENV:
             container_name = "radiopadre-{}-{}".format(config.USER, uuid.uuid4().hex)
-            message(ff("  Starting new session in container {container_name}"))
+            message(ff("Starting new session in container {container_name}"))
             # get dict of running sessions (for GRIM_REAPER later)
             running_session_dict = backend.list_sessions()
         else:
             container_name = None
-            message("  Starting new session in virtual environment")
+            message("Starting new session in virtual environment")
         selected_ports = [find_unused_port(1024)]
         for i in range(4):
             selected_ports.append(find_unused_port(selected_ports[-1] + 1))
@@ -270,6 +272,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # init paths & environment
     iglesia.init()
+    iglesia.set_userside_ports(userside_ports[1:])
 
     global JUPYTER_OPTS
     JUPYTER_OPTS = [
@@ -340,10 +343,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
                  for nb in LOAD_NOTEBOOK]
 
-    # # desist from printing this if running purely locally, in a virtualenv, as the notebook app handles this for us
-    # if config.REMOTE_MODE_PORTS or config.INSIDE_CONTAINER_PORTS or not USE_VENV:
     for url in urls:
         message(ff("Browse to URL: {url}"), color="GREEN")
+
+    if config.CARTA_BROWSER:
+        url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
+        message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
+        urls.append(url)
 
     # now we're ready to start the session
 

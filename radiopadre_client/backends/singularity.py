@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from iglesia.utils import message, make_dir, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, make_dir, make_radiopadre_dir, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 
 singularity = None
@@ -31,9 +31,9 @@ def get_singularity_image(docker_image):
 def update_installation():
     global docker_image
     global singularity_image
-    from .venv import update_server_install
+    from .venv import update_server_from_repository
     if config.CONTAINER_DEV:
-        update_server_install()
+        update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
     singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if config.UPDATE and os.path.exists(singularity_image):
@@ -51,9 +51,9 @@ def update_installation():
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
-
-    docker_local = make_dir("~/.radiopadre/.docker-local")
-    js9_tmp = make_dir("~/.radiopadre/.js9-tmp")
+    radiopadre_dir = make_radiopadre_dir()
+    docker_local = make_dir(radiopadre_dir + "/.docker-local")
+    js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
     message(ff("Container name: {container_name}"))  # remote script will parse it
