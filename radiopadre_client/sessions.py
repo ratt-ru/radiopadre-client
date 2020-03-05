@@ -12,9 +12,6 @@ _last_input = None
 RECENTS_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.sessions.recent")
 HISTORY_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.sessions.history")
 
-# number of items used to uniquely identify a session. I.e. host, notebook path, command
-SESSION_KEYS = 3
-
 def _load_recent_sessions(must_exist=True):
     """
     Load recent sessions from RECENTS_FILE.
