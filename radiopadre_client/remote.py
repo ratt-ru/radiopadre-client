@@ -139,7 +139,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
     # pip install command with -v repeated for each VERBOSE increment
-    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
 
     # do we want to do an install/update -- will be forced to True (if we must install),
     # or False if we can't update
@@ -334,7 +334,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     try:
         while remote_running is not None and poller.fdlabels:
-            fdlist = poller.poll()
+            fdlist = poller.poll(verbose=config.VERBOSE>1)
             for fname, fobj in fdlist:
                 try:
                     line = fobj.readline()

@@ -27,7 +27,7 @@ def update_installation():
     #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
 
     # pip install command with -v repeated for each VERBOSE increment
-    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
 
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
