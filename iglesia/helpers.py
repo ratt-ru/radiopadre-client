@@ -35,7 +35,7 @@ def init_helpers(radiopadre_base):
 
     # accumulates rewrite rules for HTTP server
     # add radiopadre/html/ to rewrite as /radiopadre-www/
-    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/html/"),
+    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/radiopadre/html/"),
                      ff("/js9-www/={iglesia.JS9_DIR}/")]
 
     # are we running inside a container?

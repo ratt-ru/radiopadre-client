@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-__version__ = "1.0-pre7"
+__version__ = "1.0-pre8"
 build_root = os.path.dirname(__file__)
 
 install_requires = ['six']
