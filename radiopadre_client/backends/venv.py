@@ -91,7 +91,7 @@ def update_installation():
         install_info = dict([x.split(": ", 1) for x in have_install.split("\n") if ': ' in x])
         version = install_info.get("Version", "unknown")
         if config.UPDATE:
-            message(ff("radiopadre (version {version}) is installed, but --update specified."))
+            warning(ff("radiopadre (version {version}) is installed, but --update specified."))
         else:
             message(ff("radiopadre (version {version}) is installed."))
 

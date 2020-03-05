@@ -146,6 +146,10 @@ def save_recent_session(session_key, argv):
 
     readline.clear_history()
 
+    # reform command-line without persisting options
+    cmdline =  " ".join([x if x and not ' ' in x else "'{}'".format(x) for x in argv
+                         if x not in config.NON_PERSISTING_OPTIONS])
+
     recents = _load_recent_sessions(False) or OrderedDict()
     session_key = ":".join(map(str, session_key))
     if session_key in recents:

@@ -98,7 +98,7 @@ def enable_timestamps(enable=True):
 def disable_printing():
     logger.removeHandler(_default_console_handler)
 
-def enable_logfile(logtype):
+def enable_logfile(logtype, verbose=False):
     from .utils import make_dir, make_radiopadre_dir, ff
     global logfile, logfile_handler
 
@@ -114,18 +114,21 @@ def enable_logfile(logtype):
     logger.addHandler(logfile_handler)
     atexit.register(flush)
 
-    logger.info(ff("writing session log to {logname}"))
+    if verbose:
+        logger.info(ff("writing session log to {logname}"))
 
     # clear most recent log files
     recent_logs = sorted(glob.glob(ff("{radiopadre_dir}/logs/log-{logtype}-*.txt")))
     if len(recent_logs) > NUM_RECENT_LOGS:
         delete_logs = recent_logs[:-NUM_RECENT_LOGS]
-        logger.info("  (also deleting {} old log file(s) matching log-{}-*.txt)".format(len(delete_logs), logtype))
+        if verbose:
+            logger.info("  (also deleting {} old log file(s) matching log-{}-*.txt)".format(len(delete_logs), logtype))
         for oldlog in delete_logs:
             try:
                 os.unlink(oldlog)
             except Exception as exc:
-                logger.warning(ff("  failed to delete {oldlog}: {exc}"))
+                if verbose:
+                    logger.warning(ff("  failed to delete {oldlog}: {exc}"))
 
     return logfile, logname
 
