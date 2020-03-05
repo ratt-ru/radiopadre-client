@@ -52,7 +52,7 @@ def update_installation():
                 bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
             cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
             warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
-            warning("However, --venv-reinstall wass specified. About to run:")
+            warning("However, --venv-reinstall was specified. About to run:")
             warning("    " + cmd)
             if config.FULL_CONSENT:
                 warning("--full-consent given, so not asking for confirmation.")

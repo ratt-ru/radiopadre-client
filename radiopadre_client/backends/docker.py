@@ -2,7 +2,7 @@ import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 import iglesia
-from iglesia.utils import message, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT, check_output
+from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT, check_output
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
@@ -133,8 +133,8 @@ def update_installation():
     else:
         message(ff("  Using radiopadre docker image {docker_image}"))
     if config.UPDATE or config.AUTO_INIT:
-        message("  Calling docker pull to make sure the image is up-to-date.")
-        message("  (This may take a few minutes if it isn't....)")
+        warning("--update or --auto-init specified: calling docker pull to make sure the image is up-to-date.")
+        warning("  (This may take a few minutes if it isn't....)")
         subprocess.call([docker, "pull", docker_image])
 
 def _collect_runscript_arguments(ports):

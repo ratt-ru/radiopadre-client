@@ -92,7 +92,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # --update or --auto-init disables --skip-checks
     if config.SKIP_CHECKS:
         if config.UPDATE:
-            message("Noe that --update implies --no-skip-checks")
+            message("Note that --update implies --no-skip-checks")
             config.SKIP_CHECKS = False
         elif config.AUTO_INIT:
             message("Note that --auto-init implies --no-skip-checks")
@@ -239,7 +239,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         cmd = ff("cd {install_path} && git fetch origin && git checkout {config.CLIENT_INSTALL_BRANCH} && git pull")
                     else:
                         cmd = ff("cd {install_path} && git pull")
-                    message(ff(
+                    warning(ff(
                         "--update specified and git detected, will attempt to update via"))
                     message(ff("    {cmd}"))
                     ssh_remote_v(cmd)
