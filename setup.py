@@ -1,18 +1,17 @@
 from setuptools import setup
 import os
 
-__version__ = "1.0-pre6"
+__version__ = "1.0-pre7"
 build_root = os.path.dirname(__file__)
 
-with open("requirements.txt") as stdr:
-    install_requires = stdr.readlines()
+install_requires = ['six']
 
 def readme():
     """Get readme content for package long description"""
     with open(os.path.join(build_root, 'README.rst')) as f:
         return f.read()
 
-scripts = ["bin/" + i for i in os.listdir("bin")]
+scripts = ["bin/run-radiopadre"]
 
 setup(
     name="radiopadre-client",
