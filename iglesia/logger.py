@@ -1,9 +1,10 @@
-import sys, os.path, logging, time, atexit
+import sys, os.path, logging, time, atexit, glob
 
 logger = None
 logfile = sys.stderr
 logfile_handler = None
 
+NUM_RECENT_LOGS = 5
 
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
@@ -112,7 +113,21 @@ def enable_logfile(logtype):
                 "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
     atexit.register(flush)
-    return logfile
+
+    logger.info(ff("writing session log to {logname}"))
+
+    # clear most recent log files
+    recent_logs = sorted(glob.glob(ff("{radiopadre_dir}/logs/log-{logtype}-*.txt")))
+    if len(recent_logs) > NUM_RECENT_LOGS:
+        delete_logs = recent_logs[:-NUM_RECENT_LOGS]
+        logger.info("  (also deleting {} old log file(s) matching log-{}-*.txt)".format(len(delete_logs), logtype))
+        for oldlog in delete_logs:
+            try:
+                os.unlink(oldlog)
+            except Exception as exc:
+                logger.warning(ff("  failed to delete {oldlog}: {exc}"))
+
+    return logfile, logname
 
 def flush():
     if logfile_handler:
