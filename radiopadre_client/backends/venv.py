@@ -168,7 +168,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
-    iglesia.init_helpers(radiopadre_base)
+    iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"

@@ -49,7 +49,9 @@ def update_installation():
         message(ff("  Using radiopadre singularity image {singularity_image}"))
 
     # not supported with Singularity
-    config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
+    config.CONTAINER_PERSIST = False
+
+    # config.CONTAINER_DEBUG = False
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
