@@ -42,7 +42,9 @@ def update_installation():
     if not os.path.exists(singularity_image):
         warning(ff("  rebuilding singularity image {singularity_image} from docker://{docker_image}"))
         warning(ff("  (This may take a few minutes....)"))
-        subprocess.check_call([singularity, "build", singularity_image, "docker://{}".format(docker_image)])
+        cmd = [singularity, "build", singularity_image, ff("docker://{docker_image}")]
+        message("running " + " ".join(cmd))
+        subprocess.check_call(cmd)
     else:
         message(ff("  Using radiopadre singularity image {singularity_image}"))
 
