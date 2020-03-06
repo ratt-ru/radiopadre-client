@@ -26,9 +26,10 @@ class MultiplexingHandler(logging.Handler):
         super(MultiplexingHandler, self).__init__()
         self.info_handler = logging.StreamHandler(info_stream)
         self.err_handler = logging.StreamHandler(err_stream)
+        self.multiplex = True
 
     def emit(self, record):
-        handler = self.err_handler if record.levelno > logging.INFO else self.info_handler
+        handler = self.err_handler if record.levelno > logging.INFO and self.multiplex else self.info_handler
         handler.emit(record)
         # ignore broken pipes, this often happens when cleaning up and exiting
         try:
@@ -91,6 +92,9 @@ def init(appname, timestamps=True):
     logger.setLevel(logging.INFO)
     logger.propagate = False
     return logger
+
+def errors_to_stdout(enable=True):
+    _default_console_handler.multiplex = not enable
 
 def enable_timestamps(enable=True):
     TimestampFilter.enable = enable
