@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os.path, select, socket, subprocess, sys, time, logging
+import os.path, select, socket, subprocess, sys, logging, errno, traceback
 
 from iglesia import logger
 
@@ -124,9 +124,31 @@ class Poller(object):
         self.fdlabels[po.stdout.fileno()] = label_stdout, po.stdout
         self.fdlabels[po.stderr.fileno()] = label_stderr, po.stderr
 
-    def poll(self, timeout=5):
-        to_read, _, _ = select.select(self.fdlabels.keys(), [], [], timeout)
-        return [self.fdlabels[fd] for fd in to_read]
+    def poll(self, timeout=5, verbose=False):
+        from .utils import debug
+        while True:
+            try:
+                to_read, _, _ = select.select(self.fdlabels.keys(), [], [], timeout)
+                # return on success or timeout
+                return [self.fdlabels[fd] for fd in to_read]
+            except (select.error, IOError) as ioerr:
+                if verbose:
+                    debug("poll() exception: {}".format(traceback.format_exc()))
+                if hasattr(ioerr, 'args'):
+                    err = ioerr.args[0]  # py2
+                else:
+                    err = ioerr.errno    # py3
+                # catch interrupted system call -- return if we have a timeout, else
+                # loop again
+                if err == errno.EINTR:
+                    if timeout is not None:
+                        if verbose:
+                            debug("poll(): returning")
+                        return []
+                    if verbose:
+                        debug("poll(): retrying")
+                else:
+                    raise
 
     def unregister_file(self, fobj):
         if fobj.fileno() in self.fdlabels:

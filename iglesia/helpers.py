@@ -8,7 +8,7 @@ from . import logger
 
 _child_processes = []
 
-def init_helpers(radiopadre_base):
+def init_helpers(radiopadre_base, verbose=False):
     """Starts up helper processes, if they are not already running"""
     # set ports, else allocate ports
     selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
@@ -35,11 +35,16 @@ def init_helpers(radiopadre_base):
 
     # accumulates rewrite rules for HTTP server
     # add radiopadre/html/ to rewrite as /radiopadre-www/
-    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/html/"),
+    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/radiopadre/html/"),
                      ff("/js9-www/={iglesia.JS9_DIR}/")]
 
     # are we running inside a container?
     in_container = bool(os.environ.get('RADIOPADRE_CONTAINER_NAME'))
+
+    if verbose:
+        stdout, stderr = sys.stdout, sys.stderr
+    else:
+        stdout, stderr = DEVNULL, logger.logfile
 
     ## is this even needed?
     # import notebook
@@ -75,7 +80,7 @@ def init_helpers(radiopadre_base):
                         subprocess.Popen([nodejs.strip(), js9helper,
                             ff('{{"helperPort": {helper_port}, "debug": {iglesia.VERBOSE}, ') +
                             ff('"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}')],
-                                         stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
+                                         stdin=DEVZERO, stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_JS9HELPER_PID'] = str(_child_processes[-1].pid)
                     message("  started as PID {}".format(_child_processes[-1].pid))
             except Exception as exc:
@@ -92,7 +97,7 @@ def init_helpers(radiopadre_base):
             with chdir(iglesia.SHADOW_HOME):
                 _child_processes.append(
                     subprocess.Popen([server, str(http_port)] + http_rewrites,
-                                     stdin=DEVZERO, stdout=DEVNULL, stderr=logger.logfile))
+                                     stdin=DEVZERO,  stdout=stdout, stderr=stderr))
                 os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(_child_processes[-1].pid)
                 message("  started as PID {}".format(_child_processes[-1].pid))
         else:
@@ -104,13 +109,16 @@ def init_helpers(radiopadre_base):
         # start CARTA backend
         for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{sys.prefix}/carta/carta"), \
                           find_which('carta'):
+            # if carta_exec:
+            #     subprocess.call(ff("ls -l /.radiopadre/venv"), shell=True)
+            #     message("{}: {} {}".format(carta_exec, os.path.exists(carta_exec), os.access(carta_exec, os.X_OK)))
             if carta_exec and os.access(carta_exec, os.X_OK):
                 break
         else:
             carta_exec = None
 
         if not carta_exec or not os.path.exists(carta_exec):
-            warning("CARTA backend not found, omitting")
+            warning(ff("CARTA backend not found, omitting ({sys.prefix}/carta/carta)"))
         else:
             carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
             message(ff("Running CARTA backend {carta_exec} (in dir {carta_dir})"))
@@ -119,7 +127,7 @@ def init_helpers(radiopadre_base):
                     subprocess.Popen([carta_exec, "--remote",
                                         ff("--root={iglesia.ABSROOTDIR}"), ff("--folder={iglesia.ABSROOTDIR}"),
                                         ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
-                                     stdin=subprocess.PIPE, stdout=DEVNULL, stderr=logger.logfile))
+                                     stdin=subprocess.PIPE,  stdout=stdout, stderr=stderr))
                 os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
                 atexit.register(_exit_carta, _child_processes[-1])
                 message("  started as PID {}".format(_child_processes[-1].pid))

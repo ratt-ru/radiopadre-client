@@ -2,7 +2,7 @@ import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 import iglesia
-from iglesia.utils import message, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT, check_output
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
@@ -126,10 +126,15 @@ def update_installation():
     if config.CONTAINER_DEV:
         update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
-    message(ff("  Using radiopadre Docker image {docker_image}"))
-    if config.UPDATE:
-        message("  Calling docker pull to make sure the image is up-to-date.")
-        message("  (This may take a few minutes if it isn't....)")
+    if check_output(ff("docker image inspect {docker_image}")) is None:
+        if not config.UPDATE and not config.AUTO_INIT:
+            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update?"))
+        message(ff("  Radiopadre docker image {docker_image} not found locally"))
+    else:
+        message(ff("  Using radiopadre docker image {docker_image}"))
+    if config.UPDATE or config.AUTO_INIT:
+        warning("--update or --auto-init specified: calling docker pull to make sure the image is up-to-date.")
+        warning("  (This may take a few minutes if it isn't....)")
         subprocess.call([docker, "pull", docker_image])
 
 def _collect_runscript_arguments(ports):

@@ -27,7 +27,7 @@ def update_installation():
     #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
 
     # pip install command with -v repeated for each VERBOSE increment
-    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
 
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
@@ -52,7 +52,7 @@ def update_installation():
                 bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
             cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
             warning(ff("Found a virtualenv in {config.RADIOPADRE_VENV}."))
-            warning("However, --venv-reinstall wass specified. About to run:")
+            warning("However, --venv-reinstall was specified. About to run:")
             warning("    " + cmd)
             if config.FULL_CONSENT:
                 warning("--full-consent given, so not asking for confirmation.")
@@ -91,7 +91,7 @@ def update_installation():
         install_info = dict([x.split(": ", 1) for x in have_install.split("\n") if ': ' in x])
         version = install_info.get("Version", "unknown")
         if config.UPDATE:
-            message(ff("radiopadre (version {version}) is installed, but --update specified."))
+            warning(ff("radiopadre (version {version}) is installed, but --update specified."))
         else:
             message(ff("radiopadre (version {version}) is installed."))
 
@@ -168,7 +168,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
-    iglesia.init_helpers(radiopadre_base)
+    iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"

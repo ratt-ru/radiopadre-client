@@ -1,6 +1,6 @@
 import os, subprocess, sys, time
 
-from iglesia.utils import message, make_dir, make_radiopadre_dir, shell, DEVNULL, ff, INPUT
+from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, shell, DEVNULL, ff, INPUT
 from radiopadre_client import config
 
 singularity = None
@@ -37,16 +37,21 @@ def update_installation():
     docker_image = config.DOCKER_IMAGE
     singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if config.UPDATE and os.path.exists(singularity_image):
+        warning(ff("--update specified, removing pre-existing singularity image {singularity_image}"))
         os.unlink(singularity_image)
     if not os.path.exists(singularity_image):
-        message(ff("  Rebuilding radiopadre Singularity image {singularity_image} from docker://{docker_image}"))
-        message(ff("  (This may take a few minutes....)"))
-        subprocess.check_call([singularity, "build", singularity_image, "docker://{}".format(docker_image)])
+        warning(ff("  rebuilding singularity image {singularity_image} from docker://{docker_image}"))
+        warning(ff("  (This may take a few minutes....)"))
+        cmd = [singularity, "build", singularity_image, ff("docker://{docker_image}")]
+        message("running " + " ".join(cmd))
+        subprocess.check_call(cmd)
     else:
-        message(ff("  Using radiopadre Singularity image {singularity_image}"))
+        message(ff("  Using radiopadre singularity image {singularity_image}"))
 
     # not supported with Singularity
-    config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
+    config.CONTAINER_PERSIST = False
+
+    # config.CONTAINER_DEBUG = False
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):

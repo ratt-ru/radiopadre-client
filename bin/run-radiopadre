@@ -216,11 +216,15 @@ if config.VENV_EXTRAS.lower() == "none":
     config.VENV_EXTRAS = None
 
 # config logger
+if options.remote:
+    logger.errors_to_stdout()
 logger.enable_timestamps(config.TIMESTAMPS)
 if config.LOG:
-    logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local")
+    logger.enable_logfile("remote" if options.remote else "container" if options.inside_container else "local",
+                          verbose=True)
 if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
+
 debug("PID is {}".format(os.getpid()))
 
 # work out backend

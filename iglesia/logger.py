@@ -1,9 +1,10 @@
-import sys, os.path, logging, time, atexit
+import sys, os.path, logging, time, atexit, glob
 
 logger = None
 logfile = sys.stderr
 logfile_handler = None
 
+NUM_RECENT_LOGS = 5
 
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
@@ -25,9 +26,10 @@ class MultiplexingHandler(logging.Handler):
         super(MultiplexingHandler, self).__init__()
         self.info_handler = logging.StreamHandler(info_stream)
         self.err_handler = logging.StreamHandler(err_stream)
+        self.multiplex = True
 
     def emit(self, record):
-        handler = self.err_handler if record.levelno > logging.INFO else self.info_handler
+        handler = self.err_handler if record.levelno > logging.INFO and self.multiplex else self.info_handler
         handler.emit(record)
         # ignore broken pipes, this often happens when cleaning up and exiting
         try:
@@ -91,13 +93,16 @@ def init(appname, timestamps=True):
     logger.propagate = False
     return logger
 
+def errors_to_stdout(enable=True):
+    _default_console_handler.multiplex = not enable
+
 def enable_timestamps(enable=True):
     TimestampFilter.enable = enable
 
 def disable_printing():
     logger.removeHandler(_default_console_handler)
 
-def enable_logfile(logtype):
+def enable_logfile(logtype, verbose=False):
     from .utils import make_dir, make_radiopadre_dir, ff
     global logfile, logfile_handler
 
@@ -112,7 +117,24 @@ def enable_logfile(logtype):
                 "%Y-%m-%d %H:%M:%S"))
     logger.addHandler(logfile_handler)
     atexit.register(flush)
-    return logfile
+
+    if verbose:
+        logger.info(ff("writing session log to {logname}"))
+
+    # clear most recent log files
+    recent_logs = sorted(glob.glob(ff("{radiopadre_dir}/logs/log-{logtype}-*.txt")))
+    if len(recent_logs) > NUM_RECENT_LOGS:
+        delete_logs = recent_logs[:-NUM_RECENT_LOGS]
+        if verbose:
+            logger.info("  (also deleting {} old log file(s) matching log-{}-*.txt)".format(len(delete_logs), logtype))
+        for oldlog in delete_logs:
+            try:
+                os.unlink(oldlog)
+            except Exception as exc:
+                if verbose:
+                    logger.warning(ff("  failed to delete {oldlog}: {exc}"))
+
+    return logfile, logname
 
 def flush():
     if logfile_handler:

@@ -92,7 +92,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # --update or --auto-init disables --skip-checks
     if config.SKIP_CHECKS:
         if config.UPDATE:
-            message("Noe that --update implies --no-skip-checks")
+            message("Note that --update implies --no-skip-checks")
             config.SKIP_CHECKS = False
         elif config.AUTO_INIT:
             message("Note that --auto-init implies --no-skip-checks")
@@ -139,7 +139,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
     # pip install command with -v repeated for each VERBOSE increment
-    pip_install = "pip install " + "-v "*min(max(config.VERBOSE, 0), 3)
+    pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
 
     # do we want to do an install/update -- will be forced to True (if we must install),
     # or False if we can't update
@@ -239,7 +239,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         cmd = ff("cd {install_path} && git fetch origin && git checkout {config.CLIENT_INSTALL_BRANCH} && git pull")
                     else:
                         cmd = ff("cd {install_path} && git pull")
-                    message(ff(
+                    warning(ff(
                         "--update specified and git detected, will attempt to update via"))
                     message(ff("    {cmd}"))
                     ssh_remote_v(cmd)
@@ -334,7 +334,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     try:
         while remote_running is not None and poller.fdlabels:
-            fdlist = poller.poll()
+            fdlist = poller.poll(verbose=config.VERBOSE>1)
             for fname, fobj in fdlist:
                 try:
                     line = fobj.readline()
