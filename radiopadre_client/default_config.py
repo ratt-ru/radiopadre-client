@@ -35,6 +35,7 @@ DefaultConfig = OrderedDict(
     UPDATE=None,
     VERBOSE=0,
     LOG=False,
+    NBCONVERT=None,
     TIMESTAMPS=False,
     RADIOPADRE_VENV="~/.radiopadre/venv",
     VENV_REINSTALL=None,

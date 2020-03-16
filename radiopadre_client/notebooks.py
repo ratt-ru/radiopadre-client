@@ -14,7 +14,7 @@ default_notebook_code = """{
    "outputs": [],
    "source": [
     "# execute this with Ctrl+Enter\\n",
-    "from radiopadre_client import ls, settings\\n",
+    "from radiopadre import ls, settings\\n",
     "dd = ls()\\n",
     "dd"
    ]
