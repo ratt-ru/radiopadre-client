@@ -164,8 +164,11 @@ copy_initial_notebook = remote_host = command = notebook_path = None
 
 if ':' in arguments[0]:
     remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
-    if not command and arguments:
-        command = arguments.pop(0)
+    if not command:
+        if arguments:
+            command = arguments.pop(0)
+        else:
+            command = '.'
 else:
     remote_host, command = None, arguments.pop(0)
 
