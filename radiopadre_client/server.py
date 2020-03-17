@@ -282,7 +282,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     global JUPYTER_OPTS
     if config.NBCONVERT:
-        JUPYTER_OPTS = ["nbconvert", "--to", "html", "--execute"]
+        JUPYTER_OPTS = ["nbconvert", "--to", "html_embed", "--execute"]
     else:
         JUPYTER_OPTS = ["notebook",
                         "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
