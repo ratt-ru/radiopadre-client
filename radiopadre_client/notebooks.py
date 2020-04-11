@@ -33,19 +33,19 @@ default_notebook_code = """{
   "kernelspec": {
    "display_name": "radiopadre",
    "language": "python",
-   "name": "radiopadre_client"
+   "name": "radiopadre"
   },
   "language_info": {
    "codemirror_mode": {
     "name": "ipython",
-    "version": 2
+    "version": 3
    },
    "file_extension": ".py",
    "mimetype": "text/x-python",
    "name": "python",
    "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython2",
-   "version": "2.7.15rc1"
+   "pygments_lexer": "ipython3",
+   "version": "3.6.9"
   },
   "radiopadre_notebook_scrub": true
  },
