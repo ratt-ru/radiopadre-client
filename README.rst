@@ -1,3 +1,5 @@
+![logo](https://raw.githubusercontent.com/ratt-ru/radiopadre-client/b1.0pre9/icons/radiopadre-logo-with-text.png)
+
 
 radiopadre-client
 =================
