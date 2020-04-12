@@ -1,4 +1,4 @@
-![logo](https://raw.githubusercontent.com/ratt-ru/radiopadre-client/b1.0pre9/icons/radiopadre-logo-with-text.png)
+![logo](https://github.com/ratt-ru/radiopadre-client/raw/b1.0-pre9/icons/radiopadre-logo-with-text.png)
 
 
 radiopadre-client
