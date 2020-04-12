@@ -1,5 +1,5 @@
-.. image:: icons/radiopadre-logo-long-400px.png?raw=True 
-   :width: 400
+.. image:: icons/radiopadre-logo-long-200px.png?raw=True 
+   :width: 200
 
 
 radiopadre-client
