@@ -1,4 +1,4 @@
-.. image:: icons/radiopadre-logo-with-text-400px.png?raw=True 
+.. image:: icons/radiopadre-logo-long-400px.png?raw=True 
    :width: 400
 
 
