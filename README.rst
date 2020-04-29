@@ -1,6 +1,8 @@
+.. |logo| image:: icons/radiopadre-client-logo-400px.png?raw=True 
 
-radiopadre-client
-=================
+
+|logo|
+======
 
 
 .. image:: https://travis-ci.org/ratt-ru/radiopadre-client.svg?branch=master

@@ -41,6 +41,9 @@ parser.add_argument("-l", "--log", action="store_true", default=0,
                     help="Enables logging of sessions to see .radiopadre/logs.")
 parser.add_argument("--full-consent", action="store_true",
                     help="Automatically consent to dangerous operations such a removing a virtualenv.")
+parser.add_argument("--nbconvert", action="store_true",
+                    help="instead of running jupyter, run nbconvert to render the notebook, then exit")
+
 
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
@@ -161,8 +164,11 @@ copy_initial_notebook = remote_host = command = notebook_path = None
 
 if ':' in arguments[0]:
     remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
-    if not command and arguments:
-        command = arguments.pop(0)
+    if not command:
+        if arguments:
+            command = arguments.pop(0)
+        else:
+            command = '.'
 else:
     remote_host, command = None, arguments.pop(0)
 
@@ -282,6 +288,5 @@ config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH or ""
 
 import radiopadre_client.server
 
-radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path,
-                                                workdir=options.workdir)
+radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path, workdir=options.workdir)
 

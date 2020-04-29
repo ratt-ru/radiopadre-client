@@ -136,19 +136,16 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # get hostname
     os.environ["HOSTNAME"] = subprocess.check_output("/bin/hostname").decode()
 
-    # get jupyter path
-    notebook_dir = subprocess.check_output(ff("{config.RADIOPADRE_VENV}/bin/pip show jupyter| ") +
-                                           "grep Location:|cut -d ':' -f 2", shell=True).strip().decode()
-    if not notebook_dir:
-        raise subprocess.CalledProcessError(-1, "venv backend", "jupyter installation path not found")
-
     jupyter_port = selected_ports[0]
     userside_http_port = userside_ports[2]
 
-    JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
+    if config.NBCONVERT:
+        JUPYTER_OPTS.append(notebook_path)
+    else:
+        JUPYTER_OPTS += [ff("--port={jupyter_port}"), "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
-    if config.INSIDE_CONTAINER_PORTS or config.CONTAINER_TEST:
-        JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
+        if config.INSIDE_CONTAINER_PORTS or config.CONTAINER_TEST:
+            JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
 
     # if LOAD_NOTEBOOK:
     #     JUPYTER_OPTS.append(LOAD_NOTEBOOK if type(LOAD_NOTEBOOK) is str else LOAD_NOTEBOOK[0])
@@ -168,11 +165,12 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
-    iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0)
+    iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0,
+                         run_js9=not config.NBCONVERT, run_carta=not config.NBCONVERT)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
-    message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), ROOTDIR))
+    message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), os.getcwd()))
 
     notebook_proc = subprocess.Popen([jupyter_path] + JUPYTER_OPTS,
                                      stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
@@ -183,53 +181,58 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
     #                                  env=os.environ)
 
-    iglesia.register_helpers(notebook_proc)
+    if config.NBCONVERT:
+        message("Waiting for conversion to finish")
+        notebook_proc.wait()
 
-    # launch browser
-    if browser_urls:
-        iglesia.register_helpers(*run_browser(*browser_urls))
-#    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
-#        message("Please point your browser to {}".format(" ".join(browser_urls)))
+    else:
+        iglesia.register_helpers(notebook_proc)
 
-    # pause to let the Jupyter server spin up
-    wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
+        # launch browser
+        if browser_urls:
+            iglesia.register_helpers(*run_browser(*browser_urls))
+    #    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
+    #        message("Please point your browser to {}".format(" ".join(browser_urls)))
 
-    if wait is None:
-        if notebook_proc.returncode is not None:
-            bye(ff("jupyter unexpectedly exited with return code {notebook_proc.returncode}"))
-        bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+        # pause to let the Jupyter server spin up
+        wait = await_server_startup(jupyter_port, init_wait=0, process=notebook_proc)
 
-    message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+        if wait is None:
+            if notebook_proc.returncode is not None:
+                bye(ff("jupyter unexpectedly exited with return code {notebook_proc.returncode}"))
+            bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
 
-    if config.CONTAINER_TEST:
-        message(ff("--container-test was specified, dry run is complete"))
-        sys.exit(0)
+        message(ff("The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
 
-    try:
-        while True:
-            if config.INSIDE_CONTAINER_PORTS:
-                debug("inside container -- sleeping indefinitely")
-                time.sleep(100000)
+        if config.CONTAINER_TEST:
+            message(ff("--container-test was specified, dry run is complete"))
+            sys.exit(0)
+
+        try:
+            while True:
+                if config.INSIDE_CONTAINER_PORTS:
+                    debug("inside container -- sleeping indefinitely")
+                    time.sleep(100000)
+                else:
+                    a = INPUT("Type 'exit' to kill the session: ")
+                    if notebook_proc.poll() is not None:
+                        message("The notebook server has exited with code {}".format(notebook_proc.poll()))
+                        sys.exit(0)
+                    if a.lower() == 'exit':
+                        message("Exit request received")
+                        sys.exit(0)
+        except BaseException as exc:
+            if type(exc) is KeyboardInterrupt:
+                message("Caught Ctrl+C")
+                status = 1
+            elif type(exc) is EOFError:
+                message("Input channel has closed")
+                status = 1
+            elif type(exc) is SystemExit:
+                status = getattr(exc, 'code', 0)
+                message("Exiting with status {}".format(status))
             else:
-                a = INPUT("Type 'exit' to kill the session: ")
-                if notebook_proc.poll() is not None:
-                    message("The notebook server has exited with code {}".format(notebook_proc.poll()))
-                    sys.exit(0)
-                if a.lower() == 'exit':
-                    message("Exit request received")
-                    sys.exit(0)
-    except BaseException as exc:
-        if type(exc) is KeyboardInterrupt:
-            message("Caught Ctrl+C")
-            status = 1
-        elif type(exc) is EOFError:
-            message("Input channel has closed")
-            status = 1
-        elif type(exc) is SystemExit:
-            status = getattr(exc, 'code', 0)
-            message("Exiting with status {}".format(status))
-        else:
-            message("Caught exception {} ({})".format(exc, type(exc)))
-            status = 1
-        sys.exit(status)
+                message("Caught exception {} ({})".format(exc, type(exc)))
+                status = 1
+            sys.exit(status)
 

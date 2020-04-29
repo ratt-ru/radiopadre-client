@@ -208,6 +208,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         docker_opts.append(notebook_path)
 
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls)
+
+    if config.NBCONVERT:
+        return
+
     global running_container
     running_container = container_name
     atexit.register(reap_running_container)
@@ -257,23 +261,28 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
 
-    #child_processes.append(docker_process)
+    if config.NBCONVERT:
+        message("Waiting for conversion to finish")
+        docker_process.wait()
+        return None
 
-    # pause to let the Jupyter server spin up
-    wait = await_server_startup(jupyter_port, process=docker_process, init_wait=1, server_name="notebook container")
+    else:
 
-    if wait is None:
-        if docker_process.returncode is not None:
-            bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
-        bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+        # pause to let the Jupyter server spin up
+        wait = await_server_startup(jupyter_port, process=docker_process, init_wait=1, server_name="notebook container")
 
-    message(
-        ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+        if wait is None:
+            if docker_process.returncode is not None:
+                bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
+            bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
 
-    if browser_urls:
-        iglesia.register_helpers(*run_browser(*browser_urls))
-        # give things a second (to let the browser command print its stuff, if it wants to)
-        time.sleep(1)
+        message(
+            ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+
+        if browser_urls:
+            iglesia.register_helpers(*run_browser(*browser_urls))
+            # give things a second (to let the browser command print its stuff, if it wants to)
+            time.sleep(1)
 
     return docker_process
 

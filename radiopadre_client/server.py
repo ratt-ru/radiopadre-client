@@ -256,6 +256,12 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
 
+    message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
+
+    #
+    if config.NBCONVERT and not LOAD_NOTEBOOK:
+        bye("a notebook must be specified in order to use --nbconvert")
+
     # if using containers (and not inside a container), see if older sessions need to be reaped
     if running_session_dict and config.GRIM_REAPER:
         kill_sessions = []
@@ -275,17 +281,19 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     iglesia.set_userside_ports(userside_ports[1:])
 
     global JUPYTER_OPTS
-    JUPYTER_OPTS = [
-        "notebook",
-        "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
-        "--ContentsManager.allow_hidden=True" ]
+    if config.NBCONVERT:
+        JUPYTER_OPTS = ["nbconvert", "--to", "html_embed", "--execute"]
+    else:
+        JUPYTER_OPTS = ["notebook",
+                        "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
+                        "--ContentsManager.allow_hidden=True"]
 
     # update installation etc.
     backend.update_installation()
 
-    # when running natively (i.e. in a virtual environment), the notebook app doesn't pass the token to
-    # the browser command properly... so let it pick its own token then
-    #if options.remote or options.config.INSIDE_CONTAINER_PORTS or not options.virtual_env:
+    # (when running natively (i.e. in a virtual environment), the notebook app doesn't pass the token to the browser
+    # command properly... so let it pick its own token then)
+    # if options.remote or options.config.INSIDE_CONTAINER_PORTS or not options.virtual_env:
     JUPYTER_OPTS += [
         ff("--NotebookApp.token='{config.SESSION_ID}'"),
         ff("--NotebookApp.custom_display_url='http://localhost:{userside_jupyter_port}'")
@@ -343,13 +351,14 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
                  for nb in LOAD_NOTEBOOK]
 
-    for url in urls:
-        message(ff("Browse to URL: {url}"), color="GREEN")
+    if not config.NBCONVERT:
+        for url in urls:
+            message(ff("Browse to URL: {url}"), color="GREEN")
 
-    if config.CARTA_BROWSER:
-        url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
-        message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
-        urls.append(url)
+        if config.CARTA_BROWSER:
+            url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
+            message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
+            urls.append(url)
 
     # now we're ready to start the session
 

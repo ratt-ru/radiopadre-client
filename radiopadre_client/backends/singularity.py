@@ -102,6 +102,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls,
                    singularity=True)
 
+    if config.NBCONVERT:
+        return
+
     try:
         while True:
             a = INPUT("Type 'exit' to kill the container session: ")
