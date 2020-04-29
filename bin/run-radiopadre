@@ -10,8 +10,6 @@ from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
 
-logger.init('radiopadre.client')
-
 parser = argparse.ArgumentParser(description="""
     Manages local or remote Jupyter sessions with radiopadre notebooks.
     """,
@@ -33,16 +31,21 @@ parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto
                     help="disable auto-load.")
 parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
                     help="Do not open a separate tab with a CARTA browser on startup.")
+parser.add_argument("-B", "--boring", action="store_true", default=0,
+                    help="Disable colours in console output.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=config.DEFAULT_VALUE,
                     help="Verbosity level. Default is 0, higher means more output.")
 parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
 parser.add_argument("-l", "--log", action="store_true", default=0,
-                    help="Enables logging of sessions to see .radiopadre/logs.")
+                    help="Enables logging of sessions to .radiopadre/logs.")
 parser.add_argument("--full-consent", action="store_true",
                     help="Automatically consent to dangerous operations such a removing a virtualenv.")
 parser.add_argument("--nbconvert", action="store_true",
-                    help="instead of running jupyter, run nbconvert to render the notebook, then exit")
+                    help="Instead of running jupyter, run nbconvert to render the notebook, then exit.")
+parser.add_argument("--non-interactive", action="store_true",
+                    help="Run in non-interactive mode. Implies --boring, minimizes log output, and "
+                         "disables recent sessions.")
 
 
 ## back-end support
@@ -149,10 +152,14 @@ parser.add_argument("arguments", nargs="*",
 argv = sys.argv[1:]
 options = parser.parse_args()
 
+logger.init('radiopadre.client', boring=options.boring or options.non_interactive)
+if options.non_interactive:
+    logger.logger.setLevel(logging.ERROR)
+
 message("Welcome to the radiopadre client!", color="GREEN")
 
 # recent session management: only done for front-end sessions
-manage_last_sessions = not options.remote and not options.inside_container
+manage_last_sessions = not options.remote and not options.inside_container and not options.non_interactive
 if manage_last_sessions:
     options, argv = sessions.check_recent_sessions(options, argv, parser=parser)
 
@@ -207,6 +214,9 @@ if manage_last_sessions:
 ## finalize settings
 
 config.init_specific_options(remote_host, notebook_path, options)
+
+if options.non_interactive:
+    config.BORING = 1
 
 config.INSIDE_CONTAINER_PORTS = []
 if options.inside_container:

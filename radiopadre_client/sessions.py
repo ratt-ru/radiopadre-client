@@ -155,7 +155,7 @@ def save_recent_session(session_key, argv):
     if session_key in recents:
         del recents[session_key]
     if len(recents) >= 5:
-        del recents[recents.keys()[0]]
+        del recents[list(recents.keys())[0]]
     recents[session_key] = cmdline
 
     make_radiopadre_dir()
