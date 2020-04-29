@@ -171,8 +171,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                         "-e", ff("RADIOPADRE_CONTAINER_NAME={container_name}"),
                         "-e", ff("RADIOPADRE_SESSION_ID={config.SESSION_ID}"),
                     ]
-    # enable detached mode if not debugging
-    if not config.CONTAINER_DEBUG:
+    # enable detached mode if not debugging, and also if not doing conversion non-interactively
+    if not config.CONTAINER_DEBUG and not config.NBCONVERT:
         docker_opts.append("-d")
     for port1, port2 in zip(selected_ports, CONTAINER_PORTS):
         docker_opts += [ "-p", "{}:{}/tcp".format(port1, port2)]
@@ -257,7 +257,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     if config.CONTAINER_DEBUG:
         docker_process = subprocess.Popen(docker_opts, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
     else:
-        docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL)
+        docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL,
+                                            stderr=DEVNULL if config.NON_INTERACTIVE else sys.stderr)
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
 
