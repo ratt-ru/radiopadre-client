@@ -16,7 +16,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
         selected_ports = list(map(int, selected_ports.strip().split(":")))
         debug(ff("  ports configured as {selected_ports}"))
     else:
-        selected_ports = find_unused_ports(4)
+        selected_ports = find_unused_ports(5)
         debug(ff("  ports selected: {selected_ports}"))
 
     userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
@@ -27,7 +27,9 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
         userside_ports = selected_ports
         debug(ff("  userside ports are the same"))
 
-    iglesia.set_userside_ports(userside_ports)
+    nbconvert = bool(os.environ.get('RADIOPADRE_NBCONVERT'))
+    iglesia.set_userside_ports(selected_ports if nbconvert else userside_ports)
+
     jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
 
     # JS9 init

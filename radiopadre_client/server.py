@@ -256,7 +256,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
 
-    message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
+    # message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
 
     #
     if config.NBCONVERT and not LOAD_NOTEBOOK:
@@ -289,7 +289,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         JUPYTER_OPTS = ["notebook",
                         "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
                         "--ContentsManager.allow_hidden=True"]
-        del os.environ["RADIOPADRE_NBCONVERT"]
+        os.environ.pop("RADIOPADRE_NBCONVERT", None)
 
     # update installation etc.
     backend.update_installation()
