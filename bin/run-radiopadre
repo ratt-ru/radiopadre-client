@@ -216,7 +216,7 @@ if manage_last_sessions:
 config.init_specific_options(remote_host, notebook_path, options)
 
 if options.non_interactive:
-    config.BORING = 1
+    config.BORING = True
 
 config.INSIDE_CONTAINER_PORTS = []
 if options.inside_container:

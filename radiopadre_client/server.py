@@ -278,15 +278,18 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # init paths & environment
     iglesia.init()
-    iglesia.set_userside_ports(userside_ports[1:])
+    iglesia.set_userside_ports(userside_ports)
 
     global JUPYTER_OPTS
     if config.NBCONVERT:
-        JUPYTER_OPTS = ["nbconvert", "--to", "html_embed", "--execute"]
+        JUPYTER_OPTS = ["nbconvert", "--no-input",
+                        "--to", "html_embed", "--execute"]
+        os.environ["RADIOPADRE_NBCONVERT"] = "True"
     else:
         JUPYTER_OPTS = ["notebook",
                         "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
                         "--ContentsManager.allow_hidden=True"]
+        del os.environ["RADIOPADRE_NBCONVERT"]
 
     # update installation etc.
     backend.update_installation()

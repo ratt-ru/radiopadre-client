@@ -28,7 +28,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
         debug(ff("  userside ports are the same"))
 
     iglesia.set_userside_ports(userside_ports)
-    helper_port, http_port, carta_port, carta_ws_port = selected_ports
+    jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
 
     # JS9 init
     iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', ff("{sys.prefix}/js9-www"))
