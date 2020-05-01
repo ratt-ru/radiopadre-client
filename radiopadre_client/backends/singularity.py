@@ -124,8 +124,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     #     docker_opts = [singularity, "exec", "instance://{}".format(container_name)]
     # else:
     #     docker_opts = [singularity, "exec" ] + docker_opts + [singularity_image]
-    rpbin = "/.radiopadre/venv/bin/"
-    docker_opts = [singularity, "run" ] + docker_opts + [singularity_image, rpbin + "python3", rpbin + "run-radiopadre"]
+    docker_opts = [singularity, "run" ] + docker_opts + [singularity_image]
     container_ports = selected_ports
 
     # build up command-line arguments
