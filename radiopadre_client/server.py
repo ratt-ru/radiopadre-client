@@ -74,13 +74,14 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
                 backend.init(binary=has_docker)
                 break
         elif backend == "singularity":
+            has_docker = find_which("docker")
             has_singularity = find_which("singularity")
             if has_singularity:
                 USE_SINGULARITY = True
                 message(ff("Using {has_singularity} for container mode"))
                 import radiopadre_client.backends.singularity
                 backend = radiopadre_client.backends.singularity
-                backend.init(binary=has_singularity)
+                backend.init(binary=has_singularity, docker_binary=has_docker)
                 break
         message(ff("The '{backend}' back-end is not available."))
     else:

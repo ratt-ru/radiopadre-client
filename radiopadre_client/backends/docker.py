@@ -152,7 +152,8 @@ def _collect_runscript_arguments(ports):
         if key in run_config:
             del run_config[key]
 
-    return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
+    return config.get_options_list(run_config, quote=False)
+    #return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
@@ -243,8 +244,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             else:
                 message("Caught exception {} ({})".format(exc, type(exc)))
                 status = 1
-            if not status:
-                running_container = None  # to avoid reaping
+            # if not status:
+            #     running_container = None  # to avoid reaping
             sys.exit(status)
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
@@ -258,7 +259,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
         docker_process = subprocess.Popen(docker_opts, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
     else:
         docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL,
-                                            stderr=DEVNULL if config.NON_INTERACTIVE else sys.stderr)
+                                           stderr=DEVNULL if config.NON_INTERACTIVE else sys.stderr)
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
 

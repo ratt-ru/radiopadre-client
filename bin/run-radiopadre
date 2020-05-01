@@ -102,6 +102,8 @@ group.add_argument("--client-install-path", type=str, metavar="PATH", default=co
                     help=ff("directory in which remote radiopadre-client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
                     help="update installations, container images, etc. as appropriate.")
+group.add_argument("--rebuild", action="store_true",
+                    help="rebuild e.g. singularity images even if they are up to date.")
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)

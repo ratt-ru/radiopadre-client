@@ -34,6 +34,7 @@ DefaultConfig = OrderedDict(
     SERVER_INSTALL_BRANCH="b1.0-pre10",                  # change for each release
     SERVER_INSTALL_PIP="radiopadre",
     UPDATE=None,            # None means not saved to sessions file
+    REBUILD=None,            # None means not saved to sessions file
     NON_INTERACTIVE=None,
     VERBOSE=0,
     LOG=False,

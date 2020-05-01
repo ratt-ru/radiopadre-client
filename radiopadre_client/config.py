@@ -46,6 +46,7 @@ CLIENT_INSTALL_BRANCH = "master"
 
 LOG = False
 UPDATE = False
+REBUILD = False
 FULL_CONSENT = None
 NBCONVERT = None
 VERBOSE = 0
