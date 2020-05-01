@@ -98,14 +98,14 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
     os.environ["XDG_RUNTIME_DIR"] = ""
-    docker_opts = [ "--no-home", "--workdir", ABSROOTDIR ]
+    docker_opts = ["--workdir", ABSROOTDIR]
     # setup mounts for work dir and home dir, if needed
     homedir = os.path.expanduser("~")
     docker_opts += [
         "-B", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ""), # ":ro" if orig_rootdir else ""),
         "-B", "{}/.radiopadre:{}/.radiopadre".format(homedir, homedir),
         # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
-        "-B", "{}:{}/.local".format(docker_local, homedir),
+        "-B", "{}:{}".format(docker_local, os.path.realpath(os.path.join(homedir, ".local"))),
         # mount session info directory (needed to serve e.g. js9prefs.js)
         "-B", "{}:{}".format(session_info_dir, LOCAL_SESSION_DIR),
         "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
