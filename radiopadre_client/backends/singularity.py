@@ -16,8 +16,13 @@ def init(binary, docker_binary=None):
     singularity = binary
     _init_session_dir()
     if docker_binary:
-        has_docker = docker_binary
-        docker.init(docker_binary)
+        # check that we actually have docker permissions
+        if check_output(docker_binary + " ps") is None:
+            message("can't connect to docker daemon, will proceed without docker")
+            has_docker = None
+        else:
+            has_docker = docker_binary
+            docker.init(docker_binary)
 
 def read_session_info(container_name):
     raise NotImplementedError("not available in singularity mode")
@@ -41,6 +46,10 @@ def update_installation():
     singularity_image = os.path.expanduser(get_singularity_image(docker_image))
     if not os.path.exists(singularity_image):
         message(ff("Singularity image {singularity_image} does not exist"))
+    elif config.REBUILD:
+        os.unlink(singularity_image)
+        message(ff("--rebuild specified, removing singularity image {singularity_image}"))
+
     # pull down docker image first
     if has_docker:
         message("Checking docker image (from which our singularity image is built)")
@@ -52,7 +61,7 @@ def update_installation():
             output = check_output(ff("{has_docker} image inspect {docker_image} -f '{{{{ .Created }}}}'")).strip()
             message(ff("  docker image timestamp is {output}"))
             # in Python 3.7 we have datetime.fromisoformat(date_string), but for now we muddle:
-            match = re.match("(^.*)[.](\d+)Z", output)
+            match = output and re.match("(^.*)[.](\d+)Z", output)
             if match:
                 try:
                     docker_image_time = calendar.timegm(time.strptime(match.group(1), "%Y-%m-%dT%H:%M:%S"))
@@ -70,8 +79,7 @@ def update_installation():
             else:
                 message(ff("singularity image {singularity_image} is up-to-date"))
         else:
-            warning(ff("--update specified and no docker binary found, will force a rebuild of {singularity_image}"))
-            os.unlink(singularity_image)
+            warning(ff("--update specified but no docker access, can't check if {singularity_image} is up-to-date"))
     if not os.path.exists(singularity_image):
         warning(ff("  rebuilding singularity image from docker://{docker_image}"))
         warning(ff("  (This may take a few minutes....)"))
