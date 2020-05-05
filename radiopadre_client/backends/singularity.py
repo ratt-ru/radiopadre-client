@@ -79,7 +79,7 @@ def update_installation():
             else:
                 message(ff("singularity image {singularity_image} is up-to-date"))
         else:
-            warning(ff("--update specified but no docker access, can't check if {singularity_image} is up-to-date"))
+            message(ff("--update specified but no docker access, assuming {singularity_image} is up-to-date"))
     if not os.path.exists(singularity_image):
         warning(ff("  rebuilding singularity image from docker://{docker_image}"))
         warning(ff("  (This may take a few minutes....)"))
