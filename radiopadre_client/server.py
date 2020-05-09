@@ -283,7 +283,8 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     global JUPYTER_OPTS
     if config.NBCONVERT:
-        JUPYTER_OPTS = ["nbconvert", "--no-input",
+        JUPYTER_OPTS = ["nbconvert", "--ExecutePreprocessor.timeout=600",
+                        "--no-input",
                         "--to", "html_embed", "--execute"]
         os.environ["RADIOPADRE_NBCONVERT"] = "True"
     else:
