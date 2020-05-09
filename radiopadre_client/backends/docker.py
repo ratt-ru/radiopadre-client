@@ -165,7 +165,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     message(ff("Container name: {container_name}"))  # remote script will parse it
 
-    docker_opts = [ docker, "run", "--rm", "--name", container_name, "-w", ABSROOTDIR,
+    docker_opts = [ docker, "run", "--rm", "--name", container_name, 
+                        "--cap-add=SYS_ADMIN",
+                        "-w", ABSROOTDIR,
                         "--user", "{}:{}".format(os.getuid(), os.getgid()),
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
