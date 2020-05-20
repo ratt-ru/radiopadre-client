@@ -96,7 +96,7 @@ def update_installation(rebuild=False, docker_pull=True):
     if build_image:
         warning(ff("Rebuilding singularity image from docker://{docker_image}"))
         warning(ff("  (This may take a few minutes....)"))
-        singularity_image_new = singularity_image + ".new"
+        singularity_image_new = singularity_image + ".new.img"
         if os.path.exists(singularity_image_new):
             os.unlink(singularity_image_new)
         cmd = [singularity, "build", singularity_image_new, ff("docker://{docker_image}")]
