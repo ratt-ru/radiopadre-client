@@ -37,7 +37,7 @@ def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in singularity mode")
 
 def get_singularity_image(docker_image):
-    dir = config.SINGULARITY_IMAGE_DIR or os.environ['RADIOPADRE_SINGULARITY_IMAGE_DIR'] or iglesia.RADIOPADRE_DIR
+    dir = config.SINGULARITY_IMAGE_DIR or os.environ.get('RADIOPADRE_SINGULARITY_IMAGE_DIR') or iglesia.RADIOPADRE_DIR
     return "{}/{}.singularity.img".format(dir, docker_image.replace("/", "_"))
 
 def update_installation(rebuild=False, docker_pull=True):
