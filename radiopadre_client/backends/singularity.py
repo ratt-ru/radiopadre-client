@@ -37,7 +37,7 @@ def kill_sessions(session_dict, session_ids):
     raise NotImplementedError("not available in singularity mode")
 
 def get_singularity_image(docker_image):
-    dir = config.SINGULARITY_IMAGE_DIR or iglesia.RADIOPADRE_DIR
+    dir = config.SINGULARITY_IMAGE_DIR or os.environ['RADIOPADRE_SINGULARITY_IMAGE_DIR'] or iglesia.RADIOPADRE_DIR
     return "{}/{}.singularity.img".format(dir, docker_image.replace("/", "_"))
 
 def update_installation(rebuild=False, docker_pull=True):
@@ -64,7 +64,7 @@ def update_installation(rebuild=False, docker_pull=True):
     # pull down docker image first
     if has_docker and docker_pull:
         message("Checking docker image (from which our singularity image is built)")
-        docker.update_installation(enable_pull=rebuild)
+        docker.update_installation(enable_pull=True)
     # if we're not forced to build yet, check for an update
     if config.UPDATE and not build_image:
         if has_docker:
