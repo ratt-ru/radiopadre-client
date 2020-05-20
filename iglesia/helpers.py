@@ -186,7 +186,11 @@ def kill_helpers():
 def eat_children():
     # ask children to terminate
     procs = psutil.Process().children(True)
+    if not procs:
+        return
+
     message("Terminating {} remaining child processes".format(len(procs)))
+    debug(" ".join(map(str, procs)))
     for p in procs:
         try:
             p.terminate()
@@ -201,6 +205,7 @@ def eat_children():
     # if any are still alive, kill them
     if alive:
         message("Killing {} lingering child processes".format(len(alive)))
+        debug(" ".join(map(str, alive)))
         for p in alive:
             try:
                 p.kill()
