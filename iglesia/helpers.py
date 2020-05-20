@@ -134,7 +134,8 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
                                             ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
                                          stdin=subprocess.PIPE,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
-                    atexit.register(_exit_carta, _child_processes[-1])
+                    ## doesn't exit cleanly, let it be eaten rather
+                    # atexit.register(_exit_carta, _child_processes[-1])
                     message("  started as PID {}".format(_child_processes[-1].pid))
         else:
             debug("CARTA backend should be running (pid {})".format(os.environ["RADIOPADRE_CARTA_PID"]))
