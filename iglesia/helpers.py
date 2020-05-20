@@ -185,7 +185,7 @@ def kill_helpers():
 
 def eat_children():
     # ask children to terminate
-    procs = psutil.Process().children(True)
+    procs = psutil.Process().children(recursive=True)
     if not procs:
         return
 
