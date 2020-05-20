@@ -96,7 +96,10 @@ def update_installation(rebuild=False, docker_pull=True):
     if build_image:
         warning(ff("Rebuilding singularity image from docker://{docker_image}"))
         warning(ff("  (This may take a few minutes....)"))
-        cmd = [singularity, "build", singularity_image + ".new", ff("docker://{docker_image}")]
+        singularity_image_new = singularity_image + ".new"
+        if os.path.exists(singularity_image_new):
+            os.unlink(singularity_image_new)
+        cmd = [singularity, "build", singularity_image_new, ff("docker://{docker_image}")]
         message("running " + " ".join(cmd))
         try:
             subprocess.check_call(cmd)
@@ -111,7 +114,7 @@ def update_installation(rebuild=False, docker_pull=True):
                 raise
         # move old image
         message(ff("Build successful, renaming to {singularity_image}"))
-        os.rename(singularity_image + ".new", singularity_image)
+        os.rename(singularity_image_new, singularity_image)
     else:
         message(ff("Using existing radiopadre singularity image {singularity_image}"))
 
