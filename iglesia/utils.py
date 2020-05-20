@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os.path, select, socket, subprocess, sys, logging, errno, traceback
 
+import iglesia
 from iglesia import logger
 
 DEVZERO = open("/dev/zero")
@@ -70,7 +71,7 @@ def make_dir(name):
 
 def make_radiopadre_dir():
     """Makes ~/.radiopadre directory"""
-    return make_dir("~/.radiopadre")
+    return make_dir(iglesia.RADIOPADRE_DIR)
 
 def make_link(src, dest, rm_fr=False):
     """Makes links."""

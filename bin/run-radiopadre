@@ -39,12 +39,10 @@ parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
 parser.add_argument("-l", "--log", action="store_true", default=0,
                     help="Enables logging of sessions to .radiopadre/logs.")
-parser.add_argument("--full-consent", action="store_true",
-                    help="Automatically consent to dangerous operations such a removing a virtualenv.")
 parser.add_argument("--nbconvert", action="store_true",
                     help="Instead of running jupyter, run nbconvert to render the notebook, then exit.")
 parser.add_argument("--non-interactive", action="store_true",
-                    help="Run in non-interactive mode. Implies --boring, minimizes log output, and "
+                    help="Run in non-interactive mode. Implies --boring, minimizes log output, and \n"
                          "disables recent sessions.")
 
 
@@ -61,49 +59,64 @@ group.add_argument("-V", "--virtual-env", action="append_const", const="venv", d
 
 group = parser.add_argument_group("Docker and Singularity back-end options")
 group.add_argument("-C", "--container-dev", action="store_true", default=0,
-                   help="mounts the host-installed versions of radiopadre inside the container. "
+                   help="mounts the host-installed versions of radiopadre inside the container.\n"
                          "Intended for developers and bleeding-edge users.")
 
 group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
-                   help=ff("Which Docker image to use. Default is {config.DOCKER_IMAGE}."))
-group.add_argument("--container-persist", action="store_true", default=0,
-                   help="Allow persistent container sessions (Docker only). Default is to kill the container " 
-                        "when radiopadre disconnects.")
-group.add_argument("--container-detach", action="store_true", default=0,
-                   help="detach from container and exit after setting everything up. Implies --container-persist.")
+                   help=ff("Which Docker image to use (also to build Singularity image).\n" ) +
+                        ff("Default is {config.DOCKER_IMAGE}."))
+# group.add_argument("--container-persist", action="store_true", default=0,
+#                    help="Allow persistent container sessions (Docker only). Default is to kill the container "
+#                         "when radiopadre disconnects.")
+# group.add_argument("--container-detach", action="store_true", default=0,
+#                    help="detach from container and exit after setting everything up. Implies --container-persist.")
 group.add_argument("--container-debug", action="store_true", default=0,
                    help="run container in debug mode, with output to screen.")
 group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper", default=1,
-                   help="grim reaper will normally kill older radiopadre containers for the same host/directory. " 
-                        "Use this option to disable this behaviour.")
+                   help="grim reaper will normally kill older radiopadre containers for the same \n"
+                        "host/directory. Use this option to disable this behaviour.")
+group.add_argument("--singularity-rebuild", action="store_true", default=0,
+                    help="forces a rebuild of the Singularity image from the Docker image.")
+group.add_argument("--no-singularity-auto-build", action="store_false", dest="singularity_auto_build", default=1,
+                    help="Disables auto-building of Singularity images. If an image is not found locally, \n"+
+                         "Singularity mode will fail.")
+group.add_argument("--singularity-image-dir", type=str, default=config.DEFAULT_VALUE,
+                    help="directory where to look for and/or build the Singularity image. \n" +
+                         "If not configured, the RADIOPADRE_SINGULARITY_IMAGE_DIR environment\n"
+                         "variable is checked, else RADIOPADRE dir or ~/.radiopadre.")
+group.add_argument("--ignore-update-errors", action="store_true",
+                   help="try to proceed anyway if docker pull or singularity build fails")
+group.add_argument("--pull-docker", action="store_true", default=0,
+                   help="pull an up-to-date docker image if available, then exit")
+group.add_argument("--pull-singularity", action="store_true", default=0,
+                   help="pull/build an up-to-date singularity image if available, then exit")
 
 ## virtualenv support
 group = parser.add_argument_group("Virtualenv back-end options")
 group.add_argument("--venv-reinstall", action="store_true",
-                    help="virtualenv: reinstall radiopadre virtual environment before running. \n"
+                    help="reinstall radiopadre virtual environment before running. \n"
                          "Implies --auto-init.")
 group.add_argument("--venv-ignore-casacore", action="store_true", default=0,
-                    help="virtualenv: ignore casacore installation errors, if bootstrapping.")
+                    help="ignore casacore installation errors, if bootstrapping.")
 group.add_argument("--venv-ignore-js9", action="store_true", default=0,
-                    help="virtualenv: ignore JS9 installation errors, if bootstrapping.")
+                    help="ignore JS9 installation errors, if bootstrapping.")
 group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
-                    help="virtualenv: additional packages to install when creating a new virtual environment\n"
+                    help="additional packages to install when creating a new virtual environment\n"
                          "(comma-separated list).")
 
-## remote init support
-group = parser.add_argument_group("Remote installation options")
+group = parser.add_argument_group("Installation and update options")
 group.add_argument("--auto-init", action="store_true", default=0,
-                    help="automatically initialize radiopadre_client installation, if missing on remote. " 
+                    help="automatically initialize radiopadre installations, if missing.\n" 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
 group.add_argument("--skip-checks", action="store_true", default=0,
-                   help="assume remote has a fully functional installation and skip the detailed checks. "
-                   "This can make for faster startup, but less informative failure modes.")
+                   help="assume remote has a fully functional installation and skip the detailed checks.\n"
+                   "This can make for faster startup, but less informative errors.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
                     help=ff("directory in which remote radiopadre-client will be installed with --auto-init."))
 group.add_argument("-u", "--update", action="store_true",
-                    help="update installations, container images, etc. as appropriate.")
-group.add_argument("--rebuild", action="store_true",
-                    help="rebuild e.g. singularity images even if they are up to date.")
+                    help="update installations, container images, etc. before starting up.")
+group.add_argument("--full-consent", action="store_true",
+                    help="Automatically consent to dangerous operations such a removing a virtualenv.")
 
 # internal switches used when running in container
 parser.add_argument("--inside-container", type=str, help=argparse.SUPPRESS)
@@ -130,24 +143,26 @@ parser.add_argument("arguments", nargs="*",
     [user@]remote_host:directory[/notebook.ipynb]
         run a remote radiopadre_client session, loading the specified notebook or directory;
     [user@]remote_host:directory notebook.ipynb
-        run a remote radiopadre_client session, copying over the specified notebook if it doesn't 
-        already exist on the remote;
+        run a remote radiopadre_client session, copying over the specified notebook 
+        if it doesn't already exist on the remote.
+""")
 
-    ps
-        list available local containerized radiopadre_client sessions;
-    resume [ID]
-        reconnect to a containerized radiopadre_client session. If an ID is not given,
-        reconnects to first available session;
-    kill [ID(s)|all]
-        kills specified containerized session, or all sessions
-
-    [user@]remote_host:ps
-        list available containerized radiopadre_client sessions on remote host;
-    [user@]remote_host:resume [ID]
-        reconnect to a containerized radiopadre_client session on remote host;
-    [user@]remote_host:kill [ID|all]
-        kills a specific radiopadre_client session, or all sessions on remote host;
-                       """)
+# """
+#     ps
+#         list available local containerized radiopadre_client sessions;
+#     resume [ID]
+#         reconnect to a containerized radiopadre_client session. If an ID is not given,
+#         reconnects to first available session;
+#     kill [ID(s)|all]
+#         kills specified containerized session, or all sessions
+#
+#     [user@]remote_host:ps
+#         list available containerized radiopadre_client sessions on remote host;
+#     [user@]remote_host:resume [ID]
+#         reconnect to a containerized radiopadre_client session on remote host;
+#     [user@]remote_host:kill [ID|all]
+#         kills a specific radiopadre_client session, or all sessions on remote host;
+# """
 
 ### PARSE ARGUMENTS
 #
@@ -189,17 +204,19 @@ if config.CLIENT_INSTALL_PATH == "None":
 if config.SERVER_INSTALL_PATH == "None":
     config.SERVER_INSTALL_PATH = None
 
-# work out command and its arguments
-if command == 'ps':
-    if arguments:
-        bye("ps command takes no arguments")
-elif command == 'resume':
-    if len(arguments) > 1:
-        bye("resume command takes at most one argument")
-elif command == 'kill':
-    if not arguments:
-        bye("kill: specify at least one arguments")
-else:
+# disable command for now, we do not persist containers
+# # work out command and its arguments
+# if command == 'ps':
+#     if arguments:
+#         bye("ps command takes no arguments")
+# elif command == 'resume':
+#     if len(arguments) > 1:
+#         bye("resume command takes at most one argument")
+# elif command == 'kill':
+#     if not arguments:
+#         bye("kill: specify at least one arguments")
+# else:
+if command:
     notebook_path = command
     if not remote_host and not glob.glob(notebook_path):
         bye("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
@@ -300,5 +317,30 @@ config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH or ""
 
 import radiopadre_client.server
 
-radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path, workdir=options.workdir)
+if not options.pull_docker and not options.pull_singularity:
+    radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path, workdir=options.workdir)
+
+from iglesia.utils import find_which
+
+# docker may be used for both docker and singularity back-ends
+has_docker = find_which("docker")
+
+if options.pull_docker:
+    if not has_docker:
+        bye("--pull-docker: docker binary not found")
+    import radiopadre_client.backends.docker
+    radiopadre_client.backends.docker.init(has_docker)
+    radiopadre_client.backends.docker.update_installation(enable_pull=True)
+
+if options.pull_singularity:
+    has_singularity = find_which("singularity")
+    if not has_singularity:
+        bye("--pull-singularity: singularity binary not found")
+    import radiopadre_client.backends.singularity
+    radiopadre_client.backends.singularity.init(binary=has_singularity, docker_binary=has_docker)
+    # force singularity rebuild, but don't re-pull docker image if already done above
+    radiopadre_client.backends.singularity.update_installation(rebuild=True, docker_pull=not options.pull_docker)
+
+
+
 

@@ -1,5 +1,6 @@
 import os, pickle, re, traceback, readline, shlex
 from collections import OrderedDict
+import iglesia
 
 
 from radiopadre_client import config
@@ -9,8 +10,8 @@ from iglesia import logger
 _recent_sessions = None
 _last_input = None
 
-RECENTS_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.sessions.recent")
-HISTORY_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.sessions.history")
+RECENTS_FILE = os.path.join(iglesia.RADIOPADRE_DIR, "radiopadre-client.sessions.recent")
+HISTORY_FILE = os.path.join(iglesia.RADIOPADRE_DIR, "radiopadre-client.sessions.history")
 
 def _load_recent_sessions(must_exist=True):
     """

@@ -10,6 +10,8 @@ from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, ff
     message, warning, error, debug
 from . import logger
 
+RADIOPADRE_DIR = os.environ.get("RADIOPADRE_DIR", os.path.expanduser("~/.radiopadre"))
+
 ABSROOTDIR = None       # absolute path to notebook "root" directory, e.g. /home/user/path/to
 ROOTDIR = None          # relative path to "root" directory (normally .)
 DISPLAY_ROOTDIR = None  # what the root directory should be rewritten as, for display purposes
@@ -70,8 +72,7 @@ def init():
         return value
 
     # setup shadow directory under ~/.radiopadre
-    SHADOW_HOME = os.path.abspath(
-        setdefault_path('RADIOPADRE_SHADOW_HOME', os.path.expanduser("~/.radiopadre")))
+    SHADOW_HOME = os.path.abspath(setdefault_path('RADIOPADRE_SHADOW_HOME', RADIOPADRE_DIR))
     make_dir(SHADOW_HOME)
 
     ABSROOTDIR = os.path.abspath(os.getcwd())
