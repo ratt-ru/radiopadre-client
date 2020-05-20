@@ -74,13 +74,14 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
                 backend.init(binary=has_docker)
                 break
         elif backend == "singularity":
+            has_docker = find_which("docker")
             has_singularity = find_which("singularity")
             if has_singularity:
                 USE_SINGULARITY = True
                 message(ff("Using {has_singularity} for container mode"))
                 import radiopadre_client.backends.singularity
                 backend = radiopadre_client.backends.singularity
-                backend.init(binary=has_singularity)
+                backend.init(binary=has_singularity, docker_binary=has_docker)
                 break
         message(ff("The '{backend}' back-end is not available."))
     else:
@@ -256,7 +257,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
 
-    message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
+    # message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
 
     #
     if config.NBCONVERT and not LOAD_NOTEBOOK:
@@ -278,15 +279,19 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # init paths & environment
     iglesia.init()
-    iglesia.set_userside_ports(userside_ports[1:])
+    iglesia.set_userside_ports(userside_ports)
 
     global JUPYTER_OPTS
     if config.NBCONVERT:
-        JUPYTER_OPTS = ["nbconvert", "--to", "html_embed", "--execute"]
+        JUPYTER_OPTS = ["nbconvert", "--ExecutePreprocessor.timeout=600",
+                        "--no-input",
+                        "--to", "html_embed", "--execute"]
+        os.environ["RADIOPADRE_NBCONVERT"] = "True"
     else:
         JUPYTER_OPTS = ["notebook",
                         "--ContentsManager.pre_save_hook=radiopadre_utils.notebook_utils._notebook_save_hook",
                         "--ContentsManager.allow_hidden=True"]
+        os.environ.pop("RADIOPADRE_NBCONVERT", None)
 
     # update installation etc.
     backend.update_installation()

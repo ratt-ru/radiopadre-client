@@ -151,8 +151,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     #     JUPYTER_OPTS.append(LOAD_NOTEBOOK if type(LOAD_NOTEBOOK) is str else LOAD_NOTEBOOK[0])
 
     # pass configured ports to radiopadre kernel
-    os.environ['RADIOPADRE_SELECTED_PORTS'] = ":".join(map(str, selected_ports[1:]))
-    os.environ['RADIOPADRE_USERSIDE_PORTS'] = ":".join(map(str, userside_ports[1:]))
+    os.environ['RADIOPADRE_SELECTED_PORTS'] = ":".join(map(str, selected_ports))
+    os.environ['RADIOPADRE_USERSIDE_PORTS'] = ":".join(map(str, userside_ports))
 
     # get base path of radiopadre install
     radiopadre_base = subprocess.check_output(ff(""". {config.RADIOPADRE_VENV}/bin/activate && \

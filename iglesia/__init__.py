@@ -32,6 +32,7 @@ SESSION_ID = None           # session ID. Used below in paths
 VERBOSE = 0                 # message verbosity level, >0 for debugging
 
 JS9_DIR         = None             # JS9 install directory
+JUPYTER_PORT    = None             # (userside) Jupyter port
 HTTPSERVER_PORT = None             # (userside) HTTP port
 JS9HELPER_PORT  = None             # (userside) helper port, if set up
 CARTA_PORT = CARTA_WS_PORT = None  # (userside) carta ports, if set up
@@ -155,5 +156,5 @@ def init():
 
 def set_userside_ports(userside_ports):
     """Sets the relevant userside port variables"""
-    global JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
-    JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = userside_ports
+    global JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
+    JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = userside_ports

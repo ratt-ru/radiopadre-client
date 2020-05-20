@@ -6,6 +6,11 @@ logfile_handler = None
 
 NUM_RECENT_LOGS = 5
 
+try:
+    PipeError = BrokenPipeError
+except NameError:  # for py2
+    PipeError = IOError
+
 class TimestampFilter(logging.Filter):
     """Adds a timestamp attribute to the LogRecord, if enabled"""
     time0 = time.time()
@@ -34,14 +39,14 @@ class MultiplexingHandler(logging.Handler):
         # ignore broken pipes, this often happens when cleaning up and exiting
         try:
             handler.flush()
-        except BrokenPipeError:
+        except PipeError:
             pass
 
     def flush(self):
         try:
             self.err_handler.flush()
             self.info_handler.flush()
-        except BrokenPipeError:
+        except PipeError:
             pass
 
     def close(self):
@@ -58,6 +63,7 @@ class Colors():
     BOLD    = '\033[1m'  if sys.stdin.isatty() else ''
     GREEN   = '\033[92m' if sys.stdin.isatty() else ''
     ENDC    = '\033[0m'  if sys.stdin.isatty() else ''
+
 
 class ColorizingFormatter(logging.Formatter):
     """This Formatter inserts color codes into the string according to severity"""
@@ -76,18 +82,18 @@ class ColorizingFormatter(logging.Formatter):
 
 _default_format = "%(name)s%(timestamp)s: {<{<%(severity)s%(message)s>}>}"
 _default_format_boring = "%(name)s%(timestamp)s: %(severity)s%(message)s"
-_default_formatter = ColorizingFormatter(_default_format)
-
+_boring_formatter = logging.Formatter(_default_format_boring)
+_colorful_formatter = ColorizingFormatter(_default_format)
 _default_console_handler = MultiplexingHandler()
-_default_console_handler.setFormatter(_default_formatter)
 
-def init(appname, timestamps=True):
+def init(appname, timestamps=True, boring=False):
     global logger
     global _default_formatter
     logging.basicConfig()
     logger = logging.getLogger(appname)
     TimestampFilter.enable = timestamps
     logger.addFilter(TimestampFilter())
+    _default_console_handler.setFormatter(_boring_formatter if boring else _colorful_formatter)
     logger.addHandler(_default_console_handler)
     logger.setLevel(logging.INFO)
     logger.propagate = False

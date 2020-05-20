@@ -152,7 +152,8 @@ def _collect_runscript_arguments(ports):
         if key in run_config:
             del run_config[key]
 
-    return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
+    return config.get_options_list(run_config, quote=False)
+    #return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
@@ -164,15 +165,17 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     message(ff("Container name: {container_name}"))  # remote script will parse it
 
-    docker_opts = [ docker, "run", "--rm", "--name", container_name, "-w", ABSROOTDIR,
+    docker_opts = [ docker, "run", "--rm", "--name", container_name, 
+                        "--cap-add=SYS_ADMIN",
+                        "-w", ABSROOTDIR,
                         "--user", "{}:{}".format(os.getuid(), os.getgid()),
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
                         "-e", ff("RADIOPADRE_CONTAINER_NAME={container_name}"),
                         "-e", ff("RADIOPADRE_SESSION_ID={config.SESSION_ID}"),
                     ]
-    # enable detached mode if not debugging
-    if not config.CONTAINER_DEBUG:
+    # enable detached mode if not debugging, and also if not doing conversion non-interactively
+    if not config.CONTAINER_DEBUG and not config.NBCONVERT:
         docker_opts.append("-d")
     for port1, port2 in zip(selected_ports, CONTAINER_PORTS):
         docker_opts += [ "-p", "{}:{}/tcp".format(port1, port2)]
@@ -243,8 +246,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             else:
                 message("Caught exception {} ({})".format(exc, type(exc)))
                 status = 1
-            if not status:
-                running_container = None  # to avoid reaping
+            # if not status:
+            #     running_container = None  # to avoid reaping
             sys.exit(status)
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
@@ -257,7 +260,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     if config.CONTAINER_DEBUG:
         docker_process = subprocess.Popen(docker_opts, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
     else:
-        docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL)
+        docker_process = subprocess.Popen(docker_opts, stdout=DEVNULL,
+                                           stderr=DEVNULL if config.NON_INTERACTIVE else sys.stderr)
                                       #stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                       #env=os.environ)
 
