@@ -187,15 +187,19 @@ arguments = list(options.arguments)
 # command: command part, could still be a notebook/directory at this stage
 copy_initial_notebook = remote_host = command = notebook_path = None
 
-if ':' in arguments[0]:
-    remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
-    if not command:
-        if arguments:
-            command = arguments.pop(0)
-        else:
-            command = '.'
+if arguments:
+    if ':' in arguments[0]:
+        remote_host, command = arguments.pop(0).split(':', 1)  # recognize both host:command and host: command
+        if not command:
+            if arguments:
+                command = arguments.pop(0)
+            else:
+                command = '.'
+    else:
+        remote_host, command = None, arguments.pop(0)
 else:
-    remote_host, command = None, arguments.pop(0)
+    if not options.pull_docker and not options.pull_singularity:
+        bye("Missing notebook argument. Use -h for help.")
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
@@ -220,7 +224,7 @@ if config.SERVER_INSTALL_PATH == "None":
 if command:
     notebook_path = command
     if not remote_host and not glob.glob(notebook_path):
-        bye("{} is neither a directory, nor a notebook, nor a recognized command".format(notebook_path))
+        bye("{} is neither a directory nor a notebook".format(notebook_path))
     command = 'load'
     # in remote mode, allow an optional argument
     if remote_host:
