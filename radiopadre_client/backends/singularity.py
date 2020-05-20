@@ -110,7 +110,7 @@ def update_installation(rebuild=False, docker_pull=True):
             else:
                 raise
         # move old image
-        message(ff("Build successful, renaming to {singularity image}"))
+        message(ff("Build successful, renaming to {singularity_image}"))
         os.rename(singularity_image + ".new", singularity_image)
     else:
         message(ff("Using existing radiopadre singularity image {singularity_image}"))
