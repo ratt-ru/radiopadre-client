@@ -344,7 +344,7 @@ if options.pull_singularity:
     import radiopadre_client.backends.singularity
     radiopadre_client.backends.singularity.init(binary=has_singularity, docker_binary=has_docker)
     # force singularity rebuild, but don't re-pull docker image if already done above
-    radiopadre_client.backends.singularity.update_installation(rebuild=True, docker_pull=not options.pull_docker)
+    radiopadre_client.backends.singularity.update_installation(rebuild=False, docker_pull=not options.pull_docker)
 
 
 
