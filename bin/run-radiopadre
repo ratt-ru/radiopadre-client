@@ -4,8 +4,9 @@ import sys, os, argparse, glob, pickle, re, logging
 from collections import OrderedDict
 
 # ### some globals
-
+import iglesia
 from radiopadre_client import config, sessions
+
 from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
@@ -315,10 +316,12 @@ if remote_host:
 
 ### LOCAL SERVER MODE ###########################################################################################
 
-# expand "~" in various config settings
-config.RADIOPADRE_VENV = os.path.expanduser(config.RADIOPADRE_VENV)
-config.SERVER_INSTALL_PATH = os.path.expanduser(config.SERVER_INSTALL_PATH or "")
-config.CLIENT_INSTALL_PATH = os.path.expanduser(config.CLIENT_INSTALL_PATH or "")
+# expand "~" and other variables in various config settings
+env = os.environ.copy()
+env['RADIOPADRE_DIR'] = iglesia.RADIOPADRE_DIR
+config.RADIOPADRE_VENV = os.path.expanduser((config.RADIOPADRE_VENV or "").format(**env))
+config.SERVER_INSTALL_PATH = os.path.expanduser((config.SERVER_INSTALL_PATH or "").format(**env))
+config.CLIENT_INSTALL_PATH = os.path.expanduser((config.CLIENT_INSTALL_PATH or "").format(**env))
 
 import radiopadre_client.server
 

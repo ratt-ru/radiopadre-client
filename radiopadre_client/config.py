@@ -32,7 +32,7 @@ USER = os.environ['USER']
 BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else "xdg-open")
 BROWSER_BG = False
 BROWSER_MULTI = False
-RADIOPADRE_VENV = os.path.join(iglesia.RADIOPADRE_DIR, "venv")
+RADIOPADRE_VENV = "{RADIOPADRE_DIR}/venv"
 SKIP_CHECKS = False
 CONTAINER_TEST = None
 

@@ -135,7 +135,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # which runscript to look for
     runscript0 = "run-radiopadre"
 
-    # shorthand for remote virtualenv
+    # form up remote venv path, but do not expand ~ at this point (it may be a different username on the remote)
+    env = os.environ.copy()
+    env.setdefault("RADIOPADRE_DIR", "~/.radiopadre")
+    config.RADIOPADRE_VENV = (config.RADIOPADRE_VENV or "").format(**env)
+    # this variable used in error and info messages
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
 
     # pip install command with -v repeated for each VERBOSE increment
@@ -147,7 +151,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     if config.SKIP_CHECKS:
         runscript = ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
-                     "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
+                       "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
         do_update = False
     else:
         runscript = None

@@ -10,7 +10,6 @@ from collections import OrderedDict
 # registered default is None, or a "--no-option" argument is the registered default is 0
 
 import os.path
-import iglesia
 
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
@@ -38,7 +37,7 @@ DefaultConfig = OrderedDict(
     VERBOSE=0,
     LOG=False,
     TIMESTAMPS=False,
-    RADIOPADRE_VENV=os.path.join(iglesia.RADIOPADRE_DIR, "venv"),
+    RADIOPADRE_VENV="{RADIOPADRE_DIR}/venv",
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
     VENV_EXTRAS="None",
