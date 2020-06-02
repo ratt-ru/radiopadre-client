@@ -121,21 +121,29 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
     shell(ff("{docker} kill {kill_cont}"), ignore_fail=True)
 
 
-def update_installation():
+def update_installation(enable_pull=False):
     global docker_image
+    enable_pull = enable_pull or config.AUTO_INIT or config.UPDATE
     if config.CONTAINER_DEV:
         update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
     if check_output(ff("docker image inspect {docker_image}")) is None:
-        if not config.UPDATE and not config.AUTO_INIT:
-            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update?"))
+        if not enable_pull:
+            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update perhaps?"))
         message(ff("  Radiopadre docker image {docker_image} not found locally"))
     else:
         message(ff("  Using radiopadre docker image {docker_image}"))
-    if config.UPDATE or config.AUTO_INIT:
-        warning("--update or --auto-init specified: calling docker pull to make sure the image is up-to-date.")
-        warning("  (This may take a few minutes if it isn't....)")
-        subprocess.call([docker, "pull", docker_image])
+    if enable_pull:
+        warning(ff("Calling docker pull {docker_image}"))
+        warning("  (This may take a few minutes if the image is not up to date...)")
+        try:
+            subprocess.call([docker, "pull", docker_image])
+        except subprocess.CalledProcessError as exc:
+            if config.IGNORE_UPDATE_ERRORS:
+                warning("docker pull failed, but --ignore-update-errors is set, proceeding anyway")
+                return
+            raise exc
+
 
 def _collect_runscript_arguments(ports):
     from iglesia import SHADOW_HOME as PADRE_WORKDIR
@@ -148,7 +156,9 @@ def _collect_runscript_arguments(ports):
     run_config["WORKDIR"] = PADRE_WORKDIR
     run_config["RADIOPADRE_VENV"] = "/.radiopadre/venv"
 
-    for key in "CLIENT_INSTALL_PATH", "SERVER_INSTALL_PATH", "AUTO_INIT":
+    # some keys shouldn't be passed to the in=-container script at all
+    for key in ("CLIENT_INSTALL_PATH", "SERVER_INSTALL_PATH", "SINGULARITY_IMAGE_DIR",
+                "AUTO_INIT", "SINGULARITY_REBUILD", "SINGULARITY_AUTO_BUILD"):
         if key in run_config:
             del run_config[key]
 

@@ -1,4 +1,4 @@
-import os, sys, subprocess, atexit, traceback
+import os, sys, subprocess, atexit, traceback, psutil
 
 import iglesia
 from iglesia import PadreError
@@ -134,7 +134,8 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
                                             ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
                                          stdin=subprocess.PIPE,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
-                    atexit.register(_exit_carta, _child_processes[-1])
+                    ## doesn't exit cleanly, let it be eaten rather
+                    # atexit.register(_exit_carta, _child_processes[-1])
                     message("  started as PID {}".format(_child_processes[-1].pid))
         else:
             debug("CARTA backend should be running (pid {})".format(os.environ["RADIOPADRE_CARTA_PID"]))
@@ -180,5 +181,36 @@ def kill_helpers():
         err = traceback.format_exc()
         error(ff("Exception in kill_helpers: {err}"))
 
-atexit.register(kill_helpers)
+## This was not brutal enough
+# atexit.register(kill_helpers)
 
+def eat_children():
+    # ask children to terminate
+    procs = psutil.Process().children(recursive=True)
+    if not procs:
+        return
+
+    message("Terminating {} remaining child processes".format(len(procs)))
+    debug(" ".join(map(str, procs)))
+    for p in procs:
+        try:
+            p.terminate()
+        except psutil.NoSuchProcess:
+            pass
+
+    def on_terminate(proc):
+        debug("  Child process {} terminated with exit code {}".format(proc, proc.returncode))
+
+    gone, alive = psutil.wait_procs(procs, timeout=1, callback=on_terminate)
+
+    # if any are still alive, kill them
+    if alive:
+        message("Killing {} lingering child processes".format(len(alive)))
+        debug(" ".join(map(str, alive)))
+        for p in alive:
+            try:
+                p.kill()
+            except psutil.NoSuchProcess:
+                pass
+
+atexit.register(eat_children)

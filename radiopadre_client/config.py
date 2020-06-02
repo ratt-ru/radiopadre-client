@@ -6,12 +6,14 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+import iglesia
 from iglesia.utils import make_dir, message, ff, make_radiopadre_dir
 from .default_config import DefaultConfig
 
 # const object to use as default value in ArgumentParser. Will be replaced by contents
 # of config file.
 DEFAULT_VALUE = object()
+
 
 AUTO_INIT = False
 CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
@@ -30,7 +32,7 @@ USER = os.environ['USER']
 BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else "xdg-open")
 BROWSER_BG = False
 BROWSER_MULTI = False
-RADIOPADRE_VENV = "~/.radiopadre/venv"
+RADIOPADRE_VENV = "{RADIOPADRE_DIR}/venv"
 SKIP_CHECKS = False
 CONTAINER_TEST = None
 
@@ -44,9 +46,15 @@ CLIENT_INSTALL_PIP = "radiopadre-client"
 CLIENT_INSTALL_REPO = DEFAULT_CLIENT_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre-client.git"
 CLIENT_INSTALL_BRANCH = "master"
 
+SINGULARITY_IMAGE_DIR = ""
+SINGULARITY_AUTO_BUILD = True
+
 LOG = False
 UPDATE = False
-REBUILD = False
+SINGULARITY_REBUILD = None
+PULL_DOCKER = None
+PULL_SINGULARITY = None
+IGNORE_UPDATE_ERRORS = False
 FULL_CONSENT = None
 NBCONVERT = None
 VERBOSE = 0
@@ -70,15 +78,16 @@ REMOTE_MODE_PORTS = False
 # set to port assignments, when running inside container
 INSIDE_CONTAINER_PORTS = False
 
-CONFIG_FILE = os.path.expanduser("~/.radiopadre/radiopadre-client.config")
+CONFIG_FILE = os.path.join(iglesia.RADIOPADRE_DIR, "radiopadre-client.config")
 
 COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
 
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
 
-# set of options that don't get saved into the config file
-NON_PERSISTING_OPTIONS = {"-u", "--update", "--auto-init", "--venv-dry-run", "--venv-reinstall", "--full-consent"}
+# set of options that don't get saved into the config file -- these are the ones with a None default in DefaultConfig
+NON_PERSISTING_OPTIONS = {"--" + opt.lower().replace("_", "-") for opt, value in DefaultConfig.items() if value is None}
+NON_PERSISTING_OPTIONS.add("-u")
 
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())

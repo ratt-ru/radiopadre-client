@@ -1,10 +1,10 @@
 from setuptools import setup
 import os
 
-__version__ = "1.0-pre10"
+__version__ = "1.0-pre12"
 build_root = os.path.dirname(__file__)
 
-install_requires = ['six']
+install_requires = ['six', 'psutil']
 
 def readme():
     """Get readme content for package long description"""

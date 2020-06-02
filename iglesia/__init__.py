@@ -7,8 +7,19 @@ This package provides variables and settings and utilities common to the client 
 import os, subprocess, uuid, sys
 
 from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, ff, DEVZERO, DEVNULL, \
-    message, warning, error, debug
+    message, warning, error, bye, debug
 from . import logger
+
+
+RADIOPADRE_DIR = os.environ.get("RADIOPADRE_DIR", os.path.expanduser("~/.radiopadre"))
+
+if not os.path.exists(RADIOPADRE_DIR):
+    try:
+        os.mkdir(RADIOPADRE_DIR)
+    except Exception as exc:
+        print(ff("Error creating {RADIOPADRE_DIR} ({exc}). Check your permissions or RADIOPADRE_DIR setting."))
+        sys.exit(1)
+
 
 ABSROOTDIR = None       # absolute path to notebook "root" directory, e.g. /home/user/path/to
 ROOTDIR = None          # relative path to "root" directory (normally .)
@@ -70,8 +81,7 @@ def init():
         return value
 
     # setup shadow directory under ~/.radiopadre
-    SHADOW_HOME = os.path.abspath(
-        setdefault_path('RADIOPADRE_SHADOW_HOME', os.path.expanduser("~/.radiopadre")))
+    SHADOW_HOME = os.path.abspath(setdefault_path('RADIOPADRE_SHADOW_HOME', RADIOPADRE_DIR))
     make_dir(SHADOW_HOME)
 
     ABSROOTDIR = os.path.abspath(os.getcwd())
