@@ -150,7 +150,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     do_update = config.UPDATE
 
     if config.SKIP_CHECKS:
-        runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
+        runscript = ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
                        "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
         do_update = False
     else:
@@ -201,6 +201,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             runscript = check_remote_command(runscript0)
             if runscript:
                 message(ff("Using remote client script at {runscript}"))
+                runscript = ff()
                 do_update = False
                 if config.UPDATE:
                     warning(ff("ignoring --update for client since it isn't in a virtualenv"))
@@ -281,12 +282,13 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
         # sanity check
         if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):
-            runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
+            runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
         else:
             bye(ff("Something went wrong during installation on {config.REMOTE_HOST}, since I still don't see the {runscript0} script"))
 
         message("Success!")
 
+    runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; {runscript}")
     # copy notebook to remote
     if copy_initial_notebook:
         if not os.path.exists(copy_initial_notebook):
