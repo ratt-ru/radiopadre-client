@@ -28,7 +28,7 @@ setup(
     packages=['radiopadre_client', 'radiopadre_client.backends', 'iglesia'],
     scripts=scripts,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Utilities",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2.7",
