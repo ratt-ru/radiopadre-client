@@ -75,6 +75,10 @@ REMOTE_HOST = None
 
 # set to port assignments, when running remotely
 REMOTE_MODE_PORTS = False
+
+# ~/.radiopadre on remote, if it needs to be overridden
+REMOTE_RADIOPADRE_DIR = "~/.radiopadre"
+
 # set to port assignments, when running inside container
 INSIDE_CONTAINER_PORTS = False
 

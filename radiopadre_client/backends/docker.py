@@ -158,7 +158,7 @@ def _collect_runscript_arguments(ports):
 
     # some keys shouldn't be passed to the in=-container script at all
     for key in ("CLIENT_INSTALL_PATH", "SERVER_INSTALL_PATH", "SINGULARITY_IMAGE_DIR",
-                "AUTO_INIT", "SINGULARITY_REBUILD", "SINGULARITY_AUTO_BUILD"):
+                "AUTO_INIT", "SINGULARITY_REBUILD", "SINGULARITY_AUTO_BUILD", "REMOTE_RADIOPADRE_DIR"):
         if key in run_config:
             del run_config[key]
 
@@ -181,6 +181,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                         "--user", "{}:{}".format(os.getuid(), os.getgid()),
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
+                        "-e", "RADIOPADRE_DIR={}".format(radiopadre_dir),
                         "-e", ff("RADIOPADRE_CONTAINER_NAME={container_name}"),
                         "-e", ff("RADIOPADRE_SESSION_ID={config.SESSION_ID}"),
                     ]
@@ -195,6 +196,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     docker_opts += [
                      "-v", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ":ro" if SNOOP_MODE else ""),
                      "-v", "{}:{}".format(homedir, homedir),
+                     "-v", "{}:{}".format(radiopadre_dir, radiopadre_dir),
                      ## hides /home/user/.local, which can confuse jupyter and ipython
                      ## into seeing e.g. kernelspecs that they should not see
                      "-v", "{}:{}/.local".format(docker_local, homedir),

@@ -137,7 +137,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # form up remote venv path, but do not expand ~ at this point (it may be a different username on the remote)
     env = os.environ.copy()
-    env.setdefault("RADIOPADRE_DIR", "~/.radiopadre")
+    env.setdefault("RADIOPADRE_DIR", config.REMOTE_RADIOPADRE_DIR or "~/.radiopadre")
     config.RADIOPADRE_VENV = (config.RADIOPADRE_VENV or "").format(**env)
     # this variable used in error and info messages
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
@@ -194,13 +194,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     message(ff(
                         "Remote virtualenv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
             else:
-                message(ff("No remote virtualenv found at {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"))
+                message(ff("No remote virtualenv found at {remote_venv}"))
 
         # (c) just try `which` directly
         if runscript is None:
             runscript = check_remote_command(runscript0)
             if runscript:
                 message(ff("Using remote client script at {runscript}"))
+                runscript = ff()
                 do_update = False
                 if config.UPDATE:
                     warning(ff("ignoring --update for client since it isn't in a virtualenv"))
@@ -287,6 +288,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
         message("Success!")
 
+    runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; {runscript}")
     # copy notebook to remote
     if copy_initial_notebook:
         if not os.path.exists(copy_initial_notebook):
