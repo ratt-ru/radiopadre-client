@@ -23,6 +23,7 @@ DefaultConfig = OrderedDict(
     DOCKER_IMAGE="osmirnov/radiopadre:1.0",         # change for each release
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
+    REMOTE_RADIOPADRE_DIR="~/.radiopadre",
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
     CLIENT_INSTALL_BRANCH="b1.0",                   # change for each release

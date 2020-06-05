@@ -137,7 +137,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # form up remote venv path, but do not expand ~ at this point (it may be a different username on the remote)
     env = os.environ.copy()
-    env.setdefault("RADIOPADRE_DIR", "~/.radiopadre")
+    env.setdefault("RADIOPADRE_DIR", config.REMOTE_RADIOPADRE_DIR or "~/.radiopadre")
     config.RADIOPADRE_VENV = (config.RADIOPADRE_VENV or "").format(**env)
     # this variable used in error and info messages
     remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
@@ -150,7 +150,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     do_update = config.UPDATE
 
     if config.SKIP_CHECKS:
-        runscript = ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
+        runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
                        "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
         do_update = False
     else:
@@ -194,7 +194,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     message(ff(
                         "Remote virtualenv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
             else:
-                message(ff("No remote virtualenv found at {config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"))
+                message(ff("No remote virtualenv found at {remote_venv}"))
 
         # (c) just try `which` directly
         if runscript is None:
@@ -281,7 +281,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
         # sanity check
         if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):
-            runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
+            runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
         else:
             bye(ff("Something went wrong during installation on {config.REMOTE_HOST}, since I still don't see the {runscript0} script"))
 

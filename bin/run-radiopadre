@@ -106,6 +106,8 @@ group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
                          "(comma-separated list).")
 
 group = parser.add_argument_group("Installation and update options")
+group.add_argument("--remote-radiopadre-dir", type=str, metavar="PATH", default=config.REMOTE_RADIOPADRE_DIR,
+                   help="radiopadre working directory on the remote, default is %(default)s.\n")
 group.add_argument("--auto-init", action="store_true", default=0,
                     help="automatically initialize radiopadre installations, if missing.\n" 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
