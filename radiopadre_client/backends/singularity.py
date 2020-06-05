@@ -140,7 +140,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     homedir = os.path.expanduser("~")
     docker_opts += [
         "-B", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ""), # ":ro" if orig_rootdir else ""),
-        "-B", "{}/.radiopadre:{}/.radiopadre".format(homedir, homedir),
+        "-B", "{}:{}".format(radiopadre_dir, radiopadre_dir),
         # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
         "-B", "{}:{}".format(docker_local, os.path.realpath(os.path.join(homedir, ".local"))),
         # mount session info directory (needed to serve e.g. js9prefs.js)
