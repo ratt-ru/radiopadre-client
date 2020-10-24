@@ -6,18 +6,21 @@ from collections import OrderedDict
 # ### some globals
 import iglesia
 from radiopadre_client import config, sessions
+from radiopadre_client.default_config import __version__
 
 from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
 
 parser = argparse.ArgumentParser(description="""
-    Manages local or remote Jupyter sessions with radiopadre notebooks.
-    """,
+    run-radiopadre (v{}): manage local or remote Jupyter sessions for radiopadre notebooks.
+    """.format(__version__),
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
-                    help=ff("browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER)."))
+                    help=ff("browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER). "
+                            "OPT can include 'bg' to run the command as a background process, and '*' to run "
+                            "the command with muitple URLs if needed (as opposed to running one command per URL)"))
 parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
@@ -176,7 +179,7 @@ logger.init('radiopadre.client', boring=options.boring or options.non_interactiv
 if options.non_interactive:
     logger.logger.setLevel(logging.ERROR)
 
-message("Welcome to the radiopadre client!", color="GREEN")
+message("Welcome to the radiopadre client version {}!".format(__version__), color="GREEN")
 
 # recent session management: only done for front-end sessions
 manage_last_sessions = not options.remote and not options.inside_container and not options.non_interactive \
