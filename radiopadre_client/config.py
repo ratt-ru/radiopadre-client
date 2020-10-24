@@ -7,7 +7,7 @@ except ImportError:
     import ConfigParser as configparser
 
 import iglesia
-from iglesia.utils import make_dir, message, ff, make_radiopadre_dir
+from iglesia.utils import make_dir, message, ff, make_radiopadre_dir, warning
 from .default_config import DefaultConfig
 
 # const object to use as default value in ArgumentParser. Will be replaced by contents
@@ -95,12 +95,19 @@ NON_PERSISTING_OPTIONS.add("-u")
 
 def _get_config_value(section, key):
     globalval = globals().get(key.upper())
+    value = section[key]
     if globalval is None or isinstance(globalval, six.string_types):
-        return section[key]
+        return value
     elif type(globalval) is bool:
-        return bool(section[key])
+        if value.lower() in {'no', '0', 'false'}:
+            return False
+        elif value.lower() in {'yes', '1', 'true'}:
+            return True
+        else:
+            warning("unrecognized setting {} = {} in config, assuming False".format(key, value))
+            return False
     elif type(globalval) is int:
-        return int(section[key])
+        return int(value)
     else:
         raise TypeError("unsupported type {} for option {}".format(type(globalval), key))
 
