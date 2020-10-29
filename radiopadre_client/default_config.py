@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 import os.path
 
-__version__ = "1.1"
+__version__ = "1.1.0"
 
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
@@ -22,17 +22,17 @@ DefaultConfig = OrderedDict(
     CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
-    DOCKER_IMAGE="osmirnov/radiopadre:1.1",         # change for each release
+    DOCKER_IMAGE="osmirnov/radiopadre:1.1.0",         # change for each release
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
-    CLIENT_INSTALL_BRANCH="b1.1",                   # change for each release
+    CLIENT_INSTALL_BRANCH="b1.1.0",                   # change for each release
     CLIENT_INSTALL_PIP="radiopadre-client",
     SERVER_INSTALL_PATH="~/radiopadre",
     SERVER_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre.git", # empty for pip release
-    SERVER_INSTALL_BRANCH="b1.1",                   # change for each release
+    SERVER_INSTALL_BRANCH="b1.1.0",                   # change for each release
     SERVER_INSTALL_PIP="radiopadre",
     SINGULARITY_IMAGE_DIR="",
     SINGULARITY_AUTO_BUILD=True,
