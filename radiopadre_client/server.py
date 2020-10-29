@@ -357,13 +357,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
                  for nb in LOAD_NOTEBOOK]
 
     if not config.NBCONVERT:
-        for url in urls:
-            message(ff("Browse to URL: {url}"), color="GREEN")
-
         if config.CARTA_BROWSER:
             url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
             message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
             urls.append(url)
+        for url in urls:
+            message(ff("Browse to URL: {url}"), color="GREEN")
+
 
     # now we're ready to start the session
 
