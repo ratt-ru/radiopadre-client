@@ -150,8 +150,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     do_update = config.UPDATE
 
     if config.SKIP_CHECKS:
-        runscript = ff("rs={config.RADIOPADRE_VENV}/bin/run-radiopadre; if [ ! -x $rs ]; then " +
-                       "source {config.RADIOPADRE_VENV}/bin/activate; rs=run-radiopadre; fi; $rs ")
+        runscript = ff("if [ -f {config.RADIOPADRE_VENV}/bin/activate ]; then " +
+                       "source {config.RADIOPADRE_VENV}/bin/activate; fi; run-radiopadre ")
         do_update = False
     else:
         runscript = None

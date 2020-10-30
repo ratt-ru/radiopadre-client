@@ -1,7 +1,8 @@
 from setuptools import setup
 import os
 
-__version__ = "1.0"
+from radiopadre_client.default_config import __version__
+
 build_root = os.path.dirname(__file__)
 
 install_requires = ['six', 'psutil']
