@@ -28,6 +28,8 @@ if __release__:
 else:
     __image_version__ = __version__
 
+__version__ = "1.1.0"
+
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
     SKIP_CHECKS=False,
