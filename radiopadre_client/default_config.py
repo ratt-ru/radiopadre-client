@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+
 # This defines default values for the config settings, which will also be propagated into the
 # ArgumentParser, and saved to/loaded from {config.CONFIG_FILE}
 
@@ -10,8 +11,22 @@ from collections import OrderedDict
 # registered default is None, or a "--no-option" argument is the registered default is 0
 
 import os.path
+import re
 
-__version__ = "1.1.0"
+# change this to a proper patch release number for a real release
+__version__ = "1.1.x"
+
+# if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
+__release__ = re.match("^(\d+)\.(\d+)\.(d+)$", __version__)
+
+# git tag or branch to use: vXXX for releases and bXXX for devs
+__tag_prefix__ = "v" if __release__ else "b"
+
+# release x.y.z pulls x.y.latest image
+if __release__:
+    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+else:
+    __image_version__ = __version__
 
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
@@ -22,17 +37,17 @@ DefaultConfig = OrderedDict(
     CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
-    DOCKER_IMAGE="osmirnov/radiopadre:1.1.0",         # change for each release
+    DOCKER_IMAGE="osmirnov/radiopadre:" + __image_version__,         # change for each release
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
-    CLIENT_INSTALL_BRANCH="b1.1.0",                   # change for each release
+    CLIENT_INSTALL_BRANCH=__tag_prefix__ + __version__,                   # change for each release
     CLIENT_INSTALL_PIP="radiopadre-client",
     SERVER_INSTALL_PATH="~/radiopadre",
     SERVER_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre.git", # empty for pip release
-    SERVER_INSTALL_BRANCH="b1.1.0",                   # change for each release
+    SERVER_INSTALL_BRANCH=__tag_prefix__ + __version__,                   # change for each release
     SERVER_INSTALL_PIP="radiopadre",
     SINGULARITY_IMAGE_DIR="",
     SINGULARITY_AUTO_BUILD=True,

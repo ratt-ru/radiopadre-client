@@ -129,7 +129,7 @@ def update_installation(enable_pull=False):
     docker_image = config.DOCKER_IMAGE
     if check_output(ff("docker image inspect {docker_image}")) is None:
         if not enable_pull:
-            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update perhaps?"))
+            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update or --auto-init perhaps?"))
         message(ff("  Radiopadre docker image {docker_image} not found locally"))
     else:
         message(ff("  Using radiopadre docker image {docker_image}"))
