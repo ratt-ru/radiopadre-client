@@ -14,13 +14,13 @@ import os.path
 import re
 
 # change this to a proper patch release number for a real release
-__version__ = "1.1.x"
+__version__ = "1.1.1"
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
-__release__ = re.match("^(\d+)\.(\d+)\.(d+)$", __version__)
+__release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
 
 # git tag or branch to use: vXXX for releases and bXXX for devs
-__tag_prefix__ = "v" if __release__ else "b"
+__tag_prefix__ = "b" # "v" if __release__ else "b"
 
 # release x.y.z pulls x.y.latest image
 if __release__:
