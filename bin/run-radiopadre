@@ -6,15 +6,15 @@ from collections import OrderedDict
 # ### some globals
 import iglesia
 from radiopadre_client import config, sessions
-from radiopadre_client.default_config import __version__
+from radiopadre_client.default_config import __version__, __release__, __tag_prefix__
 
 from iglesia.utils import message, debug, bye, ff, INPUT
 
 from iglesia import logger
 
 parser = argparse.ArgumentParser(description="""
-    run-radiopadre (v{}): manage local or remote Jupyter sessions for radiopadre notebooks.
-    """.format(__version__),
+    run-radiopadre ({}{}): manage local or remote Jupyter sessions for radiopadre notebooks.
+    """.format(__tag_prefix__, __version__),
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
@@ -179,7 +179,7 @@ logger.init('radiopadre.client', boring=options.boring or options.non_interactiv
 if options.non_interactive:
     logger.logger.setLevel(logging.ERROR)
 
-message("Welcome to the radiopadre client version {}!".format(__version__), color="GREEN")
+message("Welcome to the radiopadre client {} {}!".format("release" if __release__ else "dev version", __version__), color="GREEN")
 
 # recent session management: only done for front-end sessions
 manage_last_sessions = not options.remote and not options.inside_container and not options.non_interactive \
