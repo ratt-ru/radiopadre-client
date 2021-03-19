@@ -4,6 +4,7 @@ from . import config
 
 import iglesia
 from iglesia.utils import DEVNULL, message, warning, error, debug, bye, find_unused_port, Poller, ff, INPUT
+from iglesia.helpers import NUM_PORTS
 
 from radiopadre_client.server import run_browser
 
@@ -385,8 +386,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     match = re.match(ff(".*Selected ports: {re_ports}[\s]*$"), line)
                     if match:
                         ports = list(map(int, match.groups()))
-                        remote_ports = ports[:5]
-                        local_ports = ports[5:]
+                        remote_ports = ports[:NUM_PORTS]
+                        local_ports = ports[NUM_PORTS:]
                         if config.VERBOSE:
                             message("Detected ports {}:{}:{}:{}:{} -> {}:{}:{}:{}:{}".format(*ports))
                         ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", config.REMOTE_HOST]

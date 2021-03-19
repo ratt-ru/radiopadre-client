@@ -1,4 +1,4 @@
-import os, sys, subprocess, atexit, traceback, psutil
+import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil
 
 import iglesia
 from iglesia import PadreError
@@ -8,7 +8,9 @@ from . import logger
 
 _child_processes = []
 
-def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, run_carta=True):
+NUM_PORTS = 6
+
+def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True, serverpem=None):
     """Starts up helper processes, if they are not already running"""
     # set ports, else allocate ports
     selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
@@ -16,7 +18,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
         selected_ports = list(map(int, selected_ports.strip().split(":")))
         debug(ff("  ports configured as {selected_ports}"))
     else:
-        selected_ports = find_unused_ports(5)
+        selected_ports = find_unused_ports(NUM_PORTS)
         debug(ff("  ports selected: {selected_ports}"))
 
     userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
@@ -30,7 +32,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
     nbconvert = bool(os.environ.get('RADIOPADRE_NBCONVERT'))
     iglesia.set_userside_ports(selected_ports if nbconvert else userside_ports)
 
-    jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
+    jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports
 
     # JS9 init
     iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', ff("{sys.prefix}/js9-www"))
@@ -56,8 +58,33 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
     #
     global _child_processes
 
+    # run wetty
+    if serverpem:
+        wetty = find_which("wetty")
+        if not wetty:
+            raise PadreError("unable to find wetty")
+        session_id = os.environ.get('RADIOPADRE_SESSION_ID')
+        wettycfg = tempfile.NamedTemporaryFile()
+        wettycfg.write(ff("""{
+                'server': { 'base': '/{session_id}}/wetty' },
+                'ssl': { 'key': '{serverpem}', 'cert': '{serverpem}' },
+            }
+        """))
+        wettycfg.flush()
+        message(ff("Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}"))
+        _child_processes.append(subprocess.Popen([wetty,
+                "--conf", wettycfg.name, 
+                "--ssh-host", "localhost",
+                "--ssh-port", "22",
+                "--ssh-user", getpass.getuser(),
+                "--ssh-auth", "publickey,password",
+                "--port", str(wetty_port),
+                "--allow-iframe",
+            ]))
+        message("  started as PID {}".format(_child_processes[-1].pid))
+
     # run JS9 helper
-    if run_js9:
+    if interactive:
         if 'RADIOPADRE_JS9HELPER_PID' not in os.environ:
             try:
                 js9helper = iglesia.JS9_DIR + "/js9Helper.js"
@@ -109,7 +136,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, run_js9=True, ru
         else:
             debug("HTTP server should be running (pid {})".format(os.environ["RADIOPADRE_HTTPSERVER_PID"]))
 
-    if run_carta:
+    if interactive:
         if 'RADIOPADRE_CARTA_PID' not in os.environ:
             # start CARTA backend
             for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{sys.prefix}/carta/carta"), \

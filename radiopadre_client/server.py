@@ -139,15 +139,15 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     if attaching_to_ports:
         # session_id and container_name already set above. Ports read from session file and printed to the console
         # for the benefit of the remote end (if any)
-        jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports = attaching_to_ports[:5]
-        userside_ports = attaching_to_ports[5:]
+        jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports = attaching_to_ports[:config.NUM_PORTS]
+        userside_ports = attaching_to_ports[NUM_PORTS:]
     # INSIDE CONTAINER: internal ports are fixed, userside ports are passed in, name is passed in, session ID is read from file
     elif config.INSIDE_CONTAINER_PORTS:
         message("started the radiopadre container")
         container_name = os.environ['RADIOPADRE_CONTAINER_NAME']
         config.SESSION_ID = os.environ['RADIOPADRE_SESSION_ID']
-        selected_ports = config.INSIDE_CONTAINER_PORTS[:5]
-        userside_ports = config.INSIDE_CONTAINER_PORTS[5:]
+        selected_ports = config.INSIDE_CONTAINER_PORTS[:NUM_PORTS]
+        userside_ports = config.INSIDE_CONTAINER_PORTS[NUM_PORTS:]
         message("  Inside container, using ports {}".format(" ".join(map(str, config.INSIDE_CONTAINER_PORTS))))
     # NORMAL MODE: find unused internal ports. Userside ports are passed from remote if in remote mode, or same in local mode
     else:
@@ -175,8 +175,9 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             backend.save_session_info(container_name, selected_ports, userside_ports)
 
     global userside_jupyter_port  # needed for it to be visible to ff() from a list comprehension
-    jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
-    userside_jupyter_port, userside_helper_port, userside_http_port, userside_carta_port, userside_carta_ws_port = userside_ports
+    jupyter_port, helper_port, http_port, carta_port, carta_ws_por, wetty_port = selected_ports
+    userside_jupyter_port, userside_helper_port, userside_http_port, \
+        userside_carta_port, userside_carta_ws_port, userside_wetty_port = userside_ports
 
     # print port assignments to console -- in remote mode, remote script will parse this out
     if not config.INSIDE_CONTAINER_PORTS:

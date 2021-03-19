@@ -14,7 +14,7 @@ import os.path
 import re
 
 # change this to a proper patch release number for a real release
-__version__ = "1.1.2"
+__version__ = "1.2.pre1"
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
 __release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)

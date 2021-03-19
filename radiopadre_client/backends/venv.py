@@ -1,5 +1,5 @@
 import sys, os, os.path, subprocess, time
-from iglesia.utils import message, warning, error, debug, shell, bye, ff, INPUT, check_output
+from iglesia.utils import message, warning, error, debug, shell, bye, ff, INPUT, check_output, find_which
 
 from radiopadre_client import config
 from radiopadre_client.server import run_browser
@@ -165,8 +165,13 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", ff("{config.RADIOPADRE_VENV}/js9-www"))
 
+    # get the server.pem file for SSL connections
+    serverpem = ff("{config.RADIOPADRE_VENV}/share/certs/radiopadre-server.pem")
+    if not os.path.exists(serverpem):
+        serverpem = None
+
     iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0,
-                         run_js9=not config.NBCONVERT, run_carta=not config.NBCONVERT)
+                         interactive=not config.NBCONVERT, serverpem=serverpem)
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
