@@ -148,7 +148,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
 
     if config.SERVER_PEM:
-        JUPYTER_OPTS += ["--certfile", config.SERVER_PEM, "--keyfile", config.SERVER_PEM]
+        JUPYTER_OPTS += [f"--certfile={config.SERVER_PEM}", f"--keyfile={config.SERVER_PEM}"]
 
     # if LOAD_NOTEBOOK:
     #     JUPYTER_OPTS.append(LOAD_NOTEBOOK if type(LOAD_NOTEBOOK) is str else LOAD_NOTEBOOK[0])

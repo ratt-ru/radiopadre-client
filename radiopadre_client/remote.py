@@ -308,7 +308,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 scp_to_remote(copy_initial_notebook, notebook_path)
             notebook_path = nbpath
 
-    # allocate 5 suggested ports (in resume mode, this will be overridden by the session settings)
+    # allocate suggested ports (in resume mode, this will be overridden by the session settings)
     starting_port = 10000 + os.getuid() * 3
     ports = []
     for _ in range(NUM_PORTS):
@@ -387,14 +387,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         config.SESSION_ID = match.group(1)
                         continue
                     # check for notebook port, and launch second ssh when we have it
-                    re_ports = ":".join(["([\\d]+)"]*10)   # form up regex for ddd:ddd:...
+                    re_ports = ":".join(["([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
                     match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
                     if match:
                         ports = list(map(int, match.groups()))
                         remote_ports = ports[:NUM_PORTS]
                         local_ports = ports[NUM_PORTS:]
                         if config.VERBOSE:
-                            message("Detected ports {}:{}:{}:{}:{} -> {}:{}:{}:{}:{}".format(*ports))
+                            message(f"Detected ports {':'.join(map(str, local_ports))} -> {':'.join(map(str, remote_ports))}")
                         ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", config.REMOTE_HOST]
                         for loc, rem in zip(local_ports, remote_ports):
                             ssh2_args += ["-L", "localhost:{}:localhost:{}".format(loc, rem)]
