@@ -1,33 +1,35 @@
-import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil
+import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil, stat
 
 import iglesia
 from iglesia import PadreError
-from .utils import find_which, chdir, find_unused_ports, ff, DEVZERO, DEVNULL, \
+from .utils import find_which, chdir, find_unused_ports, DEVZERO, DEVNULL, \
     message, warning, error, debug
 from . import logger
 
 _child_processes = []
 
+_child_resources = []
+
 NUM_PORTS = 6
 
-def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True, serverpem=None):
+def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True, certificate=None):
     """Starts up helper processes, if they are not already running"""
     # set ports, else allocate ports
     selected_ports = os.environ.get('RADIOPADRE_SELECTED_PORTS')
     if selected_ports:
         selected_ports = list(map(int, selected_ports.strip().split(":")))
-        debug(ff("  ports configured as {selected_ports}"))
+        debug(f"  ports configured as {selected_ports}")
     else:
         selected_ports = find_unused_ports(NUM_PORTS)
-        debug(ff("  ports selected: {selected_ports}"))
+        debug(f"  ports selected: {selected_ports}")
 
     userside_ports = os.environ.get('RADIOPADRE_USERSIDE_PORTS')
     if userside_ports:
         userside_ports = list(map(int, userside_ports.strip().split(":")))
-        debug(ff("  userside ports configured as {userside_ports}"))
+        debug(f"  userside ports configured as {userside_ports}")
     else:
         userside_ports = selected_ports
-        debug(ff("  userside ports are the same"))
+        debug(f"  userside ports are the same")
 
     nbconvert = bool(os.environ.get('RADIOPADRE_NBCONVERT'))
     iglesia.set_userside_ports(selected_ports if nbconvert else userside_ports)
@@ -35,12 +37,12 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports
 
     # JS9 init
-    iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', ff("{sys.prefix}/js9-www"))
+    iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', f"{sys.prefix}/js9-www")
 
     # accumulates rewrite rules for HTTP server
     # add radiopadre/html/ to rewrite as /radiopadre-www/
-    http_rewrites = [ff("/radiopadre-www/={radiopadre_base}/radiopadre/html/"),
-                     ff("/js9-www/={iglesia.JS9_DIR}/")]
+    http_rewrites = [f"/radiopadre-www/={radiopadre_base}/radiopadre/html/",
+                     f"/js9-www/={iglesia.JS9_DIR}/"]
 
     # are we running inside a container?
     in_container = bool(os.environ.get('RADIOPADRE_CONTAINER_NAME'))
@@ -59,19 +61,21 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     global _child_processes
 
     # run wetty
-    if serverpem:
+    if certificate:
         wetty = find_which("wetty")
         if not wetty:
             raise PadreError("unable to find wetty")
         session_id = os.environ.get('RADIOPADRE_SESSION_ID')
-        wettycfg = tempfile.NamedTemporaryFile()
-        wettycfg.write(ff("""{
-                'server': { 'base': '/{session_id}}/wetty' },
-                'ssl': { 'key': '{serverpem}', 'cert': '{serverpem}' },
-            }
-        """))
+        wettycfg = tempfile.NamedTemporaryFile("wt")
+        os.chmod(wettycfg.name, stat.S_IRUSR)
+        wettycfg.write(f"""{{
+                'server': {{ 'base': '/{session_id}/wetty' }},
+                'ssl': {{ 'key': '{certificate}', 'cert': '{certificate}' }},
+            }}
+        """)
         wettycfg.flush()
-        message(ff("Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}"))
+        _child_resources.append(wettycfg)
+        message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
         _child_processes.append(subprocess.Popen([wetty,
                 "--conf", wettycfg.name, 
                 "--ssh-host", "localhost",
@@ -90,17 +94,17 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 js9helper = iglesia.JS9_DIR + "/js9Helper.js"
 
                 if not os.path.exists(iglesia.JS9_DIR):
-                    raise PadreError(ff("{iglesia.JS9_DIR} does not exist"))
+                    raise PadreError(f"{iglesia.JS9_DIR} does not exist")
                 if not os.path.exists(js9helper):
-                    raise PadreError(ff("{js9helper} does not exist"))
+                    raise PadreError(f"{js9helper} does not exist")
 
                 js9prefs = iglesia.SESSION_DIR + "/js9prefs.js"
                 if not in_container:
                     # create JS9 settings file (in container mode, this is created and mounted inside container already)
-                    open(js9prefs, "w").write(ff("JS9Prefs.globalOpts.helperPort = {iglesia.JS9HELPER_PORT};\n"))
-                    debug(ff("  writing {js9prefs} with helperPort={iglesia.JS9HELPER_PORT}"))
+                    open(js9prefs, "w").write(f"JS9Prefs.globalOpts.helperPort = {iglesia.JS9HELPER_PORT};\n")
+                    debug(f"  writing {js9prefs} with helperPort={iglesia.JS9HELPER_PORT}")
 
-                message(ff("Starting {js9helper} on port {helper_port} in {iglesia.SHADOW_ROOTDIR}"))
+                message(f"Starting {js9helper} on port {helper_port} in {iglesia.SHADOW_ROOTDIR}")
                 nodejs = find_which("nodejs") or find_which("node")
                 if not nodejs:
                     raise PadreError("unable to find nodejs or node -- can't run js9helper.")
@@ -108,13 +112,13 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                     with chdir(iglesia.SHADOW_ROOTDIR):
                         _child_processes.append(
                             subprocess.Popen([nodejs.strip(), js9helper,
-                                ff('{{"helperPort": {helper_port}, "debug": {iglesia.VERBOSE}, ') +
-                                ff('"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}')],
+                                f'{{"helperPort": {helper_port}, "debug": {iglesia.VERBOSE}, ' +
+                                f'"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}'],
                                              stdin=DEVZERO, stdout=stdout, stderr=stderr))
                         os.environ['RADIOPADRE_JS9HELPER_PID'] = str(_child_processes[-1].pid)
                         message("  started as PID {}".format(_child_processes[-1].pid))
                 except Exception as exc:
-                    error(ff("error running {nodejs} {js9helper}: {exc}"))
+                    error(f"error running {nodejs} {js9helper}: {exc}")
             except PadreError:
                 pass
         else:
@@ -122,13 +126,14 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
     if run_http:
         if 'RADIOPADRE_HTTPSERVER_PID' not in os.environ:
-            message(ff("Starting HTTP server process in {iglesia.SHADOW_HOME} on port {http_port}"))
+            message(f"Starting HTTP server process in {iglesia.SHADOW_HOME} on port {http_port}")
             server = find_which("radiopadre-http-server.py")
             if server:
+                server_opts = [server, str(http_port)] + http_rewrites
+                if certificate:
+                    server_opts.append(certificate)
                 with chdir(iglesia.SHADOW_HOME):
-                    _child_processes.append(
-                        subprocess.Popen([server, str(http_port)] + http_rewrites,
-                                         stdin=DEVZERO,  stdout=stdout, stderr=stderr))
+                    _child_processes.append(subprocess.Popen(server_opts, stdin=DEVZERO,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(_child_processes[-1].pid)
                     message("  started as PID {}".format(_child_processes[-1].pid))
             else:
@@ -139,10 +144,10 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     if interactive:
         if 'RADIOPADRE_CARTA_PID' not in os.environ:
             # start CARTA backend
-            for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), ff("{sys.prefix}/carta/carta"), \
+            for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), f"{sys.prefix}/carta/carta", \
                               find_which('carta'):
                 # if carta_exec:
-                #     subprocess.call(ff("ls -l /.radiopadre/venv"), shell=True)
+                #     subprocess.call(f"ls -l /.radiopadre/venv", shell=True)
                 #     message("{}: {} {}".format(carta_exec, os.path.exists(carta_exec), os.access(carta_exec, os.X_OK)))
                 if carta_exec and os.access(carta_exec, os.X_OK):
                     break
@@ -150,15 +155,15 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 carta_exec = None
 
             if not carta_exec or not os.path.exists(carta_exec):
-                warning(ff("CARTA backend not found, omitting ({sys.prefix}/carta/carta)"))
+                warning(f"CARTA backend not found, omitting ({sys.prefix}/carta/carta)")
             else:
                 carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
-                message(ff("Running CARTA backend {carta_exec} (in dir {carta_dir})"))
+                message(f"Running CARTA backend {carta_exec} (in dir {carta_dir})")
                 with chdir(carta_dir):
                     _child_processes.append(
                         subprocess.Popen([carta_exec, "--remote",
-                                            ff("--root={iglesia.ABSROOTDIR}"), ff("--folder={iglesia.ABSROOTDIR}"),
-                                            ff("--port={carta_ws_port}"), ff("--fport={carta_port}")],
+                                            f"--root={iglesia.ABSROOTDIR}", f"--folder={iglesia.ABSROOTDIR}",
+                                            f"--port={carta_ws_port}", f"--fport={carta_port}"],
                                          stdin=subprocess.PIPE,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
                     ## doesn't exit cleanly, let it be eaten rather
@@ -180,7 +185,7 @@ def _exit_carta(proc):
             message("CARTA backend already exited with code {}".format(proc.returncode))
     except Exception:
         err = traceback.format_exc()
-        error(ff("Exception in _exit_carta: {err}"))
+        error(f"Exception in _exit_carta: {err}")
 
 
 def register_helpers(*procs):
@@ -189,7 +194,8 @@ def register_helpers(*procs):
     _child_processes += list(procs)
 
 def kill_helpers():
-    global _child_processes
+    global _child_processes, _child_resources
+    _child_resources = []
     try:
         if _child_processes:
             message("Terminating remaining child processes ({})".format(
@@ -206,7 +212,7 @@ def kill_helpers():
             debug("No child processes remaining")
     except Exception:
         err = traceback.format_exc()
-        error(ff("Exception in kill_helpers: {err}"))
+        error(f"Exception in kill_helpers: {err}")
 
 ## This was not brutal enough
 # atexit.register(kill_helpers)

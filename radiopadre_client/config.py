@@ -7,7 +7,7 @@ except ImportError:
     import ConfigParser as configparser
 
 import iglesia
-from iglesia.utils import make_dir, message, ff, make_radiopadre_dir, warning
+from iglesia.utils import make_dir, message, make_radiopadre_dir, warning
 from .default_config import DefaultConfig
 
 # const object to use as default value in ArgumentParser. Will be replaced by contents
@@ -26,6 +26,7 @@ CONTAINER_DETACH = False
 CONTAINER_PERSIST = False
 CONTAINER_DEV = False
 GRIM_REAPER = True
+SSL = True
 BACKEND = []
 UNAME = subprocess.check_output("uname").decode().strip()
 USER = os.environ['USER']
@@ -85,6 +86,10 @@ INSIDE_CONTAINER_PORTS = False
 CONFIG_FILE = os.path.join(iglesia.RADIOPADRE_DIR, "radiopadre-client.config")
 
 COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
+
+# SSL certificate. Set to None when config.SSL is False, indicating insecure mode 
+SERVER_PEM_BASENAME = ".radiopadre.pem"
+SERVER_PEM = os.path.join(iglesia.RADIOPADRE_DIR, SERVER_PEM_BASENAME)
 
 _DEFAULT_KEYS = None
 _CMDLINE_DEFAULTS = {}
@@ -148,11 +153,11 @@ def get_options_list(config_dict, quote=True):
         opt = key.lower().replace("_", "-")
         #if value != DefaultConfig.get(key):
         if value is True:
-            args.append(ff("--{opt}"))
+            args.append(f"--{opt}")
         elif value is not False and value is not None:
             if type(value) is list:
                 value = ",".join(map(str, value))
-            args += [ff("--{opt}"), ff("'{value}'") if quote else str(value)]
+            args += [f"--{opt}", f"'{value}'" if quote else str(value)]
     return args
 
 def add_to_parser(parser):
@@ -166,25 +171,25 @@ def add_to_parser(parser):
         # no command-line switch for this option? Add it
         if default_cmdline is None:
             parser.add_argument("--" + optname, type=type(default_conf), metavar=key,
-                                help=ff("overrides the {key} config setting."))
+                                help=f"overrides the {key} config setting.")
             _CMDLINE_DEFAULTS[key] = default_conf
         # else check for opposite-value switch
         else:
             if type(DefaultConfig[key]) is bool and "--" + optname not in NON_PERSISTING_OPTIONS:
                 if default_cmdline is 0:
                     parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
-                                        help=ff("opposite of --{optname}."))
+                                        help=f"opposite of --{optname}.")
                 elif default_cmdline is 1:
                     parser.add_argument("--" + optname, action="store_true",
-                                        help=ff("opposite of --no-{optname}."))
+                                        help=f"opposite of --no-{optname}.")
             _CMDLINE_DEFAULTS[key] = default_cmdline
 
 def init_specific_options(remote_host, notebook_path, options):
     global _DEFAULT_KEYS
     global _CMDLINE_DEFAULTS
     parser = configparser.ConfigParser()
-    hostname = ff("{remote_host}") if remote_host else "local sesssion"
-    session = ff("{hostname}:{notebook_path}")
+    hostname = f"{remote_host}" if remote_host else "local sesssion"
+    session = f"{hostname}:{notebook_path}"
     config_exists = os.path.exists(CONFIG_FILE)
     use_config_files = not options.remote and not options.inside_container
 
@@ -195,13 +200,13 @@ def init_specific_options(remote_host, notebook_path, options):
             if parser.has_section(sect_key):
                 section = dict(parser.items(sect_key))
                 if section:
-                    message(ff("  loading settings from {CONFIG_FILE} [{sect_key}]"))
+                    message(f"  loading settings from {CONFIG_FILE} [{sect_key}]")
                     for key in _DEFAULT_KEYS:
                         lkey = key.lower()
                         if lkey in section:
                             value = _get_config_value(section, lkey)
                             if value != globals()[key]:
-                                message(ff("    {key} = {value}"))
+                                message(f"    {key} = {value}")
                                 globals()[key] = value
 
     # update using command-line options
@@ -222,13 +227,13 @@ def init_specific_options(remote_host, notebook_path, options):
                     if value is not _CMDLINE_DEFAULTS.get(key) and DefaultConfig.get(key) is not None \
                                 and opt_switch not in NON_PERSISTING_OPTIONS:
                         command_line_updated.append(key)
-                    message(ff("  command line specifies {key} = {value}"))
+                    message(f"  command line specifies {key} = {value}")
                 globals()[key] = value
 
     # save new config
     if use_config_files and command_line_updated:
         if options.save_config_host:
-            message(ff("  saving command-line settings to {CONFIG_FILE} [{hostname}]"))
+            message(f"  saving command-line settings to {CONFIG_FILE} [{hostname}]")
             if not parser.has_section(hostname):
                 parser.add_section(hostname)
             for key in command_line_updated:
@@ -236,7 +241,7 @@ def init_specific_options(remote_host, notebook_path, options):
         if options.save_config_session:
             if not parser.has_section(session):
                 parser.add_section(session)
-            message(ff("  saving command-line settings to {CONFIG_FILE} [{session}]"))
+            message(f"  saving command-line settings to {CONFIG_FILE} [{session}]")
             for key in command_line_updated:
                 parser.set(session, key, _set_config_value(key))
 
@@ -244,7 +249,7 @@ def init_specific_options(remote_host, notebook_path, options):
             radiopadre_dir = make_radiopadre_dir()
             with open(CONFIG_FILE + ".new", "w") as configfile:
                 if not config_exists:
-                    message(ff("  creating new config file {CONFIG_FILE}"))
+                    message(f"  creating new config file {CONFIG_FILE}")
                 if not parser.has_section('global defaults'):
                     configfile.write("[global defaults]\n# defaults that apply to all sessions go here\n\n")
 
@@ -261,7 +266,7 @@ def init_specific_options(remote_host, notebook_path, options):
                 os.rename(CONFIG_FILE, CONFIG_FILE + ".old")
             os.rename(CONFIG_FILE + ".new", CONFIG_FILE)
 
-            message(ff("saved updated config to {CONFIG_FILE}"))
+            message(f"saved updated config to {CONFIG_FILE}")
 
 
 if _DEFAULT_KEYS is None:

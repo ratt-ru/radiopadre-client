@@ -34,13 +34,6 @@ def bye(x, code=1):
     message(x, level=logging.ERROR)
     sys.exit(code)
 
-def ff(fstring):
-    """Emulates Python 3.6+ f-strings"""
-    fr = sys._getframe(1)
-    kw = fr.f_globals.copy()
-    kw.update(fr.f_locals)
-    return fstring.format(**kw)
-
 def shell(cmd, ignore_fail=False):
     """Runs shell command. If ignore_fail is set, returns None on failure"""
     try:

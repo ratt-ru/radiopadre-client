@@ -54,6 +54,7 @@ DefaultConfig = OrderedDict(
     IGNORE_UPDATE_ERRORS=False,
     VERBOSE=0,
     LOG=False,
+    SSL=True,
     TIMESTAMPS=False,
     RADIOPADRE_VENV="{RADIOPADRE_DIR}/venv",
     VENV_IGNORE_JS9=False,

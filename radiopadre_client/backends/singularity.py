@@ -1,7 +1,7 @@
 import os, subprocess, sys, time, re, calendar
 import datetime
 
-from iglesia.utils import message, warning, error, bye, make_dir, make_radiopadre_dir, shell, DEVNULL, ff, INPUT, check_output
+from iglesia.utils import message, warning, error, bye, make_dir, make_radiopadre_dir, shell, DEVNULL, INPUT, check_output
 from radiopadre_client import config
 
 singularity = None
@@ -51,15 +51,15 @@ def update_installation(rebuild=False, docker_pull=True):
     # clearly true if no image
     if not os.path.exists(singularity_image):
         if config.SINGULARITY_AUTO_BUILD:
-            message(ff("Singularity image {singularity_image} does not exist"))
+            message(f"Singularity image {singularity_image} does not exist")
             build_image = True
         else:
-            error(ff("Singularity image {singularity_image} does not exist, and auto-build is disabled"))
-            bye(ff("Re-run with --singularity-auto-build to proceed"))
+            error(f"Singularity image {singularity_image} does not exist, and auto-build is disabled")
+            bye(f"Re-run with --singularity-auto-build to proceed")
     # also true if rebuild forced by flags or config or command line
     elif rebuild or config.SINGULARITY_REBUILD:
         config.SINGULARITY_AUTO_BUILD = build_image = True
-        message(ff("--singularity-rebuild specified, removing singularity image {singularity_image}"))
+        message(f"--singularity-rebuild specified, removing singularity image {singularity_image}")
 
     # pull down docker image first
     if has_docker and docker_pull:
@@ -70,8 +70,8 @@ def update_installation(rebuild=False, docker_pull=True):
         if has_docker:
             # check timestamp of docker image
             docker_image_time = None
-            output = check_output(ff("{has_docker} image inspect {docker_image} -f '{{{{ .Created }}}}'")).strip()
-            message(ff("  docker image timestamp is {output}"))
+            output = check_output(f"{has_docker} image inspect {docker_image} -f '{{{{ .Created }}}}'").strip()
+            message(f"  docker image timestamp is {output}")
             # in Python 3.7 we have datetime.fromisoformat(date_string), but for now we muddle:
             match = output and re.match("(^.*)[.](\d+)Z", output)
             if match:
@@ -83,23 +83,23 @@ def update_installation(rebuild=False, docker_pull=True):
             sing_image_time = datetime.datetime.utcfromtimestamp(os.path.getmtime(singularity_image))
             message("  singularity image timestamp is {}".format(sing_image_time.isoformat()))
             if docker_image_time is None:
-                warning(ff("can't parse docker image timestamp '{output}', rebuilding {singularity_image} just in case"))
+                warning(f"can't parse docker image timestamp '{output}', rebuilding {singularity_image} just in case")
                 build_image = True
             elif docker_image_time > sing_image_time:
-                warning(ff("rebuilding outdated singularity image {singularity_image}"))
+                warning(f"rebuilding outdated singularity image {singularity_image}")
                 build_image = True
             else:
-                message(ff("singularity image {singularity_image} is up-to-date"))
+                message(f"singularity image {singularity_image} is up-to-date")
         else:
-            message(ff("--update specified but no docker access, assuming {singularity_image} is up-to-date"))
+            message(f"--update specified but no docker access, assuming {singularity_image} is up-to-date")
     # now build if needed
     if build_image:
-        warning(ff("Rebuilding singularity image from docker://{docker_image}"))
-        warning(ff("  (This may take a few minutes....)"))
+        warning(f"Rebuilding singularity image from docker://{docker_image}")
+        warning(f"  (This may take a few minutes....)")
         singularity_image_new = singularity_image + ".new.img"
         if os.path.exists(singularity_image_new):
             os.unlink(singularity_image_new)
-        cmd = [singularity, "build", singularity_image_new, ff("docker://{docker_image}")]
+        cmd = [singularity, "build", singularity_image_new, f"docker://{docker_image}"]
         message("running " + " ".join(cmd))
         try:
             subprocess.check_call(cmd)
@@ -113,10 +113,10 @@ def update_installation(rebuild=False, docker_pull=True):
             else:
                 raise
         # move old image
-        message(ff("Build successful, renaming to {singularity_image}"))
+        message(f"Build successful, renaming to {singularity_image}")
         os.rename(singularity_image_new, singularity_image)
     else:
-        message(ff("Using existing radiopadre singularity image {singularity_image}"))
+        message(f"Using existing radiopadre singularity image {singularity_image}")
 
     # not supported with Singularity
     config.CONTAINER_PERSIST = False
@@ -131,7 +131,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
-    # message(ff("Container name: {container_name}"))  # remote script will parse it
+    # message(f"Container name: {container_name}")  # remote script will parse it
 
     os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
     os.environ["XDG_RUNTIME_DIR"] = ""
@@ -200,4 +200,4 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
 def kill_container(name):
     singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-    shell(ff("{singularity} instance.stop {singularity_image} {name}"))
+    shell(f"{singularity} instance.stop {singularity_image} {name}")

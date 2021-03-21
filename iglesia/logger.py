@@ -113,9 +113,9 @@ def enable_logfile(logtype, verbose=False):
     global logfile, logfile_handler
 
     radiopadre_dir = make_radiopadre_dir()
-    make_dir(ff("{radiopadre_dir}/logs"))
+    make_dir(f"{radiopadre_dir}/logs")
     datetime = time.strftime("%Y%m%d%H%M%S")
-    logname = os.path.expanduser(ff("{radiopadre_dir}/logs/log-{logtype}-{datetime}.txt"))
+    logname = os.path.expanduser(f"{radiopadre_dir}/logs/log-{logtype}-{datetime}.txt")
     logfile = open(logname, 'wt')
     logfile_handler = logging.StreamHandler(logfile)
     logfile_handler.setFormatter(logging.Formatter(
@@ -125,10 +125,10 @@ def enable_logfile(logtype, verbose=False):
     atexit.register(flush)
 
     if verbose:
-        logger.info(ff("writing session log to {logname}"))
+        logger.info(f"writing session log to {logname}")
 
     # clear most recent log files
-    recent_logs = sorted(glob.glob(ff("{radiopadre_dir}/logs/log-{logtype}-*.txt")))
+    recent_logs = sorted(glob.glob(f"{radiopadre_dir}/logs/log-{logtype}-*.txt"))
     if len(recent_logs) > NUM_RECENT_LOGS:
         delete_logs = recent_logs[:-NUM_RECENT_LOGS]
         if verbose:
@@ -138,7 +138,7 @@ def enable_logfile(logtype, verbose=False):
                 os.unlink(oldlog)
             except Exception as exc:
                 if verbose:
-                    logger.warning(ff("  failed to delete {oldlog}: {exc}"))
+                    logger.warning(f"  failed to delete {oldlog}: {exc}")
 
     return logfile, logname
 

@@ -3,7 +3,7 @@ import os, sys, subprocess, re, time, traceback
 from . import config
 
 import iglesia
-from iglesia.utils import DEVNULL, message, warning, error, debug, bye, find_unused_port, Poller, ff, INPUT
+from iglesia.utils import DEVNULL, message, warning, error, debug, bye, find_unused_port, Poller, INPUT
 from iglesia.helpers import NUM_PORTS
 
 from radiopadre_client.server import run_browser
@@ -23,7 +23,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
 
     # master ssh connection, to be closed when we exit
-    message(ff("Opening ssh connection to {config.REMOTE_HOST}. You may be prompted for your password."))
+    message(f"Opening ssh connection to {config.REMOTE_HOST}. You may be prompted for your password.")
     debug("  {}".format(" ".join(SSH_OPTS)))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
 
@@ -35,9 +35,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         Prints a "help yourself" message and exits
         """
         message("{}".format(problem))
-        message(ff("Please ssh {config.REMOTE_HOST} and sort it out yourself, then rerun this script"))
+        message(f"Please ssh {config.REMOTE_HOST} and sort it out yourself, then rerun this script")
         if suggestion:
-            message(ff("({suggestion})"))
+            message(f"({suggestion})")
         sys.exit(1)
 
     def ssh_remote(command, fail_retcode=None, stderr=DEVNULL):
@@ -50,7 +50,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
-            message(ff("ssh {command} failed with exit code {exc.returncode}"))
+            message(f"ssh {command} failed with exit code {exc.returncode}")
             raise
 
     def ssh_remote_v(command, fail_retcode=None):
@@ -66,7 +66,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
-            message(ff("ssh {command} failed with exit code {exc.returncode}"))
+            message(f"ssh {command} failed with exit code {exc.returncode}")
             raise
 
     def scp_to_remote(path, remote_path):
@@ -107,7 +107,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # Check for various remote bits
     if config.VERBOSE and not config.SKIP_CHECKS:
-        message(ff("Checking installation on {config.REMOTE_HOST}."))
+        message(f"Checking installation on {config.REMOTE_HOST}.")
 
     has_git = check_remote_command("git")
 
@@ -126,9 +126,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             has_singularity = check_remote_command("singularity")
             if has_singularity:
                 break
-        message(ff("The '{backend}' back-end is not available on {config.REMOTE_HOST}, skipping."))
+        message(f"The '{backend}' back-end is not available on {config.REMOTE_HOST}, skipping.")
     else:
-        bye(ff("None of the specified back-ends are available on {config.REMOTE_HOST}."))
+        bye(f"None of the specified back-ends are available on {config.REMOTE_HOST}.")
 
     if remote_config["BACKEND"] != "docker":
         config.CONTAINER_PERSIST = config.CONTAINER_DEBUG = False
@@ -141,7 +141,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     env.setdefault("RADIOPADRE_DIR", config.REMOTE_RADIOPADRE_DIR or "~/.radiopadre")
     config.RADIOPADRE_VENV = (config.RADIOPADRE_VENV or "").format(**env)
     # this variable used in error and info messages
-    remote_venv = ff("{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}")
+    remote_venv = f"{config.REMOTE_HOST}:{config.RADIOPADRE_VENV}"
 
     # pip install command with -v repeated for each VERBOSE increment
     pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
@@ -151,8 +151,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     do_update = config.UPDATE
 
     if config.SKIP_CHECKS:
-        runscript = ff("if [ -f {config.RADIOPADRE_VENV}/bin/activate ]; then " +
-                       "source {config.RADIOPADRE_VENV}/bin/activate; fi; run-radiopadre ")
+        runscript = f"if [ -f {config.RADIOPADRE_VENV}/bin/activate ]; then " + \
+                    f"source {config.RADIOPADRE_VENV}/bin/activate; fi; run-radiopadre "
         do_update = False
     else:
         runscript = None
@@ -160,24 +160,24 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         # (a) if --auto-init and --venv-reinstall specified, zap remote virtualenv if present
         if config.AUTO_INIT and config.VENV_REINSTALL:
             if not config.RADIOPADRE_VENV:
-                bye(ff("Can't do --auto-init --venv-reinstall because --radiopadre-venv is not set"))
+                bye(f"Can't do --auto-init --venv-reinstall because --radiopadre-venv is not set")
             if "~" in config.RADIOPADRE_VENV:
-                config.RADIOPADRE_VENV = ssh_remote(ff("echo {config.RADIOPADRE_VENV}")).strip()  # expand "~" on remote
-            if check_remote_file(ff("{config.RADIOPADRE_VENV}"), "-d"):
-                if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
-                    error(ff("{remote_venv}/bin/activate} does not exist. Bat country!"))
-                    bye(ff("Refusing to touch this virtualenv. Please remove it by hand if you must."))
-                cmd = ff("rm -fr {config.RADIOPADRE_VENV}")
-                warning(ff("Found a virtualenv in {remote_venv}."))
+                config.RADIOPADRE_VENV = ssh_remote(f"echo {config.RADIOPADRE_VENV}").strip()  # expand "~" on remote
+            if check_remote_file(f"{config.RADIOPADRE_VENV}", "-d"):
+                if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
+                    error(f"{remote_venv}/bin/activate does not exist. Bat country!")
+                    bye(f"Refusing to touch this virtualenv. Please remove it by hand if you must.")
+                cmd = f"rm -fr {config.RADIOPADRE_VENV}"
+                warning(f"Found a virtualenv in {remote_venv}.")
                 warning("However, --venv-reinstall was specified. About to run:")
-                warning(ff("    ssh {config.REMOTE_HOST} "+cmd))
+                warning(f"    ssh {config.REMOTE_HOST} {cmd}")
                 if config.FULL_CONSENT:
                     warning("--full-consent given, so not asking for confirmation.")
                 else:
-                    warning(ff("Your informed consent is required!"))
-                    inp = INPUT(ff("Please enter 'yes' to rm -fr {remote_venv}: ")).strip()
+                    warning(f"Your informed consent is required!")
+                    inp = INPUT(f"Please enter 'yes' to rm -fr {remote_venv}: ").strip()
                     if inp != "yes":
-                        bye(ff("'{inp}' is not a 'yes'. Phew!"))
+                        bye(f"'{inp}' is not a 'yes'. Phew!")
                     message("OK, nuking it!")
                 ssh_remote(cmd)
             # force update
@@ -186,71 +186,68 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         # (b) look inside venv
         if runscript is None and config.RADIOPADRE_VENV:
             if "~" in config.RADIOPADRE_VENV:
-                config.RADIOPADRE_VENV = ssh_remote(ff("echo {config.RADIOPADRE_VENV}")).strip()  # expand "~" on remote
-            if check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
-                if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):
-                    runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
-                    message(ff("Using remote client script within {config.RADIOPADRE_VENV}"))
+                config.RADIOPADRE_VENV = ssh_remote(f"echo {config.RADIOPADRE_VENV}").strip()  # expand "~" on remote
+            if check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
+                if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
+                    runscript = f"source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}"
+                    message(f"Using remote client script within {config.RADIOPADRE_VENV}")
                 else:
-                    message(ff(
-                        "Remote virtualenv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation."))
+                    message(f"Remote virtualenv {config.RADIOPADRE_VENV} exists, but does not contain a radiopadre-client installation.")
             else:
-                message(ff("No remote virtualenv found at {remote_venv}"))
+                message(f"No remote virtualenv found at {remote_venv}")
 
         # (c) just try `which` directly
         if runscript is None:
             runscript = check_remote_command(runscript0)
             if runscript:
-                message(ff("Using remote client script at {runscript}"))
-                runscript = ff()
+                message(f"Using remote client script at {runscript}")
                 do_update = False
                 if config.UPDATE:
-                    warning(ff("ignoring --update for client since it isn't in a virtualenv"))
+                    warning(f"ignoring --update for client since it isn't in a virtualenv")
             else:
-                message(ff("No remote client script {runscript0} found"))
+                message(f"No remote client script {runscript0} found")
                 runscript = None
 
     ## No runscript found on remote?
     ## First, figure out whether to reinstall a virtualenv for it
     if not runscript:
-        message(ff("No {runscript0} script found on {config.REMOTE_HOST}"))
+        message(f"No {runscript0} script found on {config.REMOTE_HOST}")
         if not config.AUTO_INIT:
-            bye(ff("Try re-running with --auto-init to install radiopadre-client on {config.REMOTE_HOST}."))
+            bye(f"Try re-running with --auto-init to install radiopadre-client on {config.REMOTE_HOST}.")
         if not config.RADIOPADRE_VENV:
-            bye(ff("Can't do --auto-init because --virtual-env is not set."))
+            bye(f"Can't do --auto-init because --virtual-env is not set.")
 
         message("Trying to --auto-init an installation for you...")
 
         # try to auto-init a virtual environment
-        if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
-            message(ff("Creating virtualenv {remote_venv}"))
-            ssh_remote_v(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
+        if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
+            message(f"Creating virtualenv {remote_venv}")
+            ssh_remote_v(f"virtualenv -p python3 {config.RADIOPADRE_VENV}")
             if config.VENV_EXTRAS:
                 extras = " ".join(config.VENV_EXTRAS.split(","))
-                message(ff("Installing specified extras: {extras}"))
-                ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} {extras}"))
+                message(f"Installing specified extras: {extras}")
+                ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} {extras}")
         else:
-            message(ff("Installing into existing virtualenv {remote_venv}"))
+            message(f"Installing into existing virtualenv {remote_venv}")
 
     # Now, figure out how to install or update the client package
     if not runscript or do_update:
         # installing from a specified existing path
         if config.CLIENT_INSTALL_PATH and check_remote_file(config.CLIENT_INSTALL_PATH, "-d"):
             install_path = config.CLIENT_INSTALL_PATH
-            message(ff("--client-install-path {install_path} is configured and exists on {config.REMOTE_HOST}."))
+            message(f"--client-install-path {install_path} is configured and exists on {config.REMOTE_HOST}.")
             # update if managed by git
-            if check_remote_file(ff("{install_path}/.git"), "-d") and config.UPDATE:
+            if check_remote_file(f"{install_path}/.git", "-d") and config.UPDATE:
                 if has_git:
                     if config.CLIENT_INSTALL_BRANCH:
-                        cmd = ff("cd {install_path} && git fetch origin && git checkout {config.CLIENT_INSTALL_BRANCH} && git pull")
+                        cmd = f"cd {install_path} && git fetch origin && git checkout {config.CLIENT_INSTALL_BRANCH} && git pull"
                     else:
-                        cmd = ff("cd {install_path} && git pull")
-                    warning(ff(
-                        "--update specified and git detected, will attempt to update via"))
-                    message(ff("    {cmd}"))
+                        cmd = f"cd {install_path} && git pull"
+                    warning(f"--update specified and git detected, will attempt to update via")
+                    message(f"    {cmd}")
                     ssh_remote_v(cmd)
                 else:
-                    warning(ff("--update specified, but no git command found on {config.REMOTE_HOST}"))
+                    warning(f"--update specified, but no git command found on {config.REMOTE_HOST}")
             install_path = "-e " + install_path
         # else, installing from git
         elif config.CLIENT_INSTALL_REPO:
@@ -258,55 +255,63 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 config.CLIENT_INSTALL_REPO = config.DEFAULT_CLIENT_INSTALL_REPO
             branch = config.CLIENT_INSTALL_BRANCH or "master"
             if config.CLIENT_INSTALL_PATH:
-                message(ff("--client-install-path and --client-install-repo configured, will attempt"))
-                cmd = ff("git clone -b {branch} {config.CLIENT_INSTALL_REPO} {config.CLIENT_INSTALL_PATH}")
-                message(ff("    ssh {config.REMOTE_HOST} {cmd}"))
+                message(f"--client-install-path and --client-install-repo configured, will attempt")
+                cmd = f"git clone -b {branch} {config.CLIENT_INSTALL_REPO} {config.CLIENT_INSTALL_PATH}"
+                message(f"    ssh {config.REMOTE_HOST} {cmd}")
                 ssh_remote_v(cmd)
-                install_path = ff("-e {config.CLIENT_INSTALL_PATH}")
+                install_path = f"-e {config.CLIENT_INSTALL_PATH}"
             else:
-                message(ff("--client-install-repo is configured, will try to install directly from git"))
-                install_path = ff("git+{config.CLIENT_INSTALL_REPO}@{branch}")
+                message(f"--client-install-repo is configured, will try to install directly from git")
+                install_path = f"git+{config.CLIENT_INSTALL_REPO}@{branch}"
 
             # now pip install
-            message(ff("Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}"))
-            ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -e {install_path}"))
+            message(f"Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}")
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -e {install_path}")
         # else, installing directly from pip
         elif config.CLIENT_INSTALL_PIP:
-            message(ff("--client-install-pip {config.CLIENT_INSTALL_PIP} is configured."))
+            message(f"--client-install-pip {config.CLIENT_INSTALL_PIP} is configured.")
             install_path = config.CLIENT_INSTALL_PIP
         else:
             bye("no radiopadre-client installation method specified (see --client-install options)")
 
         # now install
-        message(ff("Will attempt to pip install -U {install_path} in {remote_venv}"))
-        ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {install_path}"))
+        message(f"Will attempt to pip install -U {install_path} in {remote_venv}")
+        ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {install_path}")
 
         # sanity check
-        if ssh_remote(ff("source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}"), fail_retcode=1):
-            runscript = ff("source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}")
+        if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
+            runscript = f"source {config.RADIOPADRE_VENV}/bin/activate && {runscript0}"
         else:
-            bye(ff("Something went wrong during installation on {config.REMOTE_HOST}, since I still don't see the {runscript0} script"))
+            bye(f"Something went wrong during installation on {config.REMOTE_HOST}, since I still don't see the {runscript0} script")
 
         message("Success!")
 
-    runscript = ff("export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; {runscript}")
+    runscript = f"export RADIOPADRE_DIR={config.REMOTE_RADIOPADRE_DIR}; {runscript}"
+
+    # copy certificate to remote, if it is missing
+    if config.SSL:
+        remote_pem = f"{config.REMOTE_RADIOPADRE_DIR}/{config.SERVER_PEM_BASENAME}"
+        if not check_remote_file(remote_pem, "-f"):
+            message(f"Copying SSL certificate to {config.REMOTE_HOST}")
+            scp_to_remote(config.SERVER_PEM, remote_pem)
+
     # copy notebook to remote
     if copy_initial_notebook:
         if not os.path.exists(copy_initial_notebook):
             bye("{} doesn't exist".format(copy_initial_notebook))
         if check_remote_file(notebook_path or ".", "-d"):
             nbpath = "{}/{}".format(notebook_path or ".", copy_initial_notebook)
-            if check_remote_file(nbpath, "-ff("):
-                message(ff("remote notebook {nbpath} exists, will not copy over"))
+            if check_remote_file(nbpath, "-f"):
+                message(f"remote notebook {nbpath} exists, will not copy over")
             else:
-                message(ff("remote notebook {nbpath} doesn't exist, will copy over"))
+                message(f"remote notebook {nbpath} doesn't exist, will copy over")
                 scp_to_remote(copy_initial_notebook, notebook_path)
             notebook_path = nbpath
 
     # allocate 5 suggested ports (in resume mode, this will be overridden by the session settings)
     starting_port = 10000 + os.getuid() * 3
     ports = []
-    for _ in range(5):
+    for _ in range(NUM_PORTS):
         starting_port = find_unused_port(starting_port + 1, 10000)
         ports.append(starting_port)
 
@@ -325,7 +330,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     if config.VERBOSE:
         message("running {}".format(" ".join(args)))
     else:
-        message(ff("running radiopadre client on {config.REMOTE_HOST}"))
+        message(f"running radiopadre client on {config.REMOTE_HOST}")
     ssh = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
                            universal_newlines=True)
 
@@ -355,7 +360,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 if empty_line:
                     poller.unregister_file(fobj)
                     if ssh.stdout not in poller and ssh.stderr not in poller:
-                        message(ff("The ssh process to {config.REMOTE_HOST} has exited"))
+                        message(f"The ssh process to {config.REMOTE_HOST} has exited")
                         remote_running = None
                         break
                     continue
@@ -383,7 +388,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         continue
                     # check for notebook port, and launch second ssh when we have it
                     re_ports = ":".join(["([\\d]+)"]*10)   # form up regex for ddd:ddd:...
-                    match = re.match(ff(".*Selected ports: {re_ports}[\s]*$"), line)
+                    match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
                     if match:
                         ports = list(map(int, match.groups()))
                         remote_ports = ports[:NUM_PORTS]
@@ -422,7 +427,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                             message("Press D<Enter> to detach from remote session, or Ctrl+C to kill it")
 
     except SystemExit as exc:
-        message(ff("SystemExit: {exc.code}"))
+        message(f"SystemExit: {exc.code}")
         status = exc.code
 
     except KeyboardInterrupt:
@@ -445,14 +450,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
 
     # if status and not USE_VENV and container_name:
-    #     message(ff("killing remote container {container_name}"))
+    #     message(f"killing remote container {container_name}")
     #     try:
     #         if has_docker:
-    #             ssh_remote(ff("{has_docker} kill {container_name}"))
+    #             ssh_remote(f"{has_docker} kill {container_name}")
     #         elif has_singularity:
     #             from .backends.singularity import get_singularity_image
     #             singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-    #             ssh_remote(ff("{has_singularity} instance.stop {singularity_image} {container_name}"))
+    #             ssh_remote(f"{has_singularity} instance.stop {singularity_image} {container_name}")
     #     except subprocess.CalledProcessError as exc:
     #         message(exc.output.decode())
 
@@ -461,10 +466,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             debug("Remote session has exited")
             ssh.wait()
             break
-        message(ff("Waiting for remote session to exit ({i})"))
+        message(f"Waiting for remote session to exit ({i})")
         time.sleep(1)
     else:
-        message(ff("Remote session hasn't exited, killing the ssh process"))
+        message(f"Remote session hasn't exited, killing the ssh process")
         ssh.kill()
 
     return status

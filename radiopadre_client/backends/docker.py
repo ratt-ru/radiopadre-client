@@ -2,7 +2,7 @@ import subprocess, glob, os, os.path, re, sys, time, signal, atexit
 from collections import OrderedDict
 
 import iglesia
-from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, ff, INPUT, check_output
+from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, INPUT, check_output
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
 from radiopadre_client.server import run_browser
@@ -21,7 +21,7 @@ def init(binary):
 def _init_session_dir():
     radiopadre_dir = make_radiopadre_dir()
     global SESSION_INFO_DIR
-    SESSION_INFO_DIR = ff("{radiopadre_dir}/sessions")
+    SESSION_INFO_DIR = f"{radiopadre_dir}/sessions"
     make_dir(SESSION_INFO_DIR)
 
 def _ps_containers():
@@ -40,19 +40,19 @@ def get_session_info_dir(container_name):
 def read_session_info(container_name):
     """Reads the given session ID file. Returns session_id, ports, or else throws a ValueError"""
     dirname = get_session_info_dir(container_name)
-    session_file = ff("{dirname}/info")
+    session_file = f"{dirname}/info"
 
     if not os.path.exists(session_file):
-        raise ValueError(ff("invalid session dir {dirname}"))
+        raise ValueError(f"invalid session dir {dirname}")
 
     comps = open(session_file, "rt").read().strip().split(" ")
     if len(comps) != 11:
-        raise ValueError(ff("invalid session dir {dirname}"))
+        raise ValueError(f"invalid session dir {dirname}")
     session_id = comps[0]
     try:
         ports = map(int, comps[1:])
     except:
-        raise ValueError(ff("invalid session dir {dirname}"))
+        raise ValueError(f"invalid session dir {dirname}")
     return session_id, ports
 
 
@@ -81,7 +81,7 @@ def list_sessions():
         try:
             container_dict[name][3], container_dict[name][4] = read_session_info(session_dir)
         except ValueError:
-            message(ff("    invalid session dir {session_dir}"))
+            message(f"    invalid session dir {session_dir}")
             continue
     output = OrderedDict()
 
@@ -118,7 +118,7 @@ def kill_sessions(session_dict, session_ids, ignore_fail=False):
         session_id_file = "{}/{}".format(SESSION_INFO_DIR, name)
         if os.path.exists(session_id_file):
             subprocess.call(["rm", "-fr", session_id_file])
-    shell(ff("{docker} kill {kill_cont}"), ignore_fail=True)
+    shell(f"{docker} kill {kill_cont}", ignore_fail=True)
 
 
 def update_installation(enable_pull=False):
@@ -127,14 +127,14 @@ def update_installation(enable_pull=False):
     if config.CONTAINER_DEV:
         update_server_from_repository()
     docker_image = config.DOCKER_IMAGE
-    if check_output(ff("docker image inspect {docker_image}")) is None:
+    if check_output(f"docker image inspect {docker_image}") is None:
         if not enable_pull:
-            bye(ff("  Radiopadre docker image {docker_image} not found. Re-run with --update or --auto-init perhaps?"))
-        message(ff("  Radiopadre docker image {docker_image} not found locally"))
+            bye(f"  Radiopadre docker image {docker_image} not found. Re-run with --update or --auto-init perhaps?")
+        message(f"  Radiopadre docker image {docker_image} not found locally")
     else:
-        message(ff("  Using radiopadre docker image {docker_image}"))
+        message(f"  Using radiopadre docker image {docker_image}")
     if enable_pull:
-        warning(ff("Calling docker pull {docker_image}"))
+        warning(f"Calling docker pull {docker_image}")
         warning("  (This may take a few minutes if the image is not up to date...)")
         try:
             subprocess.call([docker, "pull", docker_image])
@@ -173,7 +173,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
 
-    message(ff("Container name: {container_name}"))  # remote script will parse it
+    message(f"Container name: {container_name}")  # remote script will parse it
 
     docker_opts = [ docker, "run", "--rm", "--name", container_name, 
                         "--cap-add=SYS_ADMIN",
@@ -182,8 +182,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                         "-e", "USER={}".format(os.environ["USER"]),
                         "-e", "HOME={}".format(os.environ["HOME"]),
                         "-e", "RADIOPADRE_DIR={}".format(radiopadre_dir),
-                        "-e", ff("RADIOPADRE_CONTAINER_NAME={container_name}"),
-                        "-e", ff("RADIOPADRE_SESSION_ID={config.SESSION_ID}"),
+                        "-e", f"RADIOPADRE_CONTAINER_NAME={container_name}",
+                        "-e", f"RADIOPADRE_SESSION_ID={config.SESSION_ID}",
                     ]
     # enable detached mode if not debugging, and also if not doing conversion non-interactively
     if not config.CONTAINER_DEBUG and not config.NBCONVERT:
@@ -289,11 +289,11 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
 
         if wait is None:
             if docker_process.returncode is not None:
-                bye(ff("container unexpectedly exited with return code {docker_process.returncode}"))
-            bye(ff("unable to connect to jupyter notebook server on port {jupyter_port}"))
+                bye(f"container unexpectedly exited with return code {docker_process.returncode}")
+            bye(f"unable to connect to jupyter notebook server on port {jupyter_port}")
 
         message(
-            ff("Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)"))
+            f"Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)")
 
         if browser_urls:
             iglesia.register_helpers(*run_browser(*browser_urls))
@@ -303,8 +303,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
     return docker_process
 
 def kill_container(name):
-    message(ff("Killing container {name}"))
-    shell(ff("{docker} kill {name}"), ignore_fail=True)
+    message(f"Killing container {name}")
+    shell(f"{docker} kill {name}", ignore_fail=True)
 
 def reap_running_container():
     global running_container

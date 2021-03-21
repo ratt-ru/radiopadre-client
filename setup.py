@@ -18,7 +18,7 @@ setup(
     name="radiopadre-client",
     version=__version__,
     install_requires=install_requires,
-    python_requires='>=2.7',
+    python_requires='>=3.6',
     author="Oleg Smirnov",
     author_email="osmirnov@gmail.com",
     description=("Radiopadre client-side script"),

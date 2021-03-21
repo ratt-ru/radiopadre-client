@@ -4,7 +4,7 @@ import iglesia
 
 
 from radiopadre_client import config
-from iglesia.utils import message, warning, error, bye, ff, INPUT, make_radiopadre_dir
+from iglesia.utils import message, warning, error, bye, INPUT, make_radiopadre_dir
 from iglesia import logger
 
 _recent_sessions = None
@@ -31,7 +31,7 @@ def _load_recent_sessions(must_exist=True):
                 key, args = line.strip().split(":::", 1)
                 _recent_sessions[key] = args
         except Exception as exc:
-            message(ff("Error reading {RECENTS_FILE}: {exc}"))
+            message(f"Error reading {RECENTS_FILE}: {exc}")
             _recent_sessions = None
 
     if _recent_sessions is None and must_exist:
@@ -72,7 +72,7 @@ def check_recent_sessions(options, argv, parser=None):
         last = _load_recent_sessions()
         num_recent = len(last)
         if resume_session >= num_recent:
-            bye(ff("no recent session #{resume_session}"))
+            bye(f"no recent session #{resume_session}")
 
         message("Your most recent radiopadre sessions are:")
         message("")
@@ -96,8 +96,8 @@ def check_recent_sessions(options, argv, parser=None):
             cmdline += " "
 
             ## colors confuse Ctrl+U and such
-            # prompt = ff("{logger.Colors.GREEN}[#{resume_session}]:{logger.Colors.ENDC} ")
-            prompt = ff("[#{resume_session}] ")
+            # prompt = f"{logger.Colors.GREEN}[#{resume_session}]:{logger.Colors.ENDC} "
+            prompt = f"[#{resume_session}] "
             inp = INPUT(prompt)
             inp = inp.strip()
             if not inp:
@@ -106,7 +106,7 @@ def check_recent_sessions(options, argv, parser=None):
             elif re.match("^\d+$", inp):
                 res = int(inp)
                 if res >= num_recent:
-                    warning(ff("no recent session #{res}"))
+                    warning(f"no recent session #{res}")
                 else:
                     resume_session = res
                 readline.remove_history_item(1)

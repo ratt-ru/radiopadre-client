@@ -8,9 +8,9 @@ import iglesia
 from radiopadre_client import config, sessions
 from radiopadre_client.default_config import __version__, __release__, __tag_prefix__
 
-from iglesia.utils import message, debug, bye, ff, INPUT
+from iglesia.utils import message, debug, bye, INPUT
 
-from iglesia import logger
+from iglesia import logger, certificates
 
 parser = argparse.ArgumentParser(description="""
     run-radiopadre ({}{}): manage local or remote Jupyter sessions for radiopadre notebooks.
@@ -18,19 +18,19 @@ parser = argparse.ArgumentParser(description="""
     formatter_class=argparse.RawTextHelpFormatter)
 
 parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
-                    help=ff("browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER). "
+                    help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER). "
                             "OPT can include 'bg' to run the command as a background process, and '*' to run "
-                            "the command with muitple URLs if needed (as opposed to running one command per URL)"))
+                            "the command with muitple URLs if needed (as opposed to running one command per URL)")
 parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
                     help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
-                    help=ff("if no notebooks are found in the specified directory, will create a \n") +
-                         ff("{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename."))
+                    help=f"if no notebooks are found in the specified directory, will create a \n" +
+                         f"{config.DEFAULT_NOTEBOOK} notebook with some boilerplate. Use this to change the filename.")
 parser.add_argument("--no-default-notebook", action="store_const", const="", dest="default_notebook",
                     help="disable default notebook creation.")
 parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFAULT_VALUE,
-                    help=ff("auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}."))
+                    help=f"auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}.")
 parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
                     help="disable auto-load.")
 parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
@@ -48,8 +48,10 @@ parser.add_argument("--nbconvert", action="store_true",
 parser.add_argument("--non-interactive", action="store_true",
                     help="Run in non-interactive mode. Implies --boring, minimizes log output, and \n"
                          "disables recent sessions.")
-
-
+parser.add_argument("--ssl", action="store_true", default=config.SSL, dest="ssl",
+                    help=f"use SSL for all connections")
+parser.add_argument("--no-ssl", action="store_false", default=config.SSL, dest="ssl",
+                    help="disable SSL. This is less secure, and not recommended when running from a shared environment.")
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
 group.add_argument("-D", "--docker", action="append_const", const="docker", dest="backend",
@@ -67,8 +69,8 @@ group.add_argument("-C", "--container-dev", action="store_true", default=0,
                          "Intended for developers and bleeding-edge users.")
 
 group.add_argument("--docker-image", type=str, metavar="IMAGE", default=config.DEFAULT_VALUE,
-                   help=ff("Which Docker image to use (also to build Singularity image).\n" ) +
-                        ff("Default is {config.DOCKER_IMAGE}."))
+                   help=f"Which Docker image to use (also to build Singularity image).\n"
+                        f"Default is {config.DOCKER_IMAGE}.")
 # group.add_argument("--container-persist", action="store_true", default=0,
 #                    help="Allow persistent container sessions (Docker only). Default is to kill the container "
 #                         "when radiopadre disconnects.")
@@ -118,7 +120,7 @@ group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks.\n"
                    "This can make for faster startup, but less informative errors.")
 group.add_argument("--client-install-path", type=str, metavar="PATH", default=config.DEFAULT_VALUE,
-                    help=ff("directory in which remote radiopadre-client will be installed with --auto-init."))
+                    help=f"directory in which remote radiopadre-client will be installed with --auto-init.")
 group.add_argument("-u", "--update", action="store_true",
                     help="update installations, container images, etc. before starting up.")
 group.add_argument("--full-consent", action="store_true",
@@ -272,6 +274,15 @@ if config.VERBOSE:
     logger.logger.setLevel(logging.DEBUG)
 
 debug("PID is {}".format(os.getpid()))
+
+# create SSL cerificate, if needed
+certfile = None
+if config.SSL:
+    certfile = certificates.ensure_certificate(config.SERVER_PEM)
+    if certfile is None:
+        bye("Unable to create an SSL certificate. You can try running in insecure mode with --no-ssl, but this is at your own risk!")
+else:
+    config.SERVER_PEM = None
 
 # work out backend
 if not config.BACKEND:

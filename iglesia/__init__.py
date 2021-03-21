@@ -6,7 +6,7 @@ This package provides variables and settings and utilities common to the client 
 
 import os, subprocess, uuid, sys
 
-from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, ff, DEVZERO, DEVNULL, \
+from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, DEVZERO, DEVNULL, \
     message, warning, error, bye, debug
 from . import logger
 
@@ -17,7 +17,7 @@ if not os.path.exists(RADIOPADRE_DIR):
     try:
         os.mkdir(RADIOPADRE_DIR)
     except Exception as exc:
-        print(ff("Error creating {RADIOPADRE_DIR} ({exc}). Check your permissions or RADIOPADRE_DIR setting."))
+        print(f"Error creating {RADIOPADRE_DIR} ({exc}). Check your permissions or RADIOPADRE_DIR setting.")
         sys.exit(1)
 
 
@@ -87,7 +87,7 @@ def init():
 
     ABSROOTDIR = os.path.abspath(os.getcwd())
     ROOTDIR = setdefault_path('RADIOPADRE_ROOTDIR', '.')
-    debug(ff("Setting up radiopadre environment, cwd is {ABSROOTDIR}"))
+    debug(f"Setting up radiopadre environment, cwd is {ABSROOTDIR}")
 
     # Figure out environment we are invoked in
     # (1) orthodox: a notebook is running under in an iglesia set up by run-radiopadre
@@ -99,16 +99,16 @@ def init():
         SERVER_BASEDIR = _strip_slash(os.path.abspath(os.environ['RADIOPADRE_SERVER_BASEDIR']))
         # (1) Orthodox: we're snooping if cwd of notebook is within the shadow tree
         SNOOP_MODE = _is_subdir(ABSROOTDIR, SHADOW_HOME)
-        debug(ff("  SERVER_BASEDIR preconfigured as {SERVER_BASEDIR}, snoop mode is {SNOOP_MODE}"))
+        debug(f"  SERVER_BASEDIR preconfigured as {SERVER_BASEDIR}, snoop mode is {SNOOP_MODE}")
         if SNOOP_MODE:
             ABSROOTDIR = ABSROOTDIR[len(SHADOW_HOME):]
             if os.path.exists(ABSROOTDIR):
                 os.chdir(ABSROOTDIR)
-                debug(ff("Orthodox snoop: changing into target directory {ABSROOTDIR}"))
+                debug(f"Orthodox snoop: changing into target directory {ABSROOTDIR}")
             else:
-                error(ff("Target {ABSROOTDIR} corresponding to current shadow directory doesn't exist!"))
+                error(f"Target {ABSROOTDIR} corresponding to current shadow directory doesn't exist!")
         else:
-            debug(ff("Orthodox native, running under {ABSROOTDIR}"))
+            debug(f"Orthodox native, running under {ABSROOTDIR}")
         SHADOW_BASEDIR = os.environ.get('RADIOPADRE_SHADOW_BASEDIR', SHADOW_HOME + ABSROOTDIR)
     else:
         # (2) Pagan:  we're snooping if cwd is non-writable
@@ -116,10 +116,10 @@ def init():
         os.environ['RADIOPADRE_SHADOW_BASEDIR'] = SHADOW_BASEDIR = SHADOW_HOME + ABSROOTDIR
         if SNOOP_MODE:
             SERVER_BASEDIR = SHADOW_BASEDIR
-            debug(ff("  pagan snoop mode, setting SERVER_BASEDIR to {SERVER_BASEDIR}. Bat country!"))
+            debug(f"  pagan snoop mode, setting SERVER_BASEDIR to {SERVER_BASEDIR}. Bat country!")
         else:
             SERVER_BASEDIR = ABSROOTDIR
-            debug(ff("  setting SERVER_BASEDIR to {SERVER_BASEDIR}"))
+            debug(f"  setting SERVER_BASEDIR to {SERVER_BASEDIR}")
         os.environ['RADIOPADRE_SERVER_BASEDIR'] = SERVER_BASEDIR
 
     SHADOW_ROOTDIR = SHADOW_HOME + ABSROOTDIR
