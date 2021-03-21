@@ -28,10 +28,11 @@ def run_browser(*urls):
         message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
         # sometimes the notebook does not respond immediately, so take a second
         time.sleep(1)
+        browser = config.BROWSER.split()
         if config.BROWSER_MULTI:
-            commands = [[config.BROWSER]+list(urls)]
+            commands = [browser+list(urls)]
         else:
-            commands = [[config.BROWSER, url] for url in urls]
+            commands = [browser + [url] for url in urls]
 
         for command in commands:
             try:

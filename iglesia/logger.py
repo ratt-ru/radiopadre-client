@@ -109,7 +109,7 @@ def disable_printing():
     logger.removeHandler(_default_console_handler)
 
 def enable_logfile(logtype, verbose=False):
-    from .utils import make_dir, make_radiopadre_dir, ff
+    from .utils import make_dir, make_radiopadre_dir
     global logfile, logfile_handler
 
     radiopadre_dir = make_radiopadre_dir()
