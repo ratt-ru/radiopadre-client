@@ -154,6 +154,8 @@ def get_options_list(config_dict, quote=True):
         #if value != DefaultConfig.get(key):
         if value is True:
             args.append(f"--{opt}")
+        elif value is False and DefaultConfig.get(value) is True:
+            args.append(f"--no-{opt}")
         elif value is not False and value is not None:
             if type(value) is list:
                 value = ",".join(map(str, value))

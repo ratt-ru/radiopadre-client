@@ -352,12 +352,12 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             else:
                 message(f"  No notebooks matching --auto-load {config.AUTO_LOAD}")
 
+    site = "https://localhost" if config.SSL else "http://localhost"
     urls = []
     if LOAD_DIR:
-        urls.append(f"https://localhost:{userside_jupyter_port}/?token={config.SESSION_ID}")
+        urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
     if LOAD_NOTEBOOK:
-        urls += [f"https://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}"
-                 for nb in LOAD_NOTEBOOK]
+        urls += [f"{site}:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}" for nb in LOAD_NOTEBOOK]
 
     if not config.NBCONVERT:
         for url in urls[::-1]:

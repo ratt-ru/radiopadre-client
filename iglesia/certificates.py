@@ -8,7 +8,7 @@ def ensure_certificate(certfile: str):
     if not os.path.exists(certfile):
         message(f"Generating local SSL certificate in {certfile}")
         try:
-            subprocess.check_call(f"openssl req -x509 -newkey rsa:2048 -keyout {certfile} -out {certfile} -days 30000 -nodes -subj '/CN=radiopadre.org'", shell=True)
+            subprocess.check_call(f"openssl req -x509 -newkey rsa:2048 -keyout {certfile} -out {certfile} -days 30000 -nodes -subj '/CN=127.0.0.1'", shell=True)
         except subprocess.CalledProcessError as exc:
             message(f"openssl: failed with exit code {exc.returncode}")
             return None
