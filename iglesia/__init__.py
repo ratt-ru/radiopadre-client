@@ -47,7 +47,9 @@ JUPYTER_PORT    = None             # (userside) Jupyter port
 HTTPSERVER_PORT = None             # (userside) HTTP port
 JS9HELPER_PORT  = None             # (userside) helper port, if set up
 CARTA_PORT = CARTA_WS_PORT = None  # (userside) carta ports, if set up
-WETTY_PORT = None
+WETTY_PORT = None                  # (userside) wetty port, if set up
+
+LOCALHOST_URL = None               # http://localhost or https://localhost, depending on SSL settings
 
 HOSTNAME = "localhost"
 
@@ -155,6 +157,14 @@ def init():
     SESSION_ID = os.environ.get('RADIOPADRE_SESSION_ID')
     if not SESSION_ID:
         os.environ['RADIOPADRE_SESSION_ID'] = SESSION_ID = uuid.uuid4().hex
+
+    # setup SSL mode (or not)
+    global LOCALHOST_URL
+    ssl = os.environ.get('RADIOPADRE_SSL')
+    if not ssl or ssl.upper() in ('0', 'FALSE'):
+        LOCALHOST_URL = "http://localhost"
+    else:
+        LOCALHOST_URL = "https://localhost"
 
     # set verbosity
     VERBOSE = int(os.environ.get('RADIOPADRE_VERBOSE') or 0)

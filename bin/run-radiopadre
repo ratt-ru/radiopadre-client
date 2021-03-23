@@ -17,12 +17,6 @@ parser = argparse.ArgumentParser(description="""
     """.format(__tag_prefix__, __version__),
     formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument("-b", "--browser", type=str, metavar="COMMAND[:OPT[:OPT...]]", default=config.DEFAULT_VALUE,
-                    help=f"browser command to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER). "
-                            "OPT can include 'bg' to run the command as a background process, and '*' to run "
-                            "the command with muitple URLs if needed (as opposed to running one command per URL)")
-parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
-                    help="do not open a browser session.")
 
 parser.add_argument("--default-notebook", type=str, metavar="FILENAME", default=config.DEFAULT_VALUE,
                     help=f"if no notebooks are found in the specified directory, will create a \n" +
@@ -48,10 +42,24 @@ parser.add_argument("--nbconvert", action="store_true",
 parser.add_argument("--non-interactive", action="store_true",
                     help="Run in non-interactive mode. Implies --boring, minimizes log output, and \n"
                          "disables recent sessions.")
-parser.add_argument("--ssl", action="store_true", default=config.SSL, dest="ssl",
-                    help=f"use SSL for all connections")
-parser.add_argument("--no-ssl", action="store_false", default=config.SSL, dest="ssl",
-                    help="disable SSL. This is less secure, and not recommended when running from a shared environment.")
+
+
+group = parser.add_argument_group("Browser session control")
+parser.add_argument("-b", "--browser", type=str, default=config.DEFAULT_VALUE,
+                    help=f"browser to run. Default is {config.BROWSER} (can also set RADIOPADRE_BROWSER).");
+parser.add_argument("-n", "--no-browser", action="store_false", dest="browser",
+                    help="do not open a browser session.")
+parser.add_argument("--new-window", action="store_true", dest="new_window",
+                    help=f"open radiopadre in a new browser window. Default is {config.NEW_WINDOW}")
+parser.add_argument("--same-window", action="store_false", dest="new_window",
+                    help=f"open a new tab in same window instead")
+
+## disabling for now pending some major issue resolutions
+# parser.add_argument("--ssl", action="store_true", default=config.SSL, dest="ssl",
+#                     help=f"use SSL for all connections")
+# parser.add_argument("--no-ssl", action="store_false", default=config.SSL, dest="ssl",
+#                     help="disable SSL. This is less secure, and not recommended when running from a shared environment.")
+
 ## back-end support
 group = parser.add_argument_group("Back-end selection options")
 group.add_argument("-D", "--docker", action="append_const", const="docker", dest="backend",
@@ -275,14 +283,19 @@ if config.VERBOSE:
 
 debug("PID is {}".format(os.getpid()))
 
-# create SSL cerificate, if needed
-certfile = None
-if config.SSL:
-    certfile = certificates.ensure_certificate(config.SERVER_PEM)
-    if certfile is None:
-        bye("Unable to create an SSL certificate. You can try running in insecure mode with --no-ssl, but this is at your own risk!")
-else:
-    config.SERVER_PEM = None
+# # create SSL cerificate, if needed
+# certfile = None
+# if config.SSL:
+#     certfile = certificates.ensure_certificate(config.SERVER_PEM)
+#     if certfile is None:
+#         bye("Unable to create an SSL certificate. You can try running in insecure mode with --no-ssl, but this is at your own risk!")
+#     message("SSL mode enabled")
+# else:
+#     config.SERVER_PEM = None
+#     message("SSL mode disabled")
+
+## disabling SSL for now
+config.SERVER_PEM = None
 
 # work out backend
 if not config.BACKEND:
@@ -312,12 +325,7 @@ import signal
 signal.signal(signal.SIGHUP, _handle_hup)
 
 # work out browser
-browser_opts = config.BROWSER.split(":")
-if browser_opts[1:]:
-    config.BROWSER = browser_opts[0]
-    config.BROWSER_BG = "bg" in browser_opts[1:]
-    config.BROWSER_MULTI = "*" in browser_opts[1:]
-if config.BROWSER == "None":
+if config.BROWSER.upper() in ("NONE", "FALSE", "0"):
     config.BROWSER = None
 
 

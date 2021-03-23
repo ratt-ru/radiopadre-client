@@ -26,13 +26,12 @@ CONTAINER_DETACH = False
 CONTAINER_PERSIST = False
 CONTAINER_DEV = False
 GRIM_REAPER = True
-SSL = True
+SSL = None
 BACKEND = []
 UNAME = subprocess.check_output("uname").decode().strip()
 USER = os.environ['USER']
-BROWSER = os.environ.get("RADIOPADRE_BROWSER", "open" if UNAME == "Darwin" else "xdg-open")
-BROWSER_BG = False
-BROWSER_MULTI = False
+BROWSER = os.environ.get("RADIOPADRE_BROWSER", "default")
+NEW_WINDOW = False
 RADIOPADRE_VENV = "{RADIOPADRE_DIR}/venv"
 SKIP_CHECKS = False
 CONTAINER_TEST = None
@@ -154,7 +153,7 @@ def get_options_list(config_dict, quote=True):
         #if value != DefaultConfig.get(key):
         if value is True:
             args.append(f"--{opt}")
-        elif value is False and DefaultConfig.get(value) is True:
+        elif value is False and DefaultConfig.get(key) is True:
             args.append(f"--no-{opt}")
         elif value is not False and value is not None:
             if type(value) is list:

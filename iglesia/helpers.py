@@ -61,7 +61,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     global _child_processes
 
     # run wetty
-    if certificate:
+    if interactive:
         wetty = find_which("wetty")
         if not wetty:
             raise PadreError("unable to find wetty")
@@ -70,13 +70,12 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
         os.chmod(wettycfg.name, stat.S_IRUSR)
         wettycfg.write(f"""{{
                 'server': {{ 'base': '/{session_id}/wetty' }},
-                'ssl': {{ 'key': '{certificate}', 'cert': '{certificate}' }},
             }}
         """)
         wettycfg.flush()
         _child_resources.append(wettycfg)
         message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
-        _child_processes.append(subprocess.Popen([wetty,
+        wetty_opts = [wetty,
                 "--conf", wettycfg.name, 
                 "--ssh-host", "localhost",
                 "--ssh-port", "22",
@@ -84,7 +83,10 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 "--ssh-auth", "publickey,password",
                 "--port", str(wetty_port),
                 "--allow-iframe",
-            ]))
+            ]
+        if certificate:
+            wetty_opts += ["--ssl-key", certificate, "--ssl-cert", certificate]
+        _child_processes.append(subprocess.Popen(wetty_opts))
         message("  started as PID {}".format(_child_processes[-1].pid))
 
     # run JS9 helper
