@@ -27,8 +27,6 @@ parser.add_argument("--auto-load", type=str, metavar="GLOB", default=config.DEFA
                     help=f"auto-load the named notebook(s), if found. Default is {config.AUTO_LOAD}.")
 parser.add_argument("--no-auto-load", action="store_const", const="", dest="auto_load",
                     help="disable auto-load.")
-parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
-                    help="Do not open a separate tab with a CARTA browser on startup.")
 parser.add_argument("-B", "--boring", action="store_true", default=0,
                     help="Disable colours in console output.")
 parser.add_argument("-v", "--verbose", type=int, metavar="LEVEL", default=config.DEFAULT_VALUE,
@@ -37,12 +35,9 @@ parser.add_argument("-t", "--timestamps", action="store_true", default=0,
                     help="Enables timestamps in output.")
 parser.add_argument("-l", "--log", action="store_true", default=0,
                     help="Enables logging of sessions to .radiopadre/logs.")
-parser.add_argument("--nbconvert", action="store_true",
-                    help="Instead of running jupyter, run nbconvert to render the notebook, then exit.")
 parser.add_argument("--non-interactive", action="store_true",
                     help="Run in non-interactive mode. Implies --boring, minimizes log output, and \n"
                          "disables recent sessions.")
-
 
 group = parser.add_argument_group("Browser session control")
 parser.add_argument("-b", "--browser", type=str, default=config.DEFAULT_VALUE,
@@ -53,6 +48,10 @@ parser.add_argument("--new-window", action="store_true", dest="new_window",
                     help=f"open radiopadre in a new browser window. Default is {config.NEW_WINDOW}")
 parser.add_argument("--same-window", action="store_false", dest="new_window",
                     help=f"open a new tab in same window instead")
+parser.add_argument("--no-carta-browser", action="store_false", dest="carta_browser", default=1,
+                    help="Do not open a separate tab with a CARTA browser on startup.")
+parser.add_argument("--nbconvert", action="store_true",
+                    help="Instead of running jupyter and a browser, run nbconvert to render the notebook to HTML, then exit.")
 
 ## disabling for now pending some major issue resolutions
 # parser.add_argument("--ssl", action="store_true", default=config.SSL, dest="ssl",
