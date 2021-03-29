@@ -28,6 +28,12 @@ if __release__:
 else:
     __image_version__ = __version__
 
+# release x.y.z pulls x.y.latest image
+if __release__:
+    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+else:
+    __image_version__ = __version__
+
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
     SKIP_CHECKS=False,
