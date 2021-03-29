@@ -79,10 +79,14 @@ def update_installation():
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
-        if new_venv and config.VENV_EXTRAS:
-            extras = " ".join(config.VENV_EXTRAS.split(","))
-            message(ff("Installing specified extras: {extras}"))
-            shell(ff("{pip_install} {extras}"))
+        if new_venv:
+            extras = config.VENV_EXTRAS.split(",") if config.VENV_EXTRAS else []
+            # add numpy explicitly to quicken up pyregion install
+            extras.append("numpy")
+            if extras:
+                extras = " ".join(extras)
+                message(ff("Installing specified extras: {extras}"))
+                shell(ff("{pip_install} {extras}"))
 
     # now check for a radiopadre install inside the venv
     have_install = check_output("pip show radiopadre")
