@@ -263,6 +263,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # virtual environment
     os.environ["RADIOPADRE_VENV"] = config.RADIOPADRE_VENV
     os.environ["RADIOPADRE_SSL"] = str(bool(config.SSL))
+    os.environ["RADIOPADRE_NOTEBOOK_NAME"] = LOAD_NOTEBOOK or ""
 
     # init paths & environment
     iglesia.init()
