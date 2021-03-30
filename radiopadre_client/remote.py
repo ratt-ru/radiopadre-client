@@ -224,8 +224,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if not check_remote_file(ff("{config.RADIOPADRE_VENV}/bin/activate"), "-f"):
             message(ff("Creating virtualenv {remote_venv}"))
             ssh_remote_v(ff("virtualenv -p python3 {config.RADIOPADRE_VENV}"))
-            if config.VENV_EXTRAS:
-                extras = " ".join(config.VENV_EXTRAS.split(","))
+            extras = config.VENV_EXTRAS.split(",") if config.VENV_EXTRAS else []
+            # add numpy explicitly to quicken up pyregion install
+            extras.append("numpy")
+            if extras:
+                extras = " ".join(extras)
                 message(ff("Installing specified extras: {extras}"))
                 ssh_remote_v(ff("source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} {extras}"))
         else:

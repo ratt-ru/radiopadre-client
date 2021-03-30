@@ -14,7 +14,7 @@ import os.path
 import re
 
 # change this to a proper patch release number for a real release
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
 __release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
@@ -28,7 +28,11 @@ if __release__:
 else:
     __image_version__ = __version__
 
-__version__ = "1.1.0"
+# release x.y.z pulls x.y.latest image
+if __release__:
+    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+else:
+    __image_version__ = __version__
 
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
