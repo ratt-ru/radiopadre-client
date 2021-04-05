@@ -192,7 +192,7 @@ message("Welcome to the radiopadre client {} {}!".format("release" if __release_
 
 # recent session management: only done for front-end sessions
 manage_last_sessions = not options.remote and not options.inside_container and not options.non_interactive \
-    and not options.pull_docker and not options.pull_singularity
+    and not options.pull_docker and not options.pull_singularity and not options.nbconvert
 if manage_last_sessions:
     options, argv = sessions.check_recent_sessions(options, argv, parser=parser)
 
