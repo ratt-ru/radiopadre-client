@@ -265,8 +265,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 install_path = f"git+{config.CLIENT_INSTALL_REPO}@{branch}"
 
             # now pip install
-            message(f"Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}")
-            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -e {install_path}")
+            # message(f"Doing pip install -e {install_path} in {config.RADIOPADRE_VENV}")
+            # ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -e {install_path}")
         # else, installing directly from pip
         elif config.CLIENT_INSTALL_PIP:
             message(f"--client-install-pip {config.CLIENT_INSTALL_PIP} is configured.")
