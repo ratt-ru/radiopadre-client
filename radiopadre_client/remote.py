@@ -115,7 +115,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     for backend in config.BACKEND:
         remote_config["BACKEND"] = backend
-        if backend == "venv" and check_remote_command("virtualenv") and check_remote_command("pip"):
+        if backend == "venv" and check_remote_command("virtualenv"):
             USE_VENV = True
             break
         elif backend == "docker":
@@ -414,6 +414,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     match = re.match(".*Container name: ([^\s\033]+)", line)
                     if match:
                         container_name = match.group(1)
+                        continue
+
+                    # check for CARTA version
+                    match = re.match(".*Running CARTA (.+) backend", line)
+                    if match:
+                        iglesia.CARTA_VERSION = match.group(1)
+                        if config.CARTA_BROWSER:
+                            urls.append(iglesia.get_carta_url())
                         continue
 
                     if "jupyter notebook server is running" in line:

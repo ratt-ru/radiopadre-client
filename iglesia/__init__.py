@@ -51,6 +51,8 @@ WETTY_PORT = None                  # (userside) wetty port, if set up
 
 LOCALHOST_URL = None               # http://localhost or https://localhost, depending on SSL settings
 
+CARTA_VERSION = None
+
 HOSTNAME = "localhost"
 
 SNOOP_MODE = False         # true if browsing someone else's files
@@ -179,3 +181,14 @@ def set_userside_ports(userside_ports):
     """Sets the relevant userside port variables"""
     global JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT
     JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT = userside_ports
+
+def get_carta_url(*args):
+    url = f"http://localhost:{CARTA_PORT}"
+
+    if CARTA_VERSION < "2":
+        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + args
+
+    if args:
+        return f"{url}?{'&'.join(args)}"
+    else:
+        return url

@@ -1,4 +1,5 @@
 import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil, stat
+from radiopadre_client.config import RADIOPADRE_VENV
 
 import iglesia
 from iglesia import PadreError
@@ -145,9 +146,9 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
     if interactive:
         if 'RADIOPADRE_CARTA_PID' not in os.environ:
-            # start CARTA backend
+            # find CARTA backend or CARTA app
             for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), f"{sys.prefix}/carta/carta", \
-                              find_which('carta'):
+                              find_which('carta_backend'), find_which('carta'):
                 # if carta_exec:
                 #     subprocess.call(f"ls -l /.radiopadre/venv", shell=True)
                 #     message("{}: {} {}".format(carta_exec, os.path.exists(carta_exec), os.access(carta_exec, os.X_OK)))
@@ -157,16 +158,34 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 carta_exec = None
 
             if not carta_exec or not os.path.exists(carta_exec):
-                warning(f"CARTA backend not found, omitting ({sys.prefix}/carta/carta)")
+                warning(f"CARTA backend not found, omitting")
             else:
+                # check version, assume 1.x if not found
+                carta_version = f"{sys.prefix}/carta_version"
+                if os.path.exists(carta_version):
+                    iglesia.CARTA_VERSION = open(carta_version, "rt").read()
+                    message(f"Detected CARTA version {iglesia.CARTA_VERSION}")
+                else:
+                    iglesia.CARTA_VERSION = "2.x" if carta_exec.endswith("backend") else "1.x"
+                    message(f"Assuming CARTA version {iglesia.CARTA_VERSION}, as none was detected")
+
                 carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
-                message(f"Running CARTA backend {carta_exec} (in dir {carta_dir})")
+                message(f"Running CARTA {iglesia.CARTA_VERSION} backend {carta_exec} (in dir {carta_dir})")
+
+                if iglesia.CARTA_VERSION >= "2":
+                    carta_dir = iglesia.ABSROOTDIR
+                    cmdline = [carta_exec, f"--port={carta_port}", "--no_browser", "--debug_no_auth",
+                                f"--top_level_folder={iglesia.ABSROOTDIR}", f"--frontend_folder=/usr/share/carta/frontend" ]
+                    carta_stdout, carta_stderr = sys.stdout, sys.stderr
+                else:
+                    cmdline = [carta_exec, "--remote",
+                                f"--root={iglesia.ABSROOTDIR}", f"--folder={iglesia.ABSROOTDIR}",
+                                f"--port={carta_ws_port}", f"--fport={carta_port}"]
+                    carta_stdout, carta_stderr = stdout, stderr
+
+                message(f"$ {' '.join(cmdline)}")
                 with chdir(carta_dir):
-                    _child_processes.append(
-                        subprocess.Popen([carta_exec, "--remote",
-                                            f"--root={iglesia.ABSROOTDIR}", f"--folder={iglesia.ABSROOTDIR}",
-                                            f"--port={carta_ws_port}", f"--fport={carta_port}"],
-                                         stdin=subprocess.PIPE,  stdout=stdout, stderr=stderr))
+                    _child_processes.append(subprocess.Popen(cmdline, stdin=subprocess.PIPE,  stdout=carta_stdout, stderr=carta_stderr, shell=False))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
                     ## doesn't exit cleanly, let it be eaten rather
                     # atexit.register(_exit_carta, _child_processes[-1])

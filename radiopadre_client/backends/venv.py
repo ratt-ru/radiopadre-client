@@ -172,6 +172,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0,
                          interactive=not config.NBCONVERT, certificate=config.SERVER_PEM)
 
+    # add CARTA UR, if configured
+    if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
+        browser_urls.append(iglesia.get_carta_url())
+
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
     message("Starting: {} {} in {}".format(jupyter_path, " ".join(JUPYTER_OPTS), os.getcwd()))

@@ -177,10 +177,10 @@ def add_to_parser(parser):
         # else check for opposite-value switch
         else:
             if type(DefaultConfig[key]) is bool and "--" + optname not in NON_PERSISTING_OPTIONS:
-                if default_cmdline is 0:
+                if default_cmdline == 0:
                     parser.add_argument("--no-" + optname, action="store_false", dest=lkey,
                                         help=f"opposite of --{optname}.")
-                elif default_cmdline is 1:
+                elif default_cmdline == 1:
                     parser.add_argument("--" + optname, action="store_true",
                                         help=f"opposite of --no-{optname}.")
             _CMDLINE_DEFAULTS[key] = default_cmdline
