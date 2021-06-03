@@ -314,6 +314,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     for _ in range(NUM_PORTS):
         starting_port = find_unused_port(starting_port + 1, 10000)
         ports.append(starting_port)
+    iglesia.set_userside_ports(ports)
 
     remote_config["remote"] = ":".join(map(str, ports))
 
@@ -422,6 +423,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         iglesia.CARTA_VERSION = match.group(1)
                         if config.CARTA_BROWSER:
                             urls.append(iglesia.get_carta_url())
+                        message(f"Remote CARTA version is {iglesia.CARTA_VERSION} ({config.CARTA_BROWSER})")
                         continue
 
                     if "jupyter notebook server is running" in line:
