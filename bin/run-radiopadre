@@ -324,7 +324,7 @@ import signal
 signal.signal(signal.SIGHUP, _handle_hup)
 
 # work out browser
-if config.BROWSER.upper() in ("NONE", "FALSE", "0"):
+if str(config.BROWSER).upper() in ("NONE", "FALSE", "0"):
     config.BROWSER = None
 
 
