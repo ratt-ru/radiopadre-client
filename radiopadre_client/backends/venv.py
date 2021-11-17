@@ -121,7 +121,7 @@ def update_installation():
             bye("no radiopadre installation method specified (see --server-install options)")
 
         if config.VENV_IGNORE_JS9:
-            env = dict(RADIOPADRE_JS9_IGNORE_ERRORS=1)
+            env = dict(RADIOPADRE_JS9_IGNORE_ERRORS='1')
         else:
             env = None
 
