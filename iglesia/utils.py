@@ -34,10 +34,13 @@ def bye(x, code=1):
     message(x, level=logging.ERROR)
     sys.exit(code)
 
-def shell(cmd, ignore_fail=False):
+def shell(cmd, ignore_fail=False, env=None):
     """Runs shell command. If ignore_fail is set, returns None on failure"""
+    if env is not None:
+        env = dict(**env)
+        env.update(os.environ)
     try:
-       return subprocess.check_call(cmd, shell=True)
+       return subprocess.check_call(cmd, shell=True, env=env)
     except subprocess.CalledProcessError as exc:
         if ignore_fail:
             return None
