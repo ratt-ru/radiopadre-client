@@ -1,4 +1,4 @@
-import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil, stat
+import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil, stat, uuid
 from radiopadre_client.config import RADIOPADRE_VENV
 
 import iglesia
@@ -12,6 +12,7 @@ _child_processes = []
 _child_resources = []
 
 NUM_PORTS = 6
+
 
 def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True, certificate=None):
     """Starts up helper processes, if they are not already running"""
@@ -171,12 +172,16 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
                 carta_dir = os.environ.get('RADIOPADRE_CARTA_DIR') or os.path.dirname(os.path.dirname(carta_exec))
                 message(f"Running CARTA {iglesia.CARTA_VERSION} backend {carta_exec} (in dir {carta_dir})")
+                carta_env = None
 
                 if iglesia.CARTA_VERSION >= "2":
                     carta_dir = iglesia.ABSROOTDIR
-                    cmdline = [carta_exec, f"--port={carta_port}", "--no_browser", "--debug_no_auth",
+                    cmdline = [carta_exec, f"--port={carta_port}", "--no_browser", # "--debug_no_auth",
                                 f"--top_level_folder={iglesia.ABSROOTDIR}", f"--frontend_folder=/usr/share/carta/frontend" ]
                     carta_stdout, carta_stderr = sys.stdout, sys.stderr
+                    # use our session ID as the auth token for CARTA
+                    carta_env = os.environ.copy()
+                    carta_env['CARTA_AUTH_TOKEN'] = str(uuid.UUID(session_id))
                 else:
                     cmdline = [carta_exec, "--remote",
                                 f"--root={iglesia.ABSROOTDIR}", f"--folder={iglesia.ABSROOTDIR}",
@@ -185,7 +190,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
                 message(f"$ {' '.join(cmdline)}")
                 with chdir(carta_dir):
-                    _child_processes.append(subprocess.Popen(cmdline, stdin=subprocess.PIPE,  stdout=carta_stdout, stderr=carta_stderr, shell=False))
+                    _child_processes.append(subprocess.Popen(cmdline, stdin=subprocess.PIPE,  stdout=carta_stdout, stderr=carta_stderr, shell=False, env=carta_env))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
                     ## doesn't exit cleanly, let it be eaten rather
                     # atexit.register(_exit_carta, _child_processes[-1])
