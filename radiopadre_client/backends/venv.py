@@ -180,7 +180,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # add CARTA URL, if configured
     if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
         if type(browser_urls) is list:
-            browser_urls.append(iglesia.get_carta_url())
+            browser_urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
 
     ## start jupyter process
     jupyter_path = config.RADIOPADRE_VENV + "/bin/jupyter"
