@@ -184,10 +184,12 @@ def set_userside_ports(userside_ports):
 
 def get_carta_url(*args):
     url = f"http://localhost:{CARTA_PORT}"
+    args = list(args)
 
     if CARTA_VERSION < "2":
-        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + list(args)
-        args += [f"token={uuid.UUID(SESSION_ID)}"]
+        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + args
+    else:
+        args = [f"token={uuid.UUID(SESSION_ID)}"] + args
 
     if args:
         return f"{url}?{'&'.join(args)}"
