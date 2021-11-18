@@ -223,10 +223,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
             ssh_remote_v(f"virtualenv -p python3 {config.RADIOPADRE_VENV}")
+            extras = "pip setuptools"
             if config.VENV_EXTRAS:
-                extras = " ".join(config.VENV_EXTRAS.split(","))
-                message(f"Installing specified extras: {extras}")
-                ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} {extras}")
+                extras += " ".join(config.VENV_EXTRAS.split(","))
+            message(f"Installing {extras}")
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {extras}")
         else:
             message(f"Installing into existing virtualenv {remote_venv}")
 
@@ -314,6 +315,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     for _ in range(NUM_PORTS):
         starting_port = find_unused_port(starting_port + 1, 10000)
         ports.append(starting_port)
+    iglesia.set_userside_ports(ports)
 
     remote_config["remote"] = ":".join(map(str, ports))
 
@@ -422,6 +424,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         iglesia.CARTA_VERSION = match.group(1)
                         if config.CARTA_BROWSER:
                             urls.append(iglesia.get_carta_url())
+                        message(f"Remote CARTA version is {iglesia.CARTA_VERSION} ({config.CARTA_BROWSER})")
                         continue
 
                     if "jupyter notebook server is running" in line:

@@ -186,7 +186,7 @@ def get_carta_url(*args):
     url = f"http://localhost:{CARTA_PORT}"
 
     if CARTA_VERSION < "2":
-        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + args
+        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + list(args)
         args += [f"token={uuid.UUID(SESSION_ID)}"]
 
     if args:

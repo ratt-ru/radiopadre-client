@@ -120,9 +120,14 @@ def update_installation():
         else:
             bye("no radiopadre installation method specified (see --server-install options)")
 
+        if config.VENV_IGNORE_JS9:
+            env = dict(RADIOPADRE_JS9_IGNORE_ERRORS='1')
+        else:
+            env = None
+
         cmd = f"{pip_install} -U {install}"
         message(f"Running {cmd}")
-        shell(cmd)
+        shell(cmd, env=env)
 
     # if not config.INSIDE_CONTAINER_PORTS:
     #     message(f"  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}")
