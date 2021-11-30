@@ -270,6 +270,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, run_
         iglesia.CARTA_VERSION = config.DOCKER_CARTA_VERSION
         if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
             browser_urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
+        for url in browser_urls[::-1]:
+            message(f"Browse to URL: {url}", color="GREEN")
 
     message("Running {}".format(" ".join(map(str, docker_opts))))
     if singularity:
@@ -302,9 +304,7 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, run_
         message(
             f"Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)")
 
-        if browser_urls:
-            for url in browser_urls[::-1]:
-                message(f"Browse to URL: {url}", color="GREEN")
+        if run_browser and browser_urls:
             iglesia.register_helpers(*browser_command(*browser_urls))
             # give things a second (to let the browser command print its stuff, if it wants to)
             time.sleep(1)
