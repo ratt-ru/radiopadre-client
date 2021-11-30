@@ -15,8 +15,11 @@ from .default_config import DefaultConfig
 DEFAULT_VALUE = object()
 
 
+NUM_PORTS = 6
+STARTING_CONTAINER_PORT = 11001
+CONTAINER_PORTS = range(STARTING_CONTAINER_PORT, STARTING_CONTAINER_PORT+NUM_PORTS)
+
 AUTO_INIT = False
-CONTAINER_PORTS = 11001, 11002, 11003, 11004, 11005
 AUTO_LOAD = "radiopadre-auto*.ipynb"
 DEFAULT_NOTEBOOK = "radiopadre-default.ipynb"
 DOCKER_IMAGE = "osmirnov/radiopadre:latest"

@@ -1,5 +1,5 @@
 import os, sys, subprocess, atexit, traceback, getpass, tempfile, psutil, stat, uuid
-from radiopadre_client.config import RADIOPADRE_VENV
+from radiopadre_client.config import RADIOPADRE_VENV, NUM_PORTS
 
 import iglesia
 from iglesia import PadreError
@@ -10,8 +10,6 @@ from . import logger
 _child_processes = []
 
 _child_resources = []
-
-NUM_PORTS = 6
 
 
 def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True, certificate=None):
