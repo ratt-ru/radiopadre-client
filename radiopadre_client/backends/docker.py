@@ -265,9 +265,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
 
     # add CARTA URL if asked to, since with a container image we already know the CARTA version
-    iglesia.CARTA_VERSION = config.DOCKER_CARTA_VERSION
-    if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
-        if type(browser_urls) is list:
+    if type(browser_urls) is list:
+        iglesia.CARTA_VERSION = config.DOCKER_CARTA_VERSION
+        if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
             browser_urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
 
     message("Running {}".format(" ".join(map(str, docker_opts))))
@@ -302,6 +302,8 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, sing
             f"Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)")
 
         if browser_urls:
+            for url in browser_urls[::-1]:
+                message(f"Browse to URL: {url}", color="GREEN")
             iglesia.register_helpers(*run_browser(*browser_urls))
             # give things a second (to let the browser command print its stuff, if it wants to)
             time.sleep(1)

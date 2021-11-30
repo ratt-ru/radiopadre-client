@@ -205,6 +205,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         # launch browser
         if browser_urls:
             iglesia.register_helpers(*run_browser(*browser_urls))
+            for url in browser_urls[::-1]:
+                message(f"Browse to URL: {url}", color="GREEN")
+
+
     #    elif not config.REMOTE_MODE_PORTS and not config.INSIDE_CONTAINER_PORTS:
     #        message("Please point your browser to {}".format(" ".join(browser_urls)))
 

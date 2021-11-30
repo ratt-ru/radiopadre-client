@@ -337,17 +337,17 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             else:
                 message(f"  No notebooks matching --auto-load {config.AUTO_LOAD}")
 
-    site = "https://localhost" if config.SSL else "http://localhost"
-    urls = []
-    if LOAD_DIR:
-        urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
-    if LOAD_NOTEBOOK:
-        urls += [f"{site}:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}" for nb in LOAD_NOTEBOOK]
 
-    if not config.NBCONVERT:
-        for url in urls[::-1]:
-            message(f"Browse to URL: {url}", color="GREEN")
-            
+    if browser and not config.NBCONVERT:
+        site = "https://localhost" if config.SSL else "http://localhost"
+        urls = []
+        if LOAD_DIR:
+            urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
+        if LOAD_NOTEBOOK:
+            urls += [f"{site}:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}" for nb in LOAD_NOTEBOOK]
+    else:
+        urls = None
+
         # if config.CARTA_BROWSER:
         #     message(f"Browse to URL: {iglesia.get_carta_url()} (CARTA file browser)", color="GREEN")
         #     urls.append(url)
@@ -356,4 +356,4 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # now we're ready to start the session
 
     backend.start_session(container_name, selected_ports, userside_ports,
-                          notebook_path, browser and urls)
+                          notebook_path, urls)
