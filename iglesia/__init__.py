@@ -186,9 +186,12 @@ CARTA_SESSION_ID = None
 
 def get_carta_url(session_id=None, *args):
     global CARTA_SESSION_ID
+    global SESSION_ID
     if session_id is None:
         if CARTA_SESSION_ID is None:
-            error("CARTA session ID not initialized")
+            CARTA_SESSION_ID = SESSION_ID
+            if CARTA_SESSION_ID is None:
+                error("CARTA session ID not initialized")
     else:
         CARTA_SESSION_ID = session_id
 
