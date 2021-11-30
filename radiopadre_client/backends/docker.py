@@ -166,7 +166,7 @@ def _collect_runscript_arguments(ports):
     #return ["run-radiopadre"] + config.get_options_list(run_config, quote=False)
 
 
-def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
+def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls, run_browser=False):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR, SNOOP_MODE
     radiopadre_dir = make_radiopadre_dir()
     docker_local = make_dir(radiopadre_dir + "/.docker-local")
@@ -222,7 +222,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     if notebook_path:
         docker_opts.append(notebook_path)
 
-    _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls)
+    _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], 
+                    browser_urls=browser_urls, run_browser=run_browser)
 
     if config.NBCONVERT:
         return
@@ -262,7 +263,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             #     running_container = None  # to avoid reaping
             sys.exit(status)
 
-def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
+def _run_container(container_name, docker_opts, jupyter_port, browser_urls, run_browser=False, singularity=False):
 
     # add CARTA URL if asked to, since with a container image we already know the CARTA version
     if type(browser_urls) is list:

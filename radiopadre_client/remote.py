@@ -418,14 +418,14 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         container_name = match.group(1)
                         continue
 
-                    # check for CARTA version
-                    match = re.match(".*Running CARTA (.+) backend", line)
-                    if match:
-                        iglesia.CARTA_VERSION = match.group(1)
-                        if config.CARTA_BROWSER:
-                            urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
-                        message(f"Remote CARTA version is {iglesia.CARTA_VERSION} ({config.CARTA_BROWSER})")
-                        continue
+                    # # check for CARTA version
+                    # match = re.match(".*Running CARTA (.+) backend", line)
+                    # if match:
+                    #     iglesia.CARTA_VERSION = match.group(1)
+                    #     # if config.CARTA_BROWSER:
+                    #     #     urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
+                    #     message(f"Remote CARTA version is {iglesia.CARTA_VERSION} ({config.CARTA_BROWSER})")
+                    #     continue
 
                     if "jupyter notebook server is running" in line:
                         remote_running = True

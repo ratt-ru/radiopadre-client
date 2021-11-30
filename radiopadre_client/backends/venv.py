@@ -134,7 +134,7 @@ def update_installation():
 
 
 
-def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
+def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls, run_browser=False):
     from iglesia import ROOTDIR
     from radiopadre_client.server import JUPYTER_OPTS
 
@@ -204,7 +204,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
         # launch browser
         if browser_urls:
-            iglesia.register_helpers(*run_browser(*browser_urls))
+            if run_browser:
+                iglesia.register_helpers(*run_browser(*browser_urls))
             for url in browser_urls[::-1]:
                 message(f"Browse to URL: {url}", color="GREEN")
 

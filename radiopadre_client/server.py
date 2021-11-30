@@ -184,7 +184,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     elif os.environ.get("SSH_CLIENT"):
         message("You appear to have logged in via ssh.")
         message("You're logged in via ssh, so I'm not opening a web browser for you.")
-        message("Please manually browse to the URL printed by Jupyter below. You will probably want to employ ssh")
+        message("Please manually browse to the URLs printed  below. You will probably want to employ ssh")
         message("port forwarding if you want to browse this notebook from your own machine.")
         browser = False
     else:
@@ -337,14 +337,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             else:
                 message(f"  No notebooks matching --auto-load {config.AUTO_LOAD}")
 
-
-    if browser and not config.NBCONVERT:
+    if not config.NBCONVERT:
         site = "https://localhost" if config.SSL else "http://localhost"
         urls = []
-        if LOAD_DIR:
-            urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
         if LOAD_NOTEBOOK:
             urls += [f"{site}:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}" for nb in LOAD_NOTEBOOK]
+        if LOAD_DIR:
+            urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
     else:
         urls = None
 
@@ -356,4 +355,4 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # now we're ready to start the session
 
     backend.start_session(container_name, selected_ports, userside_ports,
-                          notebook_path, urls)
+                          notebook_path, urls, run_browser=browser)

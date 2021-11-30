@@ -124,7 +124,7 @@ def update_installation(rebuild=False, docker_pull=True):
     # config.CONTAINER_DEBUG = False
 
 
-def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls):
+def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls, run_browser=False):
     from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
     radiopadre_dir = make_radiopadre_dir()
     docker_local = make_dir(radiopadre_dir + "/.docker-local")
@@ -171,8 +171,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     if notebook_path:
         docker_opts.append(notebook_path)
 
-    _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], browser_urls=browser_urls,
-                   singularity=True)
+    _run_container(container_name, docker_opts, jupyter_port=selected_ports[0], 
+                    browser_urls=browser_urls, run_browser=run_browser, singularity=True)
 
     if config.NBCONVERT:
         return
