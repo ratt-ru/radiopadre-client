@@ -430,7 +430,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     if "jupyter notebook server is running" in line:
                         remote_running = True
                         time.sleep(1)
-                        iglesia.register_helpers(*run_browser(*urls))
+                        if urls:
+                            iglesia.register_helpers(*run_browser(*urls))
                         message("The remote radiopadre session is now fully up")
                         if USE_VENV or not config.CONTAINER_PERSIST:
                             message("Press Ctrl+C to kill the remote session")
