@@ -182,14 +182,23 @@ def set_userside_ports(userside_ports):
     global JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT
     JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT = userside_ports
 
-def get_carta_url(session_id, *args):
+CARTA_SESSION_ID = None
+
+def get_carta_url(session_id=None, *args):
+    global CARTA_SESSION_ID
+    if session_id is None:
+        if CARTA_SESSION_ID is None:
+            error("CARTA session ID not initialized")
+    else:
+        CARTA_SESSION_ID = session_id
+
     url = f"http://localhost:{CARTA_PORT}"
     args = list(args)
 
     if CARTA_VERSION < "2":
         args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + args
     else:
-        token = str(uuid.UUID(session_id))
+        token = str(uuid.UUID(CARTA_SESSION_ID))
         args = [f"token={token}"] + args
 
     if args:
