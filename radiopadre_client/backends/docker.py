@@ -264,6 +264,12 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
 def _run_container(container_name, docker_opts, jupyter_port, browser_urls, singularity=False):
 
+    # add CARTA URL if asked to, since with a container image we already know the CARTA version
+    iglesia.CARTA_VERSION = config.DOCKER_CARTA_VERSION
+    if config.CARTA_BROWSER and iglesia.CARTA_VERSION:
+        if type(browser_urls) is list:
+            browser_urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
+
     message("Running {}".format(" ".join(map(str, docker_opts))))
     if singularity:
         message(

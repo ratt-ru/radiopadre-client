@@ -31,6 +31,12 @@ if __release__:
 else:
     __image_version__ = __version__
 
+# CARTA version inside container image
+if __version__ >= "1.2":
+    __docker_carta_version__ = "2.0" 
+else:
+    __docker_carta_version__ = "1.3.1" 
+
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
     SKIP_CHECKS=False,
@@ -42,6 +48,7 @@ DefaultConfig = OrderedDict(
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
     DOCKER_IMAGE="quay.io/osmirnov/radiopadre:" + __image_version__,         # change for each release
+    DOCKER_CARTA_VERSION=__docker_carta_version__,
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
