@@ -16,14 +16,18 @@ import re
 # change this to a proper patch release number for a real release
 __version__ = "1.2.pre1"
 
-# set this to True to have auto-installs use git rather than pip, suitable dor dev branches etc.
-# default convention is to use b1.2.x branch for version 1.2.preN
-__install_from_branch__ = "b" + re.sub("pre.*", "x", __version__) if "pre" in __version__ else None
-
-__tag_prefix__ = "b" if __install_from_branch__ else ""
+# True to work from a continuously updated branch. False to work from a release
+__dev_branch__ = False
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
 __release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
+
+# set this to have auto-installs use git rather than pip, suitable for dev branches etc.
+# default convention is to use b1.2.x branch for version 1.2.preN
+__install_from_branch__ = "b" + re.sub("pre.*", "x", __version__) if "pre" in __version__ and __dev_branch__ else None
+
+__tag_prefix__ = "b" if __install_from_branch__ else ""
+
 
 # release x.y.z pulls x.y.latest image
 if __release__:
