@@ -24,7 +24,7 @@ __release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
 
 # set this to have auto-installs use git rather than pip, suitable for dev branches etc.
 # default convention is to use b1.2.x branch for version 1.2.preN
-__install_from_branch__ = "b" + re.sub("pre.*", "x", __version__) if "pre" in __version__ and __dev_branch__ else None
+__install_from_branch__ = "b" + re.sub("pre.*", "x", __version__) if "pre" in __version__ and __dev_branch__ else ""
 
 __tag_prefix__ = "b" if __install_from_branch__ else ""
 
