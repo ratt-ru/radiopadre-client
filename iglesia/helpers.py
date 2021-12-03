@@ -46,6 +46,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
     # are we running inside a container?
     in_container = bool(os.environ.get('RADIOPADRE_CONTAINER_NAME'))
+    in_docker = in_container and os.environ.get('RADIOPADRE_DOCKER') == 'True'
 
     if verbose:
         stdout, stderr = sys.stdout, sys.stderr
@@ -134,8 +135,10 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 server_opts = [server, str(http_port)] + http_rewrites
                 if certificate:
                     server_opts.append(certificate)
+                if in_docker:
+                    server_opts.append("0.0.0.0")
                 with chdir(iglesia.SHADOW_HOME):
-                    _child_processes.append(subprocess.Popen(server_opts, stdin=DEVZERO,  stdout=stdout, stderr=stderr))
+                    _child_processes.append(subprocess.Popen(server_opts, stdin=DEVZERO)) #,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(_child_processes[-1].pid)
                     message("  started as PID {}".format(_child_processes[-1].pid))
             else:

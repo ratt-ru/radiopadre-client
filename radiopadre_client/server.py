@@ -161,7 +161,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             backend.save_session_info(container_name, selected_ports, userside_ports)
 
     global userside_jupyter_port  
-    jupyter_port, helper_port, http_port, carta_port, carta_ws_por, wetty_port = selected_ports
+    jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports
     userside_jupyter_port, userside_helper_port, userside_http_port, \
         userside_carta_port, userside_carta_ws_port, userside_wetty_port = userside_ports
 

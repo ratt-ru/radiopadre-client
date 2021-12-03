@@ -418,6 +418,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         container_name = match.group(1)
                         continue
 
+                    ## OMS: delete this, remote will report it to us instead via "Browse to URL" lines
                     # # check for CARTA version
                     # match = re.match(".*Running CARTA (.+) backend", line)
                     # if match:

@@ -184,6 +184,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                         "-e", "RADIOPADRE_DIR={}".format(radiopadre_dir),
                         "-e", f"RADIOPADRE_CONTAINER_NAME={container_name}",
                         "-e", f"RADIOPADRE_SESSION_ID={config.SESSION_ID}",
+                        "-e", "RADIOPADRE_DOCKER=True",
                     ]
     # enable detached mode if not debugging, and also if not doing conversion non-interactively
     if not config.CONTAINER_DEBUG and not config.NBCONVERT:
