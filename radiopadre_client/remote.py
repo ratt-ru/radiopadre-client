@@ -223,7 +223,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
             ssh_remote_v(f"virtualenv -p python3 {config.RADIOPADRE_VENV}")
-            extras = "pip setuptools"
+            extras = "pip setuptools numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
                 extras += " ".join(config.VENV_EXTRAS.split(","))
             message(f"Installing {extras}")
