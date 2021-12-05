@@ -6,15 +6,14 @@ from collections import OrderedDict
 # ### some globals
 import iglesia
 from radiopadre_client import config, sessions
-from radiopadre_client.default_config import __version__, __release__, __dev_branch__, __tag_prefix__
+from radiopadre_client.default_config import __version__, __release__, __dev_branch__, __version_string__
 
 from iglesia.utils import message, debug, bye, INPUT
 
 from iglesia import logger, certificates
 
-parser = argparse.ArgumentParser(description="""
-    run-radiopadre ({}{}): manage local or remote Jupyter sessions for radiopadre notebooks.
-    """.format(__tag_prefix__, __version__),
+parser = argparse.ArgumentParser(description=f"""
+    run-radiopadre ({__version_string__}): manage local or remote Jupyter sessions for radiopadre notebooks.""",
     formatter_class=argparse.RawTextHelpFormatter)
 
 
@@ -189,11 +188,11 @@ if options.non_interactive:
     logger.logger.setLevel(logging.ERROR)
 
 if __dev_branch__:
-    version_string = f"dev version {__version__}"
+    version_string = f"dev version {__version_string__}"
 elif __release__:
-    version_string = f"release {__version__}"
+    version_string = f"release {__version_string__}"
 else:
-    version_string = f"pre-release {__version__}"
+    version_string = f"pre-release {__version_string__}"
 
 message(f"Welcome to the radiopadre client {version_string}!", color="GREEN")
 

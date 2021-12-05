@@ -16,18 +16,20 @@ import re
 # change this to a proper patch release number for a real release
 __version__ = "1.2.pre1"
 
-# True to work from a continuously updated branch. False to work from a release
-__dev_branch__ = False
+# To work from a dev branch, set the name here. Default is to use "b{__version__}"
+__dev_branch__ = None
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
 __release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
 
-# set this to have auto-installs use git rather than pip, suitable for dev branches etc.
-# default convention is to use b1.2.x branch for version 1.2.preN
-__install_from_branch__ = "b" + re.sub("pre.*", "x", __version__) if "pre" in __version__ and __dev_branch__ else ""
-
-__tag_prefix__ = "b" if __install_from_branch__ else ""
-
+# dev branch install
+if __dev_branch__:
+    __install_from_branch__ = __version__ = __version_string__ = __dev_branch__
+# else branch is auto-named from version
+# (will only use it if --client-install-repo is configured)
+else:
+    __install_from_branch__ = f"b{__version__}"
+    __version_string__ = __version__ 
 
 # release x.y.z pulls x.y.latest image
 if __release__:
@@ -35,7 +37,7 @@ if __release__:
 else:
     __image_version__ = __version__
 
-# CARTA version inside container image
+# set CARTA version inside container image
 if __version__ >= "1.2":
     __docker_carta_version__ = "2.0" 
 else:
