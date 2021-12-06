@@ -2,7 +2,7 @@ import sys, os, os.path, subprocess, time
 from iglesia.utils import message, warning, error, debug, shell, bye, INPUT, check_output, find_which
 
 from radiopadre_client import config
-from radiopadre_client.server import run_browser
+from radiopadre_client.server import run_browser as browser_runner
 import iglesia
 from .backend_utils import await_server_startup, update_server_from_repository
 
@@ -209,7 +209,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         # launch browser
         if browser_urls:
             if run_browser:
-                iglesia.register_helpers(*run_browser(*browser_urls))
+                time.sleep(1)
+                iglesia.register_helpers(*browser_runner(*browser_urls))
             for url in browser_urls[::-1]:
                 message(f"Browse to URL: {url}", color="GREEN")
 

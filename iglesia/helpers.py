@@ -150,6 +150,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
         if 'RADIOPADRE_CARTA_PID' not in os.environ:
             # find CARTA backend or CARTA app
             for carta_exec in os.environ.get('RADIOPADRE_CARTA_EXEC'), f"{sys.prefix}/carta/carta", \
+                              f"{sys.prefix}/carta-appimage", \
                               find_which('carta_backend'), find_which('carta'):
                 # if carta_exec:
                 #     subprocess.call(f"ls -l /.radiopadre/venv", shell=True)
@@ -178,7 +179,10 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 if iglesia.CARTA_VERSION >= "2":
                     carta_dir = iglesia.ABSROOTDIR
                     cmdline = [carta_exec, f"--port={carta_port}", "--no_browser", # "--debug_no_auth",
-                                f"--top_level_folder={iglesia.ABSROOTDIR}", f"--frontend_folder=/usr/share/carta/frontend" ]
+                                f"--top_level_folder={iglesia.ABSROOTDIR}" ]
+                    # explicit frontend for packaged versions
+                    if not carta_exec.endswith("appimage"): 
+                        cmdline.append(f"--frontend_folder=/usr/share/carta/frontend")
                     carta_stdout, carta_stderr = sys.stdout, sys.stderr
                     # use our session ID as the auth token for CARTA
                     carta_env = os.environ.copy()

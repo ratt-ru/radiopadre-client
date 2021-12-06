@@ -5,7 +5,7 @@ import iglesia
 from iglesia.utils import message, warning, make_dir, make_radiopadre_dir, bye, shell, DEVNULL, INPUT, check_output
 from radiopadre_client import config
 from radiopadre_client.config import USER, CONTAINER_PORTS, SERVER_INSTALL_PATH, CLIENT_INSTALL_PATH
-from radiopadre_client.server import run_browser as browser_command
+from radiopadre_client.server import run_browser as browser_runner
 
 from .backend_utils import await_server_startup, update_server_from_repository
 
@@ -306,9 +306,9 @@ def _run_container(container_name, docker_opts, jupyter_port, browser_urls, run_
             f"Container started. The jupyter notebook server is running on port {jupyter_port} (after {wait:.2f} secs)")
 
         if run_browser and browser_urls:
-            iglesia.register_helpers(*browser_command(*browser_urls))
-            # give things a second (to let the browser command print its stuff, if it wants to)
             time.sleep(1)
+            iglesia.register_helpers(*browser_runner(*browser_urls))
+            # give things a second (to let the browser command print its stuff, if it wants to)
 
     return docker_process
 
