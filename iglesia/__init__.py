@@ -184,7 +184,7 @@ def set_userside_ports(userside_ports):
 
 CARTA_SESSION_ID = None
 
-def get_carta_url(session_id=None, *args):
+def get_carta_url(session_id=None, args=[]):
     global CARTA_SESSION_ID
     global SESSION_ID
     if session_id is None:
