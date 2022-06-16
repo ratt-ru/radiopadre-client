@@ -76,7 +76,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
             """)
             wettycfg.flush()
             _child_resources.append(wettycfg)
-            message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
+            # message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
             wetty_opts = [wetty,
                     "--conf", wettycfg.name, 
                     "--ssh-host", "localhost",
@@ -88,6 +88,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                 ]
             if certificate:
                 wetty_opts += ["--ssl-key", certificate, "--ssl-cert", certificate]
+            message(f"Starting: {' '.join(wetty_opts)}")
             _child_processes.append(subprocess.Popen(wetty_opts))
             os.environ['RADIOPADRE_WETTY_PID'] = str(_child_processes[-1].pid)
             message("  started as PID {}".format(_child_processes[-1].pid))
@@ -111,17 +112,18 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                     open(js9prefs, "w").write(f"JS9Prefs.globalOpts.helperPort = {iglesia.JS9HELPER_PORT};\n")
                     debug(f"  writing {js9prefs} with helperPort={iglesia.JS9HELPER_PORT}")
 
-                message(f"Starting {js9helper} on port {helper_port} in {iglesia.SHADOW_ROOTDIR}")
+                # message(f"Starting {js9helper} on port {helper_port} in {iglesia.SHADOW_ROOTDIR}")
                 nodejs = find_which("nodejs") or find_which("node")
                 if not nodejs:
                     raise PadreError("unable to find nodejs or node -- can't run js9helper.")
                 try:
-                    with chdir(iglesia.SHADOW_ROOTDIR):
-                        _child_processes.append(
-                            subprocess.Popen([nodejs.strip(), js9helper,
+                    js9_opts = [nodejs.strip(), js9helper,
                                 f'{{"helperPort": {helper_port}, "debug": {iglesia.VERBOSE}, ' +
-                                f'"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}'],
-                                             stdin=DEVZERO, stdout=stdout, stderr=stderr))
+                                f'"fileTranslate": ["^(http://localhost:[0-9]+/[0-9a-f]+{iglesia.ABSROOTDIR}|/static/)", ""] }}']
+                    message(f"Starting in {iglesia.SHADOW_ROOTDIR}: {' '.join(js9_opts)}")
+                    with chdir(iglesia.SHADOW_ROOTDIR):
+                        _child_processes.append(subprocess.Popen(js9_opts, 
+                                                stdin=DEVZERO, stdout=stdout, stderr=stderr))
                         os.environ['RADIOPADRE_JS9HELPER_PID'] = str(_child_processes[-1].pid)
                         message("  started as PID {}".format(_child_processes[-1].pid))
                 except Exception as exc:
@@ -141,6 +143,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                     server_opts.append(certificate)
                 if in_docker:
                     server_opts.append("0.0.0.0")
+                message(f"Starting in {iglesia.SHADOW_HOME}: {' '.join(server_opts)}")
                 with chdir(iglesia.SHADOW_HOME):
                     _child_processes.append(subprocess.Popen(server_opts, stdin=DEVZERO)) #,  stdout=stdout, stderr=stderr))
                     os.environ['RADIOPADRE_HTTPSERVER_PID'] = str(_child_processes[-1].pid)
@@ -197,7 +200,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
                                 f"--port={carta_ws_port}", f"--fport={carta_port}"]
                     carta_stdout, carta_stderr = stdout, stderr
 
-                message(f"$ {' '.join(cmdline)}")
+                message(f"Starting: {' '.join(cmdline)}")
                 with chdir(carta_dir):
                     _child_processes.append(subprocess.Popen(cmdline, stdin=subprocess.PIPE,  stdout=carta_stdout, stderr=carta_stderr, shell=False, env=carta_env))
                     os.environ['RADIOPADRE_CARTA_PID'] = str(_child_processes[-1].pid)
