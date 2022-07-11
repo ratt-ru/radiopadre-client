@@ -1,4 +1,4 @@
-import sys, os, os.path, subprocess, time
+import sys, os, os.path, subprocess, time, traceback
 from iglesia.utils import message, warning, error, debug, shell, bye, INPUT, check_output, find_which
 
 from radiopadre_client import config
@@ -238,7 +238,12 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                     debug("inside container -- sleeping indefinitely")
                     time.sleep(100000)
                 else:
-                    a = INPUT("Type 'exit' to kill the session: ")
+                    try:
+                        message("Waiting for input")
+                        a = INPUT("Type 'exit' to kill the session: ")
+                    except EOFError as exc:
+                        message(f"EOF error: {exc}")
+                        continue
                     if notebook_proc.poll() is not None:
                         message("The notebook server has exited with code {}".format(notebook_proc.poll()))
                         sys.exit(0)
@@ -250,7 +255,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                 message("Caught Ctrl+C")
                 status = 1
             elif type(exc) is EOFError:
-                message("Input channel has closed")
+                message(f"Input channel has closed: {exc}")
                 status = 1
             elif type(exc) is SystemExit:
                 status = getattr(exc, 'code', 0)
