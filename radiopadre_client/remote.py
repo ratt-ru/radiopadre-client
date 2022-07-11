@@ -17,8 +17,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
-#    SSH_OPTS = ["ssh", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
-    SSH_OPTS = ["ssh"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+    SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+#    SSH_OPTS = ["ssh", "-t", ] + SSH_MUX_OPTS + [config.REMOTE_HOST]
 
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
 
@@ -353,6 +353,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 try:
                     line = fobj.readline()
                 except EOFError:
+                    message(f"The ssh process to {config.REMOTE_HOST} reports EOF")
                     line = b''
                 empty_line = not line
                 line = (line.decode('utf-8') if type(line) is bytes else line).rstrip()
