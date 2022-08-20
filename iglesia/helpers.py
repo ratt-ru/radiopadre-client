@@ -61,39 +61,39 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     #
     global _child_processes
 
-    # run wetty
-    if interactive:
-        if 'RADIOPADRE_WETTY_PID' not in os.environ:
-            wetty = find_which("wetty")
-            if not wetty:
-                raise PadreError("unable to find wetty")
-            session_id = os.environ.get('RADIOPADRE_SESSION_ID')
-            wettycfg = tempfile.NamedTemporaryFile("wt")
-            os.chmod(wettycfg.name, stat.S_IRUSR)
-            wettycfg.write(f"""{{
-                    'server': {{ 'base': '/{session_id}/wetty' }},
-                }}
-            """)
-            wettycfg.flush()
-            _child_resources.append(wettycfg)
-            # message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
-            wetty_opts = [wetty,
-                    "--conf", wettycfg.name, 
-                    "--ssh-host", "localhost",
-                    "--ssh-port", "22",
-                    "--ssh-user", getpass.getuser(),
-                    "--ssh-auth", "publickey,password",
-                    "--port", str(wetty_port),
-                    "--allow-iframe",
-                ]
-            if certificate:
-                wetty_opts += ["--ssl-key", certificate, "--ssl-cert", certificate]
-            message(f"Starting: {' '.join(wetty_opts)}")
-            _child_processes.append(subprocess.Popen(wetty_opts))
-            os.environ['RADIOPADRE_WETTY_PID'] = str(_child_processes[-1].pid)
-            message("  started as PID {}".format(_child_processes[-1].pid))
-        else:
-            debug("wetty should be running (pid {})".format(os.environ["RADIOPADRE_WETTY_PID"]))
+    # # run wetty
+    # if interactive:
+    #     if 'RADIOPADRE_WETTY_PID' not in os.environ:
+    #         wetty = find_which("wetty")
+    #         if not wetty:
+    #             raise PadreError("unable to find wetty")
+    #         session_id = os.environ.get('RADIOPADRE_SESSION_ID')
+    #         wettycfg = tempfile.NamedTemporaryFile("wt")
+    #         os.chmod(wettycfg.name, stat.S_IRUSR)
+    #         wettycfg.write(f"""{{
+    #                 'server': {{ 'base': '/{session_id}/wetty' }},
+    #             }}
+    #         """)
+    #         wettycfg.flush()
+    #         _child_resources.append(wettycfg)
+    #         # message(f"Starting {wetty} on port {wetty_port} with config file {wettycfg.name} and base {session_id}")
+    #         wetty_opts = [wetty,
+    #                 "--conf", wettycfg.name, 
+    #                 "--ssh-host", "localhost",
+    #                 "--ssh-port", "22",
+    #                 "--ssh-user", getpass.getuser(),
+    #                 "--ssh-auth", "publickey,password",
+    #                 "--port", str(wetty_port),
+    #                 "--allow-iframe",
+    #             ]
+    #         if certificate:
+    #             wetty_opts += ["--ssl-key", certificate, "--ssl-cert", certificate]
+    #         message(f"Starting: {' '.join(wetty_opts)}")
+    #         _child_processes.append(subprocess.Popen(wetty_opts))
+    #         os.environ['RADIOPADRE_WETTY_PID'] = str(_child_processes[-1].pid)
+    #         message("  started as PID {}".format(_child_processes[-1].pid))
+    #     else:
+    #         debug("wetty should be running (pid {})".format(os.environ["RADIOPADRE_WETTY_PID"]))
 
     # run JS9 helper
     if interactive:
