@@ -60,6 +60,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     #     "/js9colormaps.js={}/static/js9colormaps.js".format(os.path.dirname(notebook.__file__)))
     #
     global _child_processes
+    session_id = os.environ.get('RADIOPADRE_SESSION_ID')
 
     # # run wetty
     # if interactive:
