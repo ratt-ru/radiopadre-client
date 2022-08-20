@@ -14,7 +14,7 @@ import os.path
 import re
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.pre2"
+__version__ = "1.2.pre3"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
