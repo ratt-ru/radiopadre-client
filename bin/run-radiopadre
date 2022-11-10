@@ -352,12 +352,14 @@ config.RADIOPADRE_VENV = os.path.expanduser((config.RADIOPADRE_VENV or "").forma
 config.SERVER_INSTALL_PATH = os.path.expanduser((config.SERVER_INSTALL_PATH or "").format(**env))
 config.CLIENT_INSTALL_PATH = os.path.expanduser((config.CLIENT_INSTALL_PATH or "").format(**env))
 
+from iglesia.utils import find_which, check_output
+
+message(f"radiopadre is running on host {iglesia.utils.check_output('hostname')}")
+
 import radiopadre_client.server
 
 if not options.pull_docker and not options.pull_singularity:
     radiopadre_client.server.run_radiopadre_server(command, arguments, notebook_path, workdir=options.workdir)
-
-from iglesia.utils import find_which
 
 # docker may be used for both docker and singularity back-ends
 has_docker = find_which("docker")

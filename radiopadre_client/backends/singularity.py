@@ -50,12 +50,12 @@ def update_installation(rebuild=False, docker_pull=True):
 
     # clearly true if no image
     if not os.path.exists(singularity_image):
-        if config.SINGULARITY_AUTO_BUILD:
-            message(f"Singularity image {singularity_image} does not exist")
+        if config.SINGULARITY_AUTO_BUILD or config.SINGULARITY_REBUILD:
+            message(f"Singularity image {singularity_image} does not exist, will build")
             build_image = True
         else:
             error(f"Singularity image {singularity_image} does not exist, and auto-build is disabled")
-            bye(f"Re-run with --singularity-auto-build to proceed")
+            bye(f"Re-run with --singularity-rebuild or --singularity-auto-build to proceed")
     # also true if rebuild forced by flags or config or command line
     elif rebuild or config.SINGULARITY_REBUILD:
         config.SINGULARITY_AUTO_BUILD = build_image = True
@@ -112,9 +112,16 @@ def update_installation(rebuild=False, docker_pull=True):
                     raise
             else:
                 raise
+        if not os.path.exists(singularity_image_new):
+            if config.IGNORE_UPDATE_ERRORS and os.path.exists(singularity_image):
+                warning("singularity build did not return a error, but the new image did not appear")
+                warning("since --ignore-update-errors is set, we're proceeding with the old image")
+            else:
+                bye("singularity build did not return a error, but the new image did not appear")
         # move old image
-        message(f"Build successful, renaming to {singularity_image}")
-        os.rename(singularity_image_new, singularity_image)
+        else:
+            message(f"Build successful, renaming to {singularity_image}")
+            os.rename(singularity_image_new, singularity_image)
     else:
         message(f"Using existing radiopadre singularity image {singularity_image}")
 
