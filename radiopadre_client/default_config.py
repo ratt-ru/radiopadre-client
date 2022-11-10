@@ -14,7 +14,7 @@ import os.path
 import re
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.pre3"
+__version__ = "1.2.pre4"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
@@ -39,7 +39,7 @@ else:
 
 # set CARTA version inside container image
 if __version__ >= "1.2":
-    __docker_carta_version__ = "2.0" 
+    __docker_carta_version__ = "3.0" 
 else:
     __docker_carta_version__ = "1.3.1" 
 
