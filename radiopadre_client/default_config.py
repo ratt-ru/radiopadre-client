@@ -57,6 +57,7 @@ DefaultConfig = OrderedDict(
     DOCKER_CARTA_VERSION=__docker_carta_version__,
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
+    REMOTE_HOP="",
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="https://github.com/ratt-ru/radiopadre-client.git" if __install_from_branch__ else "",

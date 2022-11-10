@@ -1,4 +1,4 @@
-import os, sys, subprocess, re, time, traceback
+import os, sys, subprocess, re, time, traceback, shlex
 
 from . import config
 
@@ -27,18 +27,13 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     debug("  {}".format(" ".join(SSH_OPTS)))
     ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
 
-
-    # raw_input("Continue?")
-
-    def help_yourself(problem, suggestion=None):
-        """
-        Prints a "help yourself" message and exits
-        """
-        message("{}".format(problem))
-        message(f"Please ssh {config.REMOTE_HOST} and sort it out yourself, then rerun this script")
-        if suggestion:
-            message(f"({suggestion})")
-        sys.exit(1)
+    def ssh_hop_command(command):
+        """Inserts remote hop command as appropriate"""
+        if config.REMOTE_HOP:
+            kw = dict(command=command, quoted_command=shlex.quote(command), config=config)
+            return config.REMOTE_HOP.format(**kw)
+        else:
+            return command
 
     def ssh_remote(command, fail_retcode=None, stderr=DEVNULL):
         """Runs command on remote host. Returns its output if the exit status is 0, or None if the exit status matches fail_retcode.
@@ -55,19 +50,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     def ssh_remote_v(command, fail_retcode=None):
         return ssh_remote(command, fail_retcode, stderr=sys.stderr)
-
-    def ssh_remote_interactive(command, fail_retcode=None):
-        """Runs command on remote host. Returns the exit status if 0, or None if the exit status matches fail_retcode.
-
-        Any other non-zero exit status (or any other error) will result in an exception.
-        """
-        try:
-            return subprocess.check_call(SSH_OPTS + [command])
-        except subprocess.CalledProcessError as exc:
-            if exc.returncode == fail_retcode:
-                return None
-            message(f"ssh {command} failed with exit code {exc.returncode}")
-            raise
 
     def scp_to_remote(path, remote_path):
         return subprocess.check_output(SCP_OPTS + [path, "{}:{}".format(config.REMOTE_HOST, remote_path)])
@@ -104,7 +86,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_config['BROWSER'] = 'None'
     remote_config['SKIP_CHECKS'] = False
     remote_config['VENV_REINSTALL'] = False
-
+    del remote_config['REMOTE_HOP']
     # Check for various remote bits
     if config.VERBOSE and not config.SKIP_CHECKS:
         message(f"Checking installation on {config.REMOTE_HOST}.")
@@ -326,8 +308,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                                    " ".join(extra_arguments))
 
     # start ssh subprocess to launch notebook
-    args = list(SSH_OPTS) + ["shopt -s huponexit && "+
-                             runscript]
+    args = list(SSH_OPTS) + [ 
+         "exec $SHELL -l -c " +
+            shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript))
+    ]
 
     if config.VERBOSE:
         message("running {}".format(" ".join(args)))
@@ -344,6 +328,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     container_name = None
     urls = []
     remote_running = False
+    remote_hostname = "localhost"
     status = 0
 
     try:
@@ -383,6 +368,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 if not line:
                     continue
                 # if remote is not yet started, check output
+                match  = re.match(".*radiopadre is running on host ([^\s]+)", line)
+                if match:
+                    remote_hostname = match.group(1)
+                    if config.VERBOSE:
+                        message(f"ultimate host self-identifies as {remote_hostname}")
                 if not remote_running:
                     # check for session ID
                     match = re.match(".*Session ID/notebook token is '([0-9a-f]+)'", line)
@@ -400,10 +390,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                             message(f"Detected ports {':'.join(map(str, local_ports))} -> {':'.join(map(str, remote_ports))}")
                         ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", config.REMOTE_HOST]
                         for loc, rem in zip(local_ports, remote_ports):
-                            ssh2_args += ["-L", "localhost:{}:localhost:{}".format(loc, rem)]
+                            ssh2_args += ["-L", f"localhost:{loc}:{remote_hostname}:{rem}"]
                         # tell mux process to forward the ports
                         if config.VERBOSE:
-                            message("sending forward request to ssh mux process".format(ssh2_args))
+                            message(f"sending forward request to ssh mux process: {ssh2_args}")
                         subprocess.call(ssh2_args)
                         continue
 
