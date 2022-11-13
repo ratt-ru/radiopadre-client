@@ -265,6 +265,11 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     os.environ["RADIOPADRE_SSL"] = str(bool(config.SSL))
     os.environ["RADIOPADRE_NOTEBOOK_NAME"] = LOAD_NOTEBOOK or ""
 
+    # puppeteer hack, needs chromium-browser if available
+    chromium = find_which("chromium-browser")
+    if chromium:
+        os.environ["PUPPETEER_EXECUTABLE_PATH"] = chromium
+
     # init paths & environment
     iglesia.init()
     iglesia.set_userside_ports(userside_ports)
