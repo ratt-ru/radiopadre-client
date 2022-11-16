@@ -317,13 +317,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         message("running {}".format(" ".join(args)))
     else:
         message(f"running radiopadre client on {config.REMOTE_HOST}")
-    ssh = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-                           universal_newlines=True)
-
-    poller = Poller()
-    poller.register_process(ssh, config.REMOTE_HOST, config.REMOTE_HOST + " stderr")
-    if not USE_VENV:
-        poller.register_file(sys.stdin, "stdin")
 
     urls = []
     status = 0
