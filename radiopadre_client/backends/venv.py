@@ -194,7 +194,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                                      stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                      bufsize=1, universal_newlines=True, env=os.environ)
 
-    ## use this instead to debug the sessison
+    ## use this instead to debug the session
     #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
     #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
     #                                  env=os.environ)
@@ -206,7 +206,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     else:
         iglesia.register_helpers(notebook_proc)
 
-        # launch browser
+        # issue URL messages for browser
         if browser_urls:
             if run_browser:
                 time.sleep(1)

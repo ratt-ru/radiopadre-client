@@ -1,4 +1,4 @@
-import os, sys, subprocess, re, time, traceback, shlex
+import os, sys, subprocess, re, time, traceback, shlex, asyncio, signal
 
 from . import config
 
@@ -304,7 +304,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # turn the remote_config dict into a command line
     runscript += " " + " ".join(config.get_options_list(remote_config, quote=True))
 
-    runscript += " '{}' {}".format(command if command is not "load" else notebook_path,
+    runscript += " '{}' {}".format(command if command != "load" else notebook_path,
                                    " ".join(extra_arguments))
 
     # start ssh subprocess to launch notebook
@@ -325,155 +325,160 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     if not USE_VENV:
         poller.register_file(sys.stdin, "stdin")
 
-    container_name = None
     urls = []
-    remote_running = False
-    remote_hostname = "localhost"
     status = 0
+    eof_reported = False
+
+    loop = asyncio.get_event_loop()
+    proc = loop.run_until_complete(
+        asyncio.create_subprocess_exec(*args,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE))
+
+    remote_running = False
+    jupyter_running = asyncio.Event()
+
+    async def proc_awaiter(proc, *cancellables):
+        await proc.wait()
+        for task in cancellables:
+            task.cancel()
+
+    async def remote_jupyter_waiter(event):
+        await event.wait()
+
+    startup_waiter = asyncio.Task(remote_jupyter_waiter(jupyter_running))
+
+    async def remote_stream_reader(stream, stream_name, is_stderr=False):
+        while not stream.at_eof():
+            line = await stream.readline()
+            line = (line.decode('utf-8') if type(line) is bytes else line).rstrip()
+            empty_line = not line
+            print_output = False
+            if is_stderr:
+                print_output = not line.startswith("Shared connection to")
+            else:
+                print_output = not line.startswith("radiopadre:") or command != 'load'
+            if not empty_line and (config.VERBOSE or print_output):
+                for key, dispatch in _dispatch_message.items():
+                    if key in line:
+                        dispatch(u"{}: {}".format(stream_name, line))
+                        break
+                else:
+                    message(u"{}: {}".format(stream_name, line))
+            if not line or stream.at_eof():
+                continue
+            # if remote is not yet started, check output
+            match  = re.match(".*radiopadre is running on host ([^\s]+)", line)
+            if match:
+                remote_hostname = match.group(1)
+                if config.VERBOSE:
+                    message(f"ultimate host self-identifies as {remote_hostname}")
+            nonlocal remote_running
+            if not remote_running:
+                # check for session ID
+                match = re.match(".*Session ID/notebook token is '([0-9a-f]+)'", line)
+                if match:
+                    config.SESSION_ID = match.group(1)
+                    continue
+                # check for notebook port, and launch second ssh with port forwards when we have it
+                re_ports = ":".join(["([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
+                match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
+                if match:
+                    ports = list(map(int, match.groups()))
+                    remote_ports = ports[:NUM_PORTS]
+                    local_ports = ports[NUM_PORTS:]
+                    if config.VERBOSE:
+                        message(f"Detected ports {':'.join(map(str, local_ports))} -> {':'.join(map(str, remote_ports))}")
+                    ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", config.REMOTE_HOST]
+                    for loc, rem in zip(local_ports, remote_ports):
+                        ssh2_args += ["-L", f"localhost:{loc}:{remote_hostname}:{rem}"]
+                    # tell mux process to forward the ports
+                    if config.VERBOSE:
+                        message(f"sending forward request to ssh mux process: {ssh2_args}")
+                    subprocess.call(ssh2_args)
+                    continue
+
+                # check for launch URL
+                match = re.match(".*Browse to URL: ([^\s\033]+)", line)
+                if match:
+                    urls.append(match.group(1))
+                    continue
+
+                if "jupyter notebook server is running" in line:
+                    remote_running = True
+                    time.sleep(1)
+                    if urls:
+                        iglesia.register_helpers(*run_browser(*urls))
+                    message("The remote radiopadre session is now fully up")
+                    if USE_VENV or not config.CONTAINER_PERSIST:
+                        message("Press Ctrl+C to kill the remote session")
+                    else:
+                        message("Press D<Enter> to detach from remote session, or Ctrl+C to kill it")
+
+        nonlocal eof_reported
+        if not eof_reported:
+            message(f"The ssh process to {config.REMOTE_HOST} reports EOF")
+            eof_reported = True
+
+    # async def proc_awaiter(proc, *cancellables):
+    #     await proc.wait()
+
 
     try:
-        while remote_running is not None and poller.fdlabels:
-            fdlist = poller.poll(verbose=config.VERBOSE>1)
-            for fname, fobj in fdlist:
-                try:
-                    line = fobj.readline()
-                except EOFError:
-                    message(f"The ssh process to {config.REMOTE_HOST} reports EOF")
-                    line = b''
-                empty_line = not line
-                line = (line.decode('utf-8') if type(line) is bytes else line).rstrip()
-                if fobj is sys.stdin and line == 'D' and config.CONTAINER_PERSIST:
-                    sys.exit(0)
-                # break out if ssh closes
-                if empty_line:
-                    poller.unregister_file(fobj)
-                    if ssh.stdout not in poller and ssh.stderr not in poller:
-                        message(f"The ssh process to {config.REMOTE_HOST} has exited")
-                        remote_running = None
-                        break
-                    continue
-                # print remote output
-                print_output = False
-                if fobj is ssh.stderr:
-                    print_output = not line.startswith("Shared connection to")
-                else:
-                    print_output = not line.startswith("radiopadre:") or command != 'load'
-                if not empty_line and (config.VERBOSE or print_output):
-                    for key, dispatch in _dispatch_message.items():
-                        if key in line:
-                            dispatch(u"{}: {}".format(fname, line))
-                            break
-                    else:
-                        message(u"{}: {}".format(fname, line))
-                if not line:
-                    continue
-                # if remote is not yet started, check output
-                match  = re.match(".*radiopadre is running on host ([^\s]+)", line)
-                if match:
-                    remote_hostname = match.group(1)
-                    if config.VERBOSE:
-                        message(f"ultimate host self-identifies as {remote_hostname}")
-                if not remote_running:
-                    # check for session ID
-                    match = re.match(".*Session ID/notebook token is '([0-9a-f]+)'", line)
-                    if match:
-                        config.SESSION_ID = match.group(1)
-                        continue
-                    # check for notebook port, and launch second ssh when we have it
-                    re_ports = ":".join(["([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
-                    match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
-                    if match:
-                        ports = list(map(int, match.groups()))
-                        remote_ports = ports[:NUM_PORTS]
-                        local_ports = ports[NUM_PORTS:]
-                        if config.VERBOSE:
-                            message(f"Detected ports {':'.join(map(str, local_ports))} -> {':'.join(map(str, remote_ports))}")
-                        ssh2_args = ["ssh"] + SSH_MUX_OPTS + ["-O", "forward", config.REMOTE_HOST]
-                        for loc, rem in zip(local_ports, remote_ports):
-                            ssh2_args += ["-L", f"localhost:{loc}:{remote_hostname}:{rem}"]
-                        # tell mux process to forward the ports
-                        if config.VERBOSE:
-                            message(f"sending forward request to ssh mux process: {ssh2_args}")
-                        subprocess.call(ssh2_args)
-                        continue
-
-                    # check for launch URL
-                    match = re.match(".*Browse to URL: ([^\s\033]+)", line)
-                    if match:
-                        urls.append(match.group(1))
-                        continue
-
-                    # check for container name
-                    match = re.match(".*Container name: ([^\s\033]+)", line)
-                    if match:
-                        container_name = match.group(1)
-                        continue
-
-                    ## OMS: delete this, remote will report it to us instead via "Browse to URL" lines
-                    # # check for CARTA version
-                    # match = re.match(".*Running CARTA (.+) backend", line)
-                    # if match:
-                    #     iglesia.CARTA_VERSION = match.group(1)
-                    #     # if config.CARTA_BROWSER:
-                    #     #     urls.append(iglesia.get_carta_url(session_id=config.SESSION_ID))
-                    #     message(f"Remote CARTA version is {iglesia.CARTA_VERSION} ({config.CARTA_BROWSER})")
-                    #     continue
-
-                    if "jupyter notebook server is running" in line:
-                        remote_running = True
-                        time.sleep(1)
-                        if urls:
-                            iglesia.register_helpers(*run_browser(*urls))
-                        message("The remote radiopadre session is now fully up")
-                        if USE_VENV or not config.CONTAINER_PERSIST:
-                            message("Press Ctrl+C to kill the remote session")
-                        else:
-                            message("Press D<Enter> to detach from remote session, or Ctrl+C to kill it")
+        job = asyncio.gather(
+            proc_awaiter(proc, startup_waiter),
+            remote_stream_reader(proc.stdout, config.REMOTE_HOST),
+            remote_stream_reader(proc.stderr, f"{config.REMOTE_HOST} stderr", is_stderr=True),
+        )
+        results = loop.run_until_complete(job)
+        status = proc.returncode
 
     except SystemExit as exc:
         message(f"SystemExit: {exc.code}")
         status = exc.code
+        loop.run_until_complete(proc.wait())
 
     except KeyboardInterrupt:
         message("Ctrl+C caught")
+        if proc.returncode is None:
+            try:
+                proc.send_signal(signal.SIGINT)
+            except ProcessLookupError as exc:
+                message("Looks like the remote session process is already gone, good")
+        loop.run_until_complete(proc.wait())
         status = 1
 
     except Exception as exc:
+        loop.run_until_complete(proc.wait())
         traceback.print_exc()
-        message("Exception caught: {}".format(str(exc)))
+        message(f"Exception caught: {exc}")
 
-    if remote_running and ssh.poll() is None:
+    if proc.returncode is None:
         message("Asking remote session to exit, nicely")
         try:
             try:
-                ssh.stdin.write("exit\n")
+                proc.stdin.write("exit\n")
             except TypeError:
-                ssh.stdin.write(b"exit\n")  # because fuck you python
+                proc.stdin.write(b"exit\n")  # because fuck you python
         except IOError:
-            debug("  looks like it's already exited")
+            debug("  looks like it's already exited?")
 
-
-    # if status and not USE_VENV and container_name:
-    #     message(f"killing remote container {container_name}")
-    #     try:
-    #         if has_docker:
-    #             ssh_remote(f"{has_docker} kill {container_name}")
-    #         elif has_singularity:
-    #             from .backends.singularity import get_singularity_image
-    #             singularity_image = get_singularity_image(config.DOCKER_IMAGE)
-    #             ssh_remote(f"{has_singularity} instance.stop {singularity_image} {container_name}")
-    #     except subprocess.CalledProcessError as exc:
-    #         message(exc.output.decode())
-
-    for i in range(10, 0, -1):
-        if ssh.poll() is not None:
-            debug("Remote session has exited")
-            ssh.wait()
-            break
-        message(f"Waiting for remote session to exit ({i})")
-        time.sleep(1)
-    else:
-        message(f"Remote session hasn't exited, killing the ssh process")
-        ssh.kill()
+    async def cleanup_process(proc):
+        for retry in range(10):
+            await asyncio.sleep(1)
+            if proc.returncode is not None:
+                message(f"Remote session has exited with return code {proc.returncode}")
+                break
+            if retry == 5:
+                warning(f"Remote session not exited after {retry} seconds, will try to terminate it")
+                proc.terminate()
+            else:
+                message(f"Remote session not exited after {retry} seconds, waiting a bit longer...")
+        else:
+            warning(f"Killing remote session process {proc.pid}")
+            proc.kill()
+    
+    loop.run_until_complete(cleanup_process(proc))
 
     return status
