@@ -1,8 +1,8 @@
-import sys, os, os.path, subprocess, time, traceback
+import sys, os, os.path, subprocess, time
 from iglesia.utils import message, warning, error, debug, shell, bye, INPUT, check_output, find_which
 
 from radiopadre_client import config
-from radiopadre_client.server import run_browser as browser_runner
+from radiopadre_client.server import run_browser
 import iglesia
 from .backend_utils import await_server_startup, update_server_from_repository
 
@@ -79,14 +79,10 @@ def update_installation():
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
-        if new_venv:
-            extras = config.VENV_EXTRAS.split(",") if config.VENV_EXTRAS else []
-            # add numpy explicitly to quicken up pyregion install
-            extras.append("numpy")
-            if extras:
-                extras = " ".join(extras)
-                message(ff("Installing specified extras: {extras}"))
-                shell(ff("{pip_install} {extras}"))
+        if new_venv and config.VENV_EXTRAS:
+            extras = " ".join(config.VENV_EXTRAS.split(","))
+            message(f"Installing specified extras: {extras}")
+            shell(f"{pip_install} {extras}")
 
     # now check for a radiopadre install inside the venv
     have_install = check_output("pip show radiopadre")
@@ -151,10 +147,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     if config.NBCONVERT:
         JUPYTER_OPTS.append(notebook_path)
     else:
-        JUPYTER_OPTS += [f"--port={jupyter_port}", "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
+        JUPYTER_OPTS += [f"--port={jupyter_port}", "--ip=0.0.0.0", "--no-browser", "--browser=/dev/null"]     # --no-browser alone seems to be ignored
 
         if config.INSIDE_CONTAINER_PORTS or config.CONTAINER_TEST:
-            JUPYTER_OPTS += ["--allow-root", "--ip=0.0.0.0"]
+            JUPYTER_OPTS += ["--allow-root"]
 
     if config.SERVER_PEM:
         JUPYTER_OPTS += [f"--certfile={config.SERVER_PEM}", f"--keyfile={config.SERVER_PEM}"]
@@ -194,7 +190,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                                      stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                                      bufsize=1, universal_newlines=True, env=os.environ)
 
-    ## use this instead to debug the session
+    ## use this instead to debug the sessison
     #notebook_proc = subprocess.Popen([config.RADIOPADRE_VENV+"/bin/ipython"],
     #                                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
     #                                  env=os.environ)
@@ -206,11 +202,10 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     else:
         iglesia.register_helpers(notebook_proc)
 
-        # issue URL messages for browser
+        # launch browser
         if browser_urls:
             if run_browser:
-                time.sleep(1)
-                iglesia.register_helpers(*browser_runner(*browser_urls))
+                iglesia.register_helpers(*run_browser(*browser_urls))
             for url in browser_urls[::-1]:
                 message(f"Browse to URL: {url}", color="GREEN")
 
@@ -238,12 +233,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                     debug("inside container -- sleeping indefinitely")
                     time.sleep(100000)
                 else:
-                    try:
-                        message("Waiting for input")
-                        a = INPUT("Type 'exit' to kill the session: ")
-                    except EOFError as exc:
-                        message(f"EOF error: {exc}")
-                        continue
+                    a = INPUT("Type 'exit' to kill the session: ")
                     if notebook_proc.poll() is not None:
                         message("The notebook server has exited with code {}".format(notebook_proc.poll()))
                         sys.exit(0)
@@ -255,7 +245,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
                 message("Caught Ctrl+C")
                 status = 1
             elif type(exc) is EOFError:
-                message(f"Input channel has closed: {exc}")
+                message("Input channel has closed")
                 status = 1
             elif type(exc) is SystemExit:
                 status = getattr(exc, 'code', 0)

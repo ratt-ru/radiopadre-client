@@ -293,9 +293,10 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # command properly... so let it pick its own token then)
     # if options.remote or options.config.INSIDE_CONTAINER_PORTS or not options.virtual_env:
     JUPYTER_OPTS += [
-        f"--NotebookApp.token='{config.SESSION_ID}'",
+    #    f"--NotebookApp.token='{config.SESSION_ID}'",
         f"--NotebookApp.custom_display_url='http://localhost:{userside_jupyter_port}'"
     ]
+    os.environ['JUPYTER_TOKEN'] = config.SESSION_ID
 
     #=== figure out whether we initialize or load a notebook
     os.chdir(iglesia.SERVER_BASEDIR)
