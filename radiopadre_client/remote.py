@@ -309,7 +309,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     # start ssh subprocess to launch notebook
     args = list(SSH_OPTS) + [ 
-         "exec $SHELL -l -c " +
+         "exec /bin/bash -l -c " +
             shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript))
     ]
 
