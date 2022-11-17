@@ -119,6 +119,8 @@ group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
 group = parser.add_argument_group("Installation and update options")
 group.add_argument("--remote-hop", type=str, metavar="COMMAND", default=config.REMOTE_HOP,
                    help="additional command to run on remote to hop to ultimate destination.\n")
+group.add_argument("--remote-login-shell", action="store_true", default=0,
+                   help="run remote commands via a login shell (i.e. with bash -l).\n")
 group.add_argument("--remote-radiopadre-dir", type=str, metavar="PATH", default=config.REMOTE_RADIOPADRE_DIR,
                    help="radiopadre working directory on the remote, default is %(default)s.\n")
 group.add_argument("--auto-init", action="store_true", default=0,

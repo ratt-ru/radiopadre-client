@@ -308,8 +308,9 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                                    " ".join(extra_arguments))
 
     # start ssh subprocess to launch notebook
+    login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
     args = list(SSH_OPTS) + [ 
-         "exec /bin/bash -l -c " +
+         f"{login_shell} -c " +
             shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript))
     ]
 
