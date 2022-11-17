@@ -158,7 +158,8 @@ def _collect_runscript_arguments(ports):
 
     # some keys shouldn't be passed to the in=-container script at all
     for key in ("CLIENT_INSTALL_PATH", "SERVER_INSTALL_PATH", "SINGULARITY_IMAGE_DIR",
-                "AUTO_INIT", "SINGULARITY_REBUILD", "SINGULARITY_AUTO_BUILD", "REMOTE_RADIOPADRE_DIR"):
+                "AUTO_INIT", "SINGULARITY_REBUILD", "SINGULARITY_AUTO_BUILD", 
+                "REMOTE_RADIOPADRE_DIR", "REMOTE_HOP", "REMOTE_LOGIN_SHELL"):
         if key in run_config:
             del run_config[key]
 
