@@ -14,10 +14,12 @@ _dispatch_message = {': WARNING: ':warning, ': ERROR: ':error, ': DEBUG:':debug}
 # Find remote radiopadre script
 def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):
 
+    login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
+
     SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
-    SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
+    SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST] + [login_shell, "-c"]
 #    SSH_OPTS = ["ssh", "-t", ] + SSH_MUX_OPTS + [config.REMOTE_HOST]
 
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
@@ -25,7 +27,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # master ssh connection, to be closed when we exit
     message(f"Opening ssh connection to {config.REMOTE_HOST}. You may be prompted for your password.")
     debug("  {}".format(" ".join(SSH_OPTS)))
-    ssh_master = subprocess.check_call(SSH_OPTS + ["exit"], stderr=DEVNULL)
+
 
     def ssh_hop_command(command):
         """Inserts remote hop command as appropriate"""
@@ -41,7 +43,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         Any other non-zero exit status (or any other error) will result in an exception.
         """
         try:
-            return subprocess.check_output(SSH_OPTS + [command], stderr=stderr).decode('utf-8')
+            return subprocess.check_output(SSH_OPTS + [shlex.quote(command)], stderr=stderr).decode('utf-8')
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
@@ -310,7 +312,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     # start ssh subprocess to launch notebook
     login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
     args = list(SSH_OPTS) + [ 
-         f"{login_shell} -c " +
             shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript))
     ]
 
