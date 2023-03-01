@@ -24,9 +24,10 @@ import re
 #   * Make a release branch (e.g. b1.2.0)
 #   * Update version in setup.py
 #   * Update client version in Dockerfile
-#   * Commit and push
+#   * Commit and push, wait for github action to make docker image
 #
-# Next, radiopadre
+#
+# Test -V and -S and -D mode (--update --vent-reinstall)
 
 # change this to a proper patch release number for a real release
 __version__ = "1.2.0"
@@ -46,11 +47,12 @@ else:
     __install_from_branch__ = f"b{__version__}"
     __version_string__ = __version__ 
 
-# release x.y.z pulls x.y.latest image
-if __release__:
-    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
-else:
-    __image_version__ = __version__
+## OMS: retiring this logic. One image per release!
+# # release x.y.z pulls x.y.latest image
+# if __release__:
+#     __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+# else:
+__image_version__ = __version__
 
 # set CARTA version inside container image
 if __version__ >= "1.2":
