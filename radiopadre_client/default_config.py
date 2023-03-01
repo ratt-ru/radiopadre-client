@@ -21,6 +21,10 @@ import re
 #   * Commit and push
 #
 # Radiopadre:
+#   * Make a release branch (e.g. b1.2.0)
+#   * Update version in setup.py
+#   * Update client version in Dockerfile
+#   * Commit and push
 #
 # Next, radiopadre
 
