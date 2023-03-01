@@ -13,8 +13,19 @@ from collections import OrderedDict
 import os.path
 import re
 
+# Release checklist:
+#
+# Radiopadre-client
+#   * Make a release branch (e.g. b1.2.0)
+#   * Update __version__ below
+#   * Commit and push
+#
+# Radiopadre:
+#
+# Next, radiopadre
+
 # change this to a proper patch release number for a real release
-__version__ = "1.2.pre5"
+__version__ = "1.2.0"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
