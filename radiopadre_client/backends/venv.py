@@ -135,7 +135,7 @@ def update_installation():
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls, run_browser=False):
-    from iglesia import ROOTDIR
+    from iglesia import ROOTDIR, RADIOPADRE_DIR
     from radiopadre_client.server import JUPYTER_OPTS
 
     # get hostname
@@ -170,6 +170,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     radiopadre_base = os.path.dirname(os.path.dirname(radiopadre_base))
     message(f"Detected radiopadre directory within virtualenv as {radiopadre_base}")
+
+    os.environ["JUPYTER_DATA_DIR"] = f"{RADIOPADRE_DIR}/jupyter"
 
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", f"{config.RADIOPADRE_VENV}/js9-www")
