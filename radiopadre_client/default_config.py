@@ -30,7 +30,7 @@ import re
 # Test -V and -S and -D mode (--update --vent-reinstall)
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None

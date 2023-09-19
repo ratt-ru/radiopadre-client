@@ -132,7 +132,7 @@ def update_installation(rebuild=False, docker_pull=True):
 
 
 def start_session(container_name, selected_ports, userside_ports, notebook_path, browser_urls, run_browser=False):
-    from iglesia import ABSROOTDIR, LOCAL_SESSION_DIR, SHADOW_SESSION_DIR
+    from iglesia import ABSROOTDIR, SHADOW_SESSION_DIR
     radiopadre_dir = make_radiopadre_dir()
     docker_local = make_dir(radiopadre_dir + "/.docker-local")
     js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
@@ -151,7 +151,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         # hides /home/user/.local, which if exposed, can confuse jupyter and ipython
         "-B", "{}:{}".format(docker_local, os.path.realpath(os.path.join(homedir, ".local"))),
         # mount session info directory (needed to serve e.g. js9prefs.js)
-        "-B", "{}:{}".format(session_info_dir, LOCAL_SESSION_DIR),
         "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
         # mount a writeable tmp dir for the js9 install -- needed by js9helper
         "-B", "{}:/.radiopadre/venv/js9-www/tmp".format(js9_tmp),

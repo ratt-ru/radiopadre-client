@@ -99,7 +99,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     for backend in config.BACKEND:
         remote_config["BACKEND"] = backend
-        if backend == "venv" and check_remote_command("virtualenv"):
+        if backend == "venv" and check_remote_command("pip"):
             USE_VENV = True
             break
         elif backend == "docker":
@@ -206,7 +206,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         # try to auto-init a virtual environment
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
-            ssh_remote_v(f"virtualenv -p python3 {config.RADIOPADRE_VENV}")
+            ssh_remote_v(f"python3 -mvenv {config.RADIOPADRE_VENV}")
             extras = "pip setuptools numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
                 extras += " ".join(config.VENV_EXTRAS.split(","))
