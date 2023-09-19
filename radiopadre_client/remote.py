@@ -47,6 +47,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
+            if exc.stdout:
+                print(exc.stdout.decode())
+            if exc.stderr:
+                print(exc.stderr.decode())
             message(f"ssh {command} failed with exit code {exc.returncode}")
             raise
 
@@ -206,7 +210,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         # try to auto-init a virtual environment
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
-            ssh_remote_v(f"python3 -mvenv {config.RADIOPADRE_VENV}")
+            ssh_remote_v(f"{config.REMOTE_PYTHON} -mvenv {config.RADIOPADRE_VENV}")
             extras = "pip setuptools numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
                 extras += " ".join(config.VENV_EXTRAS.split(","))
