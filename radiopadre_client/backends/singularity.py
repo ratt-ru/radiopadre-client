@@ -162,7 +162,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             docker_opts += ["-B", "{}:/radiopadre".format(config.SERVER_INSTALL_PATH)]
     # add environment overrides
     docker_opts += ["--env", f"JUPYTER_DATA_DIR=/tmp/{getpass.getuser()}-jupyter," + \
-                    f"IPYTHONDIR=/tmp/{getpass.getuser()}-ipython"]
+                    f"IPYTHONDIR=/tmp/{getpass.getuser()}-ipython,NO_LINGER=1"]
 
     # if not config.CONTAINER_DEBUG:
     #     command = [singularity, "instance.start"] + docker_opts + \
