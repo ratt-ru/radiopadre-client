@@ -1,5 +1,5 @@
 import os, subprocess, sys, time, re, calendar
-import datetime
+import datetime, getpass
 
 from iglesia.utils import message, warning, error, bye, make_dir, make_radiopadre_dir, shell, DEVNULL, INPUT, check_output
 from radiopadre_client import config
@@ -160,6 +160,9 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             docker_opts += ["-B", "{}:/radiopadre-client".format(config.CLIENT_INSTALL_PATH)]
         if os.path.isdir(config.SERVER_INSTALL_PATH):
             docker_opts += ["-B", "{}:/radiopadre".format(config.SERVER_INSTALL_PATH)]
+    # add environment overrides
+    docker_opts += ["--env", f"JUPYTER_DATA_DIR=/tmp/{getpass.getuser()}-jupyter"]
+
     # if not config.CONTAINER_DEBUG:
     #     command = [singularity, "instance.start"] + docker_opts + \
     #               [singularity_image, container_name]
