@@ -173,6 +173,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     os.environ["JUPYTER_DATA_DIR"] = f"/tmp/{getpass.getuser()}-jupyter"
     os.environ["IPYTHONDIR"] = f"/tmp/{getpass.getuser()}-ipython"
+    os.environ["NO_LINGER"] = '1' # disables casacore file locks which can play hell with nFS
 
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", f"{config.RADIOPADRE_VENV}/js9-www")
