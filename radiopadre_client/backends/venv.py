@@ -164,7 +164,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     # get base path of radiopadre install
     radiopadre_base = subprocess.check_output(f""". {config.RADIOPADRE_VENV}/bin/activate && \
-                        python -c "import importlib; print(importlib.find_loader('radiopadre').get_filename())" """,
+                        python -c "import sys; sys.path=[p for p in sys.path if p not in ('','.')]; \
+                                   import importlib.util; print(importlib.util.find_spec('radiopadre').origin)" """,
                                               shell=True).decode().strip()
 
     radiopadre_base = os.path.dirname(os.path.dirname(radiopadre_base))
