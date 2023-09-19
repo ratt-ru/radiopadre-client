@@ -68,7 +68,7 @@ def update_installation():
         if not os.path.exists(config.RADIOPADRE_VENV):
             if config.AUTO_INIT:
                 message(f"Creating virtualenv {config.RADIOPADRE_VENV}")
-                shell(f"virtualenv -p python3 {config.RADIOPADRE_VENV}")
+                shell(f"{sys.executable} -mvenv {config.RADIOPADRE_VENV}")
                 new_venv = True
             else:
                 error(f"Radiopadre virtualenv {config.RADIOPADRE_VENV} doesn't exist.")

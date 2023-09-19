@@ -44,7 +44,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     USE_VENV = USE_DOCKER = USE_SINGULARITY = False
 
     for backend in config.BACKEND:
-        if backend == "venv" and find_which("virtualenv"):
+        if backend == "venv":
             USE_VENV = True
             import radiopadre_client.backends.venv
             backend = radiopadre_client.backends.venv

@@ -103,7 +103,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     for backend in config.BACKEND:
         remote_config["BACKEND"] = backend
-        if backend == "venv" and check_remote_command("pip"):
+        if backend == "venv":
             USE_VENV = True
             break
         elif backend == "docker":
