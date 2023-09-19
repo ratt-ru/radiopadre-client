@@ -1,4 +1,4 @@
-import sys, os, os.path, subprocess, time
+import sys, os, os.path, subprocess, time, getpass
 from iglesia.utils import message, warning, error, debug, shell, bye, INPUT, check_output, find_which
 
 from radiopadre_client import config
@@ -171,7 +171,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     radiopadre_base = os.path.dirname(os.path.dirname(radiopadre_base))
     message(f"Detected radiopadre directory within virtualenv as {radiopadre_base}")
 
-    os.environ["JUPYTER_DATA_DIR"] = f"{RADIOPADRE_DIR}/jupyter"
+    os.environ["JUPYTER_DATA_DIR"] = f"/tmp/{getpass.getuser()}-jupyter"
 
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", f"{config.RADIOPADRE_VENV}/js9-www")
