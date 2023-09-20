@@ -70,6 +70,7 @@ DefaultConfig = OrderedDict(
     CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
+    DISABLE_CASACORE=False,
     DOCKER_IMAGE="quay.io/osmirnov/radiopadre:" + __image_version__,         # change for each release
     DOCKER_CARTA_VERSION=__docker_carta_version__,
     CONTAINER_DEBUG=False,

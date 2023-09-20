@@ -149,6 +149,9 @@ parser.add_argument("--remote", type=str, help=argparse.SUPPRESS)
 
 group = parser.add_argument_group("Other config options")
 
+group.add_argument("--disable-casacore", action="store_true", 
+                   help="disables casacore-related functionality")
+
 group.add_argument("-s", "--save-config-host", action="store_true",
                    help="Save command line settings for this host to config file.")
 group.add_argument("-e", "--save-config-session", action="store_true",
