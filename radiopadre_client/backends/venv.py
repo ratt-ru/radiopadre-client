@@ -175,7 +175,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     os.environ["IPYTHONDIR"] = f"/tmp/{getpass.getuser()}-ipython"
 
     if config.DISABLE_CASACORE:
-        os.environ["RADIOPADRE_DISABLE_CASACORE"] = 1
+        os.environ["RADIOPADRE_DISABLE_CASACORE"] = "1"
 
     # default JS9 dir goes off the virtualenv
     os.environ.setdefault("RADIOPADRE_JS9_DIR", f"{config.RADIOPADRE_VENV}/js9-www")
