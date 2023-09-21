@@ -140,9 +140,7 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     # message(f"Container name: {container_name}")  # remote script will parse it
 
-    os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
-    os.environ["XDG_RUNTIME_DIR"] = ""
-    docker_opts = ["--workdir", ABSROOTDIR]
+    docker_opts = ["--workdir", ABSROOTDIR, "--containall"]
     # setup mounts for work dir and home dir, if needed
     homedir = os.path.expanduser("~")
     docker_opts += [
@@ -160,9 +158,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
             docker_opts += ["-B", "{}:/radiopadre-client".format(config.CLIENT_INSTALL_PATH)]
         if os.path.isdir(config.SERVER_INSTALL_PATH):
             docker_opts += ["-B", "{}:/radiopadre".format(config.SERVER_INSTALL_PATH)]
-    # add environment overrides
-    docker_opts += ["--env", f"JUPYTER_DATA_DIR=/tmp/{getpass.getuser()}-jupyter," + \
-                    f"IPYTHONDIR=/tmp/{getpass.getuser()}-ipython,NO_LINGER=1"]
 
     # if not config.CONTAINER_DEBUG:
     #     command = [singularity, "instance.start"] + docker_opts + \
@@ -177,6 +172,12 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
 
     # build up command-line arguments
     docker_opts += _collect_runscript_arguments(container_ports + userside_ports)
+
+    # add
+    docker_opts += ["--env", f"JUPYTER_DATA_DIR=/tmp/{getpass.getuser()}-jupyter",
+                    "--env", f"IPYTHONDIR=/tmp/{getpass.getuser()}-ipython",
+                    "--env", f"RADIOPADRE_CONTAINER_NAME={container_name}", 
+                    "--env", f"XDG_RUNTIME_DIR="]
 
     if notebook_path:
         docker_opts.append(notebook_path)

@@ -156,6 +156,9 @@ group.add_argument("-s", "--save-config-host", action="store_true",
                    help="Save command line settings for this host to config file.")
 group.add_argument("-e", "--save-config-session", action="store_true",
                    help="Save command line settings for this host & session to config file.")
+group.add_argument("--env", action="append", metavar="NAME=VALUE",
+                   help="Adds extra environment variables inside the session.")
+
 
 config.add_to_parser(group)
 
@@ -230,6 +233,12 @@ if arguments:
 else:
     if not options.pull_docker and not options.pull_singularity:
         bye("Missing notebook argument. Use -h for help.")
+
+for env in options.env:
+    if "=" not in env:
+        bye(f"'{env}' is not a valid setting for --env, use NAME=VALUE")
+    name, value = env.split("=", 1)
+    os.environ[name] = value
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
