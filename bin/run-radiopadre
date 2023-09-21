@@ -234,7 +234,7 @@ else:
     if not options.pull_docker and not options.pull_singularity:
         bye("Missing notebook argument. Use -h for help.")
 
-for env in options.env:
+for env in options.env or []:
     if "=" not in env:
         bye(f"'{env}' is not a valid setting for --env, use NAME=VALUE")
     name, value = env.split("=", 1)
