@@ -1,4 +1,4 @@
-import os, os.path, subprocess, re
+import os, os.path, subprocess, re, getpass
 import six
 
 try:
@@ -32,7 +32,7 @@ GRIM_REAPER = True
 SSL = None
 BACKEND = []
 UNAME = subprocess.check_output("uname").decode().strip()
-USER = os.environ['USER']
+USER = getpass.getuser()
 BROWSER = os.environ.get("RADIOPADRE_BROWSER", "default")
 NEW_WINDOW = False
 RADIOPADRE_VENV = "{RADIOPADRE_DIR}/venv"
