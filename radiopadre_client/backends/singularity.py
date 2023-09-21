@@ -173,11 +173,14 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     # build up command-line arguments
     docker_opts += _collect_runscript_arguments(container_ports + userside_ports)
 
-    # add
+    # add environment
     docker_opts += ["--env", f"JUPYTER_DATA_DIR=/tmp/{getpass.getuser()}-jupyter",
                     "--env", f"IPYTHONDIR=/tmp/{getpass.getuser()}-ipython",
-                    "--env", f"RADIOPADRE_CONTAINER_NAME={container_name}", 
                     "--env", f"XDG_RUNTIME_DIR="]
+    os.environ["RADIOPADRE_CONTAINER_NAME"] = container_name
+    for name, value in os.environ.items():
+        if name.startswith("RADIOPADRE_"):
+            docker_opts += ["--env", f"{name}={value}"]
 
     if notebook_path:
         docker_opts.append(notebook_path)
