@@ -158,8 +158,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         # mount home session dir
         "-B", f"{homedir}/.radiopadre-session:{homedir}/.radiopadre-session"
     ]
-    if os.path.exists("")
-        "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
     if config.CONTAINER_DEV:
         if os.path.isdir(config.CLIENT_INSTALL_PATH):
             docker_opts += ["-B", "{}:/radiopadre-client".format(config.CLIENT_INSTALL_PATH)]
