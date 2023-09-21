@@ -137,12 +137,15 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     docker_local = make_dir(radiopadre_dir + "/.docker-local")
     js9_tmp = make_dir(radiopadre_dir + "/.js9-tmp")
     session_info_dir = get_session_info_dir(container_name)
+    homedir = os.path.expanduser("~")
 
     # message(f"Container name: {container_name}")  # remote script will parse it
 
-    docker_opts = ["--workdir", ABSROOTDIR, "--containall"]
+    # docker_opts = ["--workdir", ABSROOTDIR, "--containall"]
+    if homedir != ABSROOTDIR:
+        docker_opts += ["--containall", "--workdir", ABSROOTDIR]
+
     # setup mounts for work dir and home dir, if needed
-    homedir = os.path.expanduser("~")
     docker_opts += [
         "-B", "{}:{}{}".format(ABSROOTDIR, ABSROOTDIR, ""), # ":ro" if orig_rootdir else ""),
         "-B", "{}:{}".format(radiopadre_dir, radiopadre_dir),
@@ -152,7 +155,11 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
         # mount a writeable tmp dir for the js9 install -- needed by js9helper
         "-B", "{}:/.radiopadre/venv/js9-www/tmp".format(js9_tmp),
+        # mount home session dir
+        "-B", f"{homedir}/.radiopadre-session:{homedir}/.radiopadre-session"
     ]
+    if os.path.exists("")
+        "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
     if config.CONTAINER_DEV:
         if os.path.isdir(config.CLIENT_INSTALL_PATH):
             docker_opts += ["-B", "{}:/radiopadre-client".format(config.CLIENT_INSTALL_PATH)]
