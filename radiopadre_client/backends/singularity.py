@@ -139,9 +139,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     session_info_dir = get_session_info_dir(container_name)
     homedir = os.path.expanduser("~")
 
-    # message(f"Container name: {container_name}")  # remote script will parse it
+    docker_opts = []
 
-    # docker_opts = ["--workdir", ABSROOTDIR, "--containall"]
     if homedir != ABSROOTDIR:
         docker_opts += ["--containall", "--workdir", ABSROOTDIR]
 
