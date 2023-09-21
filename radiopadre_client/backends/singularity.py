@@ -38,7 +38,7 @@ def kill_sessions(session_dict, session_ids):
 
 def get_singularity_image(docker_image):
     dir = config.SINGULARITY_IMAGE_DIR or os.environ.get('RADIOPADRE_SINGULARITY_IMAGE_DIR') or iglesia.RADIOPADRE_DIR
-    return "{}/{}.singularity.img".format(dir, docker_image.replace("/", "_"))
+    return "{}/{}.simg".format(dir, docker_image.replace("/", "_"))
 
 def update_installation(rebuild=False, docker_pull=True):
     global docker_image
@@ -96,7 +96,7 @@ def update_installation(rebuild=False, docker_pull=True):
     if build_image:
         warning(f"Rebuilding singularity image from docker://{docker_image}")
         warning(f"  (This may take a few minutes....)")
-        singularity_image_new = singularity_image + ".new.img"
+        singularity_image_new = os.path.splitext(singularity_image)[0] + ".new.simg"
         if os.path.exists(singularity_image_new):
             os.unlink(singularity_image_new)
         cmd = [singularity, "build", singularity_image_new, f"docker://{docker_image}"]
