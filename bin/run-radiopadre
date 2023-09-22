@@ -151,14 +151,14 @@ group = parser.add_argument_group("Other config options")
 
 group.add_argument("--disable-casacore", action="store_true", 
                    help="disables casacore-related functionality")
-
 group.add_argument("-s", "--save-config-host", action="store_true",
                    help="Save command line settings for this host to config file.")
 group.add_argument("-e", "--save-config-session", action="store_true",
                    help="Save command line settings for this host & session to config file.")
 group.add_argument("--env", action="append", metavar="NAME=VALUE",
                    help="Adds extra environment variables inside the session.")
-
+group.add_argument("--setting", action="append", metavar="SECTION.NAME=VALUE",
+                   help="Sets up internal radiopadre settings.")
 
 config.add_to_parser(group)
 
@@ -239,6 +239,13 @@ for env in options.env or []:
         bye(f"'{env}' is not a valid setting for --env, use NAME=VALUE")
     name, value = env.split("=", 1)
     os.environ[name] = value
+
+if options.setting:
+    for setting in options.setting:
+        if not re.fullmatch("\w+.*=.*", setting):
+            bye(f"'{setting}' is not a valid setting for --setting, use SECTION.NAME=VALUE")
+    os.environ['RADIOPADRE_SETTINGS'] = ",".join(options.setting)
+
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []
