@@ -34,6 +34,7 @@ SHADOW_BASEDIR = None   # base directory in shadow tree, i.e. ~/.radiopadre/home
 # subdirectory needs to be included in URLs given to Jupyter/JS9 helper/etc. to access the files within
 # the subdirectory correctly.
 
+LOCAL_SESSION_DIR = None    # local session dir -- usually {ABSROOTDIR}/.radiopadre-session
 SHADOW_SESSION_DIR = None   # shadow session dir -- usually {SHADOW_ROOTDIR}/.radiopadre-session
 
 SESSION_DIR = None          # session dir -- same as SHADOW_SESSION_DIR

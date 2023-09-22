@@ -361,4 +361,4 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # now we're ready to start the session
 
     backend.start_session(container_name, selected_ports, userside_ports,
-                          notebook_path, urls, run_browser=browser)
+                          notebook_path, urls, run_browser=browser and run_browser)
