@@ -242,10 +242,10 @@ for env in options.env or []:
 
 if options.setting:
     for setting in options.setting:
-        if not re.fullmatch("\w+.*=.*", setting):
+        if not re.fullmatch("\w+\.\w+=.*", setting):
             bye(f"'{setting}' is not a valid setting for --setting, use SECTION.NAME=VALUE")
     os.environ['RADIOPADRE_SETTINGS'] = ",".join(options.setting)
-
+    config.extra_settings += options.setting
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []

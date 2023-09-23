@@ -10,6 +10,9 @@ import iglesia
 from iglesia.utils import make_dir, message, make_radiopadre_dir, warning
 from .default_config import DefaultConfig
 
+# --setting options copied here, to be passed to remote/container
+extra_settings = []
+
 # const object to use as default value in ArgumentParser. Will be replaced by contents
 # of config file.
 DEFAULT_VALUE = object()
@@ -162,6 +165,8 @@ def get_options_list(config_dict, quote=True):
             if type(value) is list:
                 value = ",".join(map(str, value))
             args += [f"--{opt}", f"'{value}'" if quote else str(value)]
+    for setting in extra_settings:
+        args += ["--setting", setting]
     return args
 
 def add_to_parser(parser):
