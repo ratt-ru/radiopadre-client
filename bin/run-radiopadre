@@ -157,8 +157,8 @@ group.add_argument("-e", "--save-config-session", action="store_true",
                    help="Save command line settings for this host & session to config file.")
 group.add_argument("--env", action="append", metavar="NAME=VALUE",
                    help="Adds extra environment variables inside the session.")
-group.add_argument("--setting", action="append", metavar="SECTION.NAME=VALUE",
-                   help="Sets up internal radiopadre settings.")
+group.add_argument("-E", "--radiopadre-settings", type=str, metavar="SECTION.NAME=VALUE,...", default="",
+                   help="Changes internal radiopadre settings inside the session.")
 
 config.add_to_parser(group)
 
@@ -240,12 +240,11 @@ for env in options.env or []:
     name, value = env.split("=", 1)
     os.environ[name] = value
 
-if options.setting:
-    for setting in options.setting:
+if options.radiopadre_settings:
+    for setting in options.radiopadre_settings.split(","):
         if not re.fullmatch("\w+\.\w+=.*", setting):
-            bye(f"'{setting}' is not a valid setting for --setting, use SECTION.NAME=VALUE")
-    os.environ['RADIOPADRE_SETTINGS'] = ",".join(options.setting)
-    config.extra_settings += options.setting
+            bye(f"'{setting}' is not a valid setting for -S/--radiopadre-settings, use SECTION.NAME=VALUE")
+    os.environ['RADIOPADRE_SETTINGS'] = options.radiopadre_settings
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []

@@ -73,6 +73,7 @@ DefaultConfig = OrderedDict(
     DISABLE_CASACORE=False,
     DOCKER_IMAGE="quay.io/osmirnov/radiopadre:" + __image_version__,         # change for each release
     DOCKER_CARTA_VERSION=__docker_carta_version__,
+    RADIOPADRE_SETTINGS="",
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
     REMOTE_HOP="",
