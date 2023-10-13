@@ -76,6 +76,7 @@ SESSION_ID = None
 
 # set to remote host, if running remote session
 REMOTE_HOST = None
+REMOTE_PORT = 22
 
 # set to port assignments, when running remotely
 REMOTE_MODE_PORTS = False

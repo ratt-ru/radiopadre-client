@@ -16,7 +16,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
 
     login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
 
-    SSH_MUX_OPTS = "-o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
+    SSH_MUX_OPTS = f"-p {config.REMOTE_PORT} -o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
     SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST] + [login_shell, "-c"]
@@ -93,6 +93,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_config['SKIP_CHECKS'] = False
     remote_config['VENV_REINSTALL'] = False
     del remote_config['REMOTE_HOP']
+    del remote_config['REMOTE_PORT']
     # Check for various remote bits
     if config.VERBOSE and not config.SKIP_CHECKS:
         message(f"Checking installation on {config.REMOTE_HOST}.")

@@ -125,6 +125,10 @@ group.add_argument("--remote-radiopadre-dir", type=str, metavar="PATH", default=
                    help="radiopadre working directory on the remote, default is %(default)s.\n")
 group.add_argument("--remote-python", type=str, metavar="PATH", default=config.REMOTE_PYTHON,
                    help="python interpreter invoked on the remote, default is %(default)s.\n")
+group.add_argument("--remote-port", type=int, metavar="PORT", default=config.REMOTE_PORT,
+                   help="SSH port to use on the remote, default is %(default)s.\n")
+
+group = parser.add_argument_group("Installation and update options")
 group.add_argument("--auto-init", action="store_true", default=0,
                     help="automatically initialize radiopadre installations, if missing.\n" 
                          "In virtualenv mode, also initialize virtual environment, if missing.")

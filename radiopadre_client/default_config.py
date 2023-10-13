@@ -80,6 +80,7 @@ DefaultConfig = OrderedDict(
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
     REMOTE_LOGIN_SHELL=False,
     REMOTE_PYTHON="python3",
+    REMOTE_PORT=22,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="https://github.com/ratt-ru/radiopadre-client.git" if __install_from_branch__ else "",
     CLIENT_INSTALL_BRANCH=__install_from_branch__,
