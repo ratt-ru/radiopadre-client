@@ -104,7 +104,7 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
     #         debug("wetty should be running (pid {})".format(os.environ["RADIOPADRE_WETTY_PID"]))
 
     # run JS9 helper
-    if interactive:
+    if interactive and iglesia.JS9_DIR:
         if 'RADIOPADRE_JS9HELPER_PID' not in os.environ:
             try:
                 js9helper = iglesia.JS9_DIR + "/js9Helper.js"

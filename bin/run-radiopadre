@@ -253,7 +253,7 @@ if options.radiopadre_settings:
     os.environ['RADIOPADRE_SETTINGS'] = options.radiopadre_settings
 
 if options.install_js9:
-    os.environ['RADIOPADRE_INSTALL_JS9'] = 1
+    os.environ['RADIOPADRE_INSTALL_JS9'] = "1"
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []

@@ -177,9 +177,6 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     if config.DISABLE_CASACORE:
         os.environ["RADIOPADRE_DISABLE_CASACORE"] = "1"
 
-    # default JS9 dir goes off the virtualenv
-    os.environ.setdefault("RADIOPADRE_JS9_DIR", f"{config.RADIOPADRE_VENV}/js9-www")
-
     # start helper processes
     iglesia.init_helpers(radiopadre_base, verbose=config.VERBOSE > 0,
                          interactive=not config.NBCONVERT, certificate=config.SERVER_PEM)
