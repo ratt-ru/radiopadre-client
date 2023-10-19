@@ -30,7 +30,7 @@ import re
 # Test -V and -S and -D mode (--update --vent-reinstall)
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.1"
+__version__ = "1.2.1.nojs9"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
@@ -81,6 +81,7 @@ DefaultConfig = OrderedDict(
     REMOTE_LOGIN_SHELL=False,
     REMOTE_PYTHON="python3",
     REMOTE_PORT=22,
+    INSTALL_JS9=False,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
     CLIENT_INSTALL_REPO="https://github.com/ratt-ru/radiopadre-client.git" if __install_from_branch__ else "",
     CLIENT_INSTALL_BRANCH=__install_from_branch__,

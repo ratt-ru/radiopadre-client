@@ -36,8 +36,15 @@ def init_helpers(radiopadre_base, verbose=False, run_http=True, interactive=True
 
     jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports
 
-    # JS9 init
-    iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', f"{sys.prefix}/js9-www")
+    # JS9 init -- check if it's installed
+    js9_path = ""
+    js9_status_file = f"{sys.prefix}/js9status"
+    if os.path.exists(js9_status_file):
+        js9_path = open(js9_status_file).read()
+        if not os.path.exists(js9_path) or not js9_path.endswith("/js9-www"):
+            js9_path = ""
+
+    iglesia.JS9_DIR = os.environ.setdefault('RADIOPADRE_JS9_DIR', js9_path)
 
     # accumulates rewrite rules for HTTP server
     # add radiopadre/html/ to rewrite as /radiopadre-www/

@@ -116,7 +116,7 @@ group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
                     help="additional packages to install when creating a new virtual environment\n"
                          "(comma-separated list).")
 
-group = parser.add_argument_group("Installation and update options")
+group = parser.add_argument_group("Remote backend options")
 group.add_argument("--remote-hop", type=str, metavar="COMMAND", default=config.REMOTE_HOP,
                    help="additional command to run on remote to hop to ultimate destination.\n")
 group.add_argument("--remote-login-shell", action="store_true", default=0,
@@ -132,6 +132,8 @@ group = parser.add_argument_group("Installation and update options")
 group.add_argument("--auto-init", action="store_true", default=0,
                     help="automatically initialize radiopadre installations, if missing.\n" 
                          "In virtualenv mode, also initialize virtual environment, if missing.")
+group.add_argument("--install-js9", action="store_true", default=config.INSTALL_JS9,
+                    help="enable JS9 installation.")
 group.add_argument("--skip-checks", action="store_true", default=0,
                    help="assume remote has a fully functional installation and skip the detailed checks.\n"
                    "This can make for faster startup, but less informative errors.")
@@ -249,6 +251,9 @@ if options.radiopadre_settings:
         if not re.fullmatch("\w+\.\w+=.*", setting):
             bye(f"'{setting}' is not a valid setting for -S/--radiopadre-settings, use SECTION.NAME=VALUE")
     os.environ['RADIOPADRE_SETTINGS'] = options.radiopadre_settings
+
+if options.install_js9:
+    os.environ['RADIOPADRE_INSTALL_JS9'] = 1
 
 config.REMOTE_HOST = remote_host
 config.REMOTE_MODE_PORTS = list(map(int, options.remote.split(":"))) if options.remote else []

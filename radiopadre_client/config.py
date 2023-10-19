@@ -40,6 +40,7 @@ SKIP_CHECKS = False
 CONTAINER_TEST = None
 RADIOPADRE_SETTINGS = ""
 
+INSTALL_JS9 = False
 SERVER_INSTALL_PATH = "~/radiopadre"
 SERVER_INSTALL_REPO = DEFAULT_SERVER_INSTALL_REPO = "https://github.com/ratt-ru/radiopadre.git"
 SERVER_INSTALL_BRANCH = "master"
