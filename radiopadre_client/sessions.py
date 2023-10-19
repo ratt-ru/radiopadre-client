@@ -117,7 +117,7 @@ def check_recent_sessions(options, argv, parser=None):
         global _last_input
         _last_input = inp
 
-        argv = shlex.split(inp, posix=False)
+        argv = shlex.split(inp) # , posix=False)
 
         options = parser.parse_args(argv)
 

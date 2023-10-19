@@ -124,7 +124,10 @@ def _set_config_value(key):
     value = globals()[key]
     if type(value) is list:
         return ",".join(value)
-    return str(value)
+    elif type(value) is str:
+        return value
+    else:
+        return str(value)
 
 def init_defaults():
     """Initializes global defaults (global vars in this module) from default_config.py"""
