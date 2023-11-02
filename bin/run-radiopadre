@@ -122,27 +122,26 @@ group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
 
 ## K8s support
 group = parser.add_argument_group("Kubernetes back-end options")
-group.add_argument("--k8s-context", type=str, default="",
+group.add_argument("--k8s-context", type=str, default="", metavar="CONTEXT",
                     help="Context to use, if no default K8s context is configured.")
-group.add_argument("--k8s-namespace", type=str, default="",
+group.add_argument("--k8s-namespace", type=str, default="", metavar="NAMESPACE",
                     help="Namespace to use, if no default K8s namespace is configured.")
-group.add_argument("--k8s-hostpath", action="store_true",
-                    help="Treat name as hostPath rather than a PVC name. For KIND use only.")
-group.add_argument("--k8s-cpu-request", type=str, default=config.K8S_CPU_REQUEST,
-                    help="Request number of CPU cores for radiopadre server.")
-group.add_argument("--k8s-ram-request", type=str, default=config.K8S_RAM_REQUEST,
-                    help="Request amount of RAM for radiopadre server.")
-group.add_argument("--k8s-node-selector", type=str, default=config.K8S_NODE_SELECTOR,
+group.add_argument("--k8s-cpu-request", type=str, metavar="CORES", default=config.K8S_CPU_REQUEST,
+                    help="Request number of CPU cores for radiopadre server, default is %(default)s.")
+group.add_argument("--k8s-ram-request", type=str, metavar="MEM", default=config.K8S_RAM_REQUEST,
+                    help="Request amount of RAM for radiopadre server, default is %(default)s.")
+group.add_argument("--k8s-node-selector", type=str, metavar="SPEC", default=config.K8S_NODE_SELECTOR,
                     help="Configures nodeSelector spec, as 'KEY1=VALUE1,KEY2=VALUE2,...'")
-group.add_argument("--k8s-uid", type=int, default=config.K8S_UID,
+group.add_argument("--k8s-uid", type=int, metavar="UID", default=config.K8S_UID,
                     help="UID to use inside K8s pod.")
-group.add_argument("--k8s-gid", type=int, default=config.K8S_GID,
+group.add_argument("--k8s-gid", type=int, metavar="GID", default=config.K8S_GID,
                     help="GID to use inside K8s pod.")
-group.add_argument("--k8s-home-dir", type=str, default=config.K8S_HOME_DIR,
-                    help="Home directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk")
-group.add_argument("--k8s-radiopadre-dir", type=str, default=config.K8S_RADIOPADRE_DIR,
-                    help="Radiopadre directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk. \n"
-                    "Default uses ~/.radiopadre")
+group.add_argument("--k8s-home-dir", type=str, metavar="PVC:PATH", default=config.K8S_HOME_DIR,
+                    help="Home directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk.\n"
+                    "Default mounts an empty (disk-backed) directory.")
+group.add_argument("--k8s-radiopadre-dir", metavar="PVC:PATH", type=str, default=config.K8S_RADIOPADRE_DIR,
+                    help="Radiopadre cache directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk.\n"
+                    "Default uses ~/.radiopadre under --k8s-home-dir.")
 group.add_argument("--k8s-auto-cleanup", action="store_true",
                     help="Enables auto-cleanup of older radiopadre pods.")
 
