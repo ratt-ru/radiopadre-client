@@ -101,15 +101,15 @@ DefaultConfig = OrderedDict(
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
     VENV_EXTRAS="None",
-    K8S_CONTEXT = None,
-    K8S_NAMESPACE = None,
+    K8S_CONTEXT = "",
+    K8S_NAMESPACE = "",
     K8S_UID = -1,
     K8S_GID = -1,
     K8S_HOSTPATH = False,
     K8S_AUTO_CLEANUP = True,
     K8S_HOME_DIR = "",
     K8S_RADIOPADRE_DIR = "",
-    K8S_NODE_SELECTOR = None,
+    K8S_NODE_SELECTOR = "",
 
     # All of the options above can be persisted in the config file via --save-config-host or --save-config-session.
     # The options below are "one-shot" and non-persisting, they are not saved to the config. This is indicated by a
