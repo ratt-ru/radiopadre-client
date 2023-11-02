@@ -69,6 +69,10 @@ group.add_argument("-S", "--singularity", action="append_const", const="singular
 group.add_argument("-V", "--virtual-env", action="append_const", const="venv", dest="backend",
                    help="enables virtualenv mode.")
 
+group.add_argument("-K", "--kubernetes", action="store_true",
+                   help="enables Kubernetes mode.")
+
+
 group = parser.add_argument_group("Docker and Singularity back-end options")
 group.add_argument("-C", "--container-dev", action="store_true", default=0,
                    help="mounts the host-installed versions of radiopadre inside the container.\n"
@@ -115,6 +119,28 @@ group.add_argument("--venv-ignore-js9", action="store_true", default=0,
 group.add_argument("--venv-extras", type=str, default=config.DEFAULT_VALUE,
                     help="additional packages to install when creating a new virtual environment\n"
                          "(comma-separated list).")
+
+## K8s support
+group = parser.add_argument_group("Kubernetes back-end options")
+group.add_argument("--k8s-context", type=str, default="",
+                    help="Context to use, if no default K8s context is configured.")
+group.add_argument("--k8s-namespace", type=str, default="",
+                    help="Namespace to use, if no default K8s namespace is configured.")
+group.add_argument("--k8s-hostpath", action="store_true",
+                    help="Treat name as hostPath rather than a PVC name. For KIND use only.")
+group.add_argument("--k8s-node-selector", type=str, default=config.K8S_NODE_SELECTOR,
+                    help="Configures nodeSelector spec, as 'KEY1=VALUE1,KEY2=VALUE2,...'")
+group.add_argument("--k8s-uid", type=int, default=config.K8S_UID,
+                    help="UID to use inside K8s pod.")
+group.add_argument("--k8s-gid", type=int, default=config.K8S_GID,
+                    help="GID to use inside K8s pod.")
+group.add_argument("--k8s-home-dir", type=str, default=config.K8S_HOME_DIR,
+                    help="Home directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk")
+group.add_argument("--k8s-radiopadre-dir", type=str, default=config.K8S_RADIOPADRE_DIR,
+                    help="Radiopadre directory to mount, specified as PVC:PATH or 'RAM' to use empty RAM disk. \n"
+                    "Default uses ~/.radiopadre")
+group.add_argument("--k8s-auto-cleanup", action="store_true",
+                    help="Enables auto-cleanup of older radiopadre pods.")
 
 group = parser.add_argument_group("Remote backend options")
 group.add_argument("--remote-hop", type=str, metavar="COMMAND", default=config.REMOTE_HOP,
@@ -369,10 +395,16 @@ if str(config.BROWSER).upper() in ("NONE", "FALSE", "0"):
 
 ### REMOTE MODE #################################################################################################
 
-if remote_host:
+### K8s MODE #################################################################################################
+
+if options.kubernetes:
+    import radiopadre_client.kube
+    retcode = radiopadre_client.kube.run_k8s_session(remote_host, notebook_path, arguments)
+    sys.exit(retcode)
+
+elif remote_host:
     import radiopadre_client.remote
     retcode = radiopadre_client.remote.run_remote_session(command, copy_initial_notebook, notebook_path, arguments)
-
     sys.exit(retcode)
 
 

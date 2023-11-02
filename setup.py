@@ -5,7 +5,7 @@ from radiopadre_client.default_config import __version__
 
 build_root = os.path.dirname(__file__)
 
-install_requires = ['six', 'psutil']
+install_requires = ['six', 'psutil', 'rich']
 
 def readme():
     """Get readme content for package long description"""
