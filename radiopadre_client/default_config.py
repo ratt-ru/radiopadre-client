@@ -110,6 +110,8 @@ DefaultConfig = OrderedDict(
     K8S_HOME_DIR = "",
     K8S_RADIOPADRE_DIR = "",
     K8S_NODE_SELECTOR = "",
+    K8S_CPU_REQUEST = "",
+    K8S_RAM_REQUEST = "",
 
     # All of the options above can be persisted in the config file via --save-config-host or --save-config-session.
     # The options below are "one-shot" and non-persisting, they are not saved to the config. This is indicated by a

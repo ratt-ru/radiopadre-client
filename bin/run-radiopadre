@@ -128,6 +128,10 @@ group.add_argument("--k8s-namespace", type=str, default="",
                     help="Namespace to use, if no default K8s namespace is configured.")
 group.add_argument("--k8s-hostpath", action="store_true",
                     help="Treat name as hostPath rather than a PVC name. For KIND use only.")
+group.add_argument("--k8s-cpu-request", type=str, default=config.K8S_CPU_REQUEST,
+                    help="Request number of CPU cores for radiopadre server.")
+group.add_argument("--k8s-ram-request", type=str, default=config.K8S_RAM_REQUEST,
+                    help="Request amount of RAM for radiopadre server.")
 group.add_argument("--k8s-node-selector", type=str, default=config.K8S_NODE_SELECTOR,
                     help="Configures nodeSelector spec, as 'KEY1=VALUE1,KEY2=VALUE2,...'")
 group.add_argument("--k8s-uid", type=int, default=config.K8S_UID,
