@@ -396,7 +396,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     continue
                 # check for notebook port, and launch second ssh with port forwards when we have it
                 re_ports = ":".join([r"([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
-                match = re.match(r".*Selected ports: {re_ports}[\s]*$", line)
+                match = re.match(rf".*Selected ports: {re_ports}[\s]*$", line)
                 if match:
                     ports = list(map(int, match.groups()))
                     remote_ports = ports[:NUM_PORTS]
@@ -491,7 +491,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             warning(f"Killing remote session process {proc.pid}")
             proc.kill()
-    
+
     loop.run_until_complete(cleanup_process(proc))
 
     return status
