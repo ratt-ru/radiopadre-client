@@ -61,7 +61,7 @@ def check_recent_sessions(options, argv, parser=None):
 
     resume_session = None
     # a single-digit argument resumes session #N
-    if len(options.arguments) == 1 and re.match("^\d$", options.arguments[0]):
+    if len(options.arguments) == 1 and re.match(r"^\d$", options.arguments[0]):
         resume_session = int(options.arguments[0])
     # no arguments is resume session #0
     elif not options.arguments:
@@ -103,7 +103,7 @@ def check_recent_sessions(options, argv, parser=None):
             if not inp:
                 resume_session = 0
                 inp = None
-            elif re.match("^\d+$", inp):
+            elif re.match(r"^\d+$", inp):
                 res = int(inp)
                 if res >= num_recent:
                     warning(f"no recent session #{res}")

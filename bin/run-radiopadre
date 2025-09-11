@@ -277,7 +277,7 @@ for env in options.env or []:
 
 if options.radiopadre_settings:
     for setting in options.radiopadre_settings.split(","):
-        if not re.fullmatch("\w+\.\w+=.*", setting):
+        if not re.fullmatch(r"\w+\.\w+=.*", setting):
             bye(f"'{setting}' is not a valid setting for -S/--radiopadre-settings, use SECTION.NAME=VALUE")
     os.environ['RADIOPADRE_SETTINGS'] = options.radiopadre_settings
 

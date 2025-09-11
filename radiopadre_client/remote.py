@@ -382,7 +382,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             if not line or stream.at_eof():
                 continue
             # if remote is not yet started, check output
-            match  = re.match(".*radiopadre is running on host ([^\s]+)", line)
+            match  = re.match(r".*radiopadre is running on host ([^\s]+)", line)
             if match:
                 remote_hostname = match.group(1)
                 if config.VERBOSE:
@@ -395,8 +395,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     config.SESSION_ID = match.group(1)
                     continue
                 # check for notebook port, and launch second ssh with port forwards when we have it
-                re_ports = ":".join(["([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
-                match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
+                re_ports = ":".join([r"([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
+                match = re.match(rf".*Selected ports: {re_ports}[\s]*$", line)
                 if match:
                     ports = list(map(int, match.groups()))
                     remote_ports = ports[:NUM_PORTS]
@@ -413,7 +413,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     continue
 
                 # check for launch URL
-                match = re.match(".*Browse to URL: ([^\s\033]+)", line)
+                match = re.match(r".*Browse to URL: ([^\s\033]+)", line)
                 if match:
                     urls.append(match.group(1))
                     continue
@@ -491,7 +491,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             warning(f"Killing remote session process {proc.pid}")
             proc.kill()
-    
+
     loop.run_until_complete(cleanup_process(proc))
 
     return status
