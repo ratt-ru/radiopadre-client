@@ -27,7 +27,7 @@ def update_installation():
     #       (see https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv)
 
     # pip install command with -v repeated for each VERBOSE increment
-    pip_install = "pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
+    pip_install = "uv pip install " + "-v "*min(max(config.VERBOSE-1, 0), 3)
 
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
         if sys.prefix == config.RADIOPADRE_VENV:
@@ -79,10 +79,12 @@ def update_installation():
             code = compile(f.read(), activation_script, 'exec')
             exec(code, dict(__file__=activation_script), {})
 
-        if new_venv and config.VENV_EXTRAS:
-            extras = " ".join(config.VENV_EXTRAS.split(","))
-            message(f"Installing specified extras: {extras}")
-            shell(f"{pip_install} {extras}")
+        if new_venv: 
+            shell(f"{pip_install} -U pip setuptools wheel uv")
+            if config.VENV_EXTRAS:
+                extras = " ".join(config.VENV_EXTRAS.split(","))
+                message(f"Installing specified extras: {extras}")
+                shell(f"{pip_install} {extras}")
 
     # now check for a radiopadre install inside the venv
     have_install = check_output("pip show radiopadre")

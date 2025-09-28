@@ -241,7 +241,15 @@ elif __release__:
 else:
     version_string = f"pre-release {__version_string__}"
 
-message(f"Welcome to the radiopadre client {version_string}!", color="GREEN")
+welcome_string = f"Welcome to the radiopadre client {version_string}!"
+welcome_regex  = re.compile("Welcome to the radiopadre client (.*)!")
+
+def welcome_version_extracter(line: str):
+    """passed to remote backend -- extract version string from console output"""
+    match = welcome_regex.search(line)
+    return match.group(1) if match else None
+
+message(welcome_string, color="GREEN")
 
 # recent session management: only done for front-end sessions
 manage_last_sessions = not options.remote and not options.inside_container and not options.non_interactive \
@@ -407,7 +415,10 @@ if options.kubernetes:
 
 elif remote_host:
     import radiopadre_client.remote
-    retcode = radiopadre_client.remote.run_remote_session(command, copy_initial_notebook, notebook_path, arguments)
+    retcode = radiopadre_client.remote.run_remote_session(command, copy_initial_notebook, 
+                                                          notebook_path, arguments,
+                                                          version_extracter=welcome_version_extracter,
+                                                          expected_version=version_string)
     sys.exit(retcode)
 
 
