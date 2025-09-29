@@ -30,7 +30,7 @@ import re
 # Test -V and -S and -D mode (--update --vent-reinstall)
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
@@ -78,8 +78,10 @@ DefaultConfig = OrderedDict(
     GRIM_REAPER=True,
     REMOTE_HOP="",
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
-    REMOTE_LOGIN_SHELL=False,
+    REMOTE_MAIN_SHELL="/bin/bash -c",
+    REMOTE_UTILITY_SHELL="/bin/bash -c",
     REMOTE_PYTHON="python3",
+    REMOTE_PREP_COMMAND="",
     REMOTE_PORT=22,
     INSTALL_JS9=False,
     CLIENT_INSTALL_PATH="~/radiopadre-client",

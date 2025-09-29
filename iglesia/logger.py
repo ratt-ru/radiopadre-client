@@ -62,6 +62,7 @@ class Colors():
     ERROR   = '\033[91m' if sys.stdin.isatty() else ''
     BOLD    = '\033[1m'  if sys.stdin.isatty() else ''
     GREEN   = '\033[92m' if sys.stdin.isatty() else ''
+    RED     = '\033[31m' if sys.stdin.isatty() else ''
     ENDC    = '\033[0m'  if sys.stdin.isatty() else ''
 
 

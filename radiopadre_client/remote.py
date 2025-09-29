@@ -12,14 +12,13 @@ from radiopadre_client.server import run_browser
 _dispatch_message = {': WARNING: ':warning, ': ERROR: ':error, ': DEBUG:':debug}
 
 # Find remote radiopadre script
-def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):
-
-    login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
+def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments,
+                       version_extracter=None, expected_version=None):
 
     SSH_MUX_OPTS = f"-p {config.REMOTE_PORT} -o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
-    SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST] + [login_shell, "-c"]
+    SSH_OPTS = ["ssh", "-t", "-t"] + SSH_MUX_OPTS + [config.REMOTE_HOST]
 #    SSH_OPTS = ["ssh", "-t", ] + SSH_MUX_OPTS + [config.REMOTE_HOST]
 
 # See, possibly: https://stackoverflow.com/questions/44348083/how-to-send-sigint-ctrl-c-to-current-remote-process-over-ssh-without-t-optio
@@ -37,13 +36,25 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             return command
 
-    def ssh_remote(command, fail_retcode=None, stderr=DEVNULL):
+    def ssh_remote(command, fail_retcode=None, stderr=DEVNULL, main_process=False):
         """Runs command on remote host. Returns its output if the exit status is 0, or None if the exit status matches fail_retcode.
+
+        main_process is True for runing the main radiopadre remote process, False for other processes
+        (e.g. file checks and virtualenv installations.)
 
         Any other non-zero exit status (or any other error) will result in an exception.
         """
+        cmd = list(SSH_OPTS)
+        if main_process:
+            cmd.append(config.REMOTE_MAIN_SHELL)
+            if config.REMOTE_PREP_COMMAND:
+                command = f"{config.REMOTE_PREP_COMMAND} && {command}"
+        else:
+            cmd.append(config.REMOTE_UTILITY_SHELL)
+        cmd.append(shlex.quote(command))
+        debug(f"remote ssh command is {cmd}")
         try:
-            return subprocess.check_output(SSH_OPTS + [shlex.quote(command)], stderr=stderr).decode('utf-8')
+            return subprocess.check_output(cmd, stderr=stderr).decode('utf-8')
         except subprocess.CalledProcessError as exc:
             if exc.returncode == fail_retcode:
                 return None
@@ -54,8 +65,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             message(f"ssh {command} failed with exit code {exc.returncode}")
             raise
 
-    def ssh_remote_v(command, fail_retcode=None):
-        return ssh_remote(command, fail_retcode, stderr=sys.stderr)
+    def ssh_remote_v(command, fail_retcode=None, main_process=False):
+        return ssh_remote(command, fail_retcode, main_process=main_process, stderr=sys.stderr)
 
     def scp_to_remote(path, remote_path):
         return subprocess.check_output(SCP_OPTS + [path, "{}:{}".format(config.REMOTE_HOST, remote_path)])
@@ -92,8 +103,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     remote_config['BROWSER'] = 'None'
     remote_config['SKIP_CHECKS'] = False
     remote_config['VENV_REINSTALL'] = False
-    del remote_config['REMOTE_HOP']
-    del remote_config['REMOTE_PORT']
+    # delete remote options
+    for key in [key for key in remote_config.keys() if key.startswith("REMOTE_")]:
+        del remote_config[key]
+
     # Check for various remote bits
     if config.VERBOSE and not config.SKIP_CHECKS:
         message(f"Checking installation on {config.REMOTE_HOST}.")
@@ -211,12 +224,13 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         # try to auto-init a virtual environment
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
-            ssh_remote_v(f"{config.REMOTE_PYTHON} -mvenv {config.RADIOPADRE_VENV}")
-            extras = "pip setuptools wheel numpy"   # numpy to speed up pyregions install
+            ssh_remote_v(f"{config.REMOTE_PYTHON} -mvenv {config.RADIOPADRE_VENV}", main_process=True)
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U pip setuptools wheel uv", main_process=True)
+            extras = "numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
                 extras += " ".join(config.VENV_EXTRAS.split(","))
             message(f"Installing {extras}")
-            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {extras}")
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {extras}", main_process=True)
         else:
             message(f"Installing into existing virtualenv {remote_venv}")
 
@@ -235,7 +249,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         cmd = f"cd {install_path} && git pull"
                     warning(f"--update specified and git detected, will attempt to update via")
                     message(f"    {cmd}")
-                    ssh_remote_v(cmd)
+                    ssh_remote_v(cmd, main_process=True)
                 else:
                     warning(f"--update specified, but no git command found on {config.REMOTE_HOST}")
             install_path = "-e " + install_path
@@ -248,7 +262,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 message(f"--client-install-path and --client-install-repo configured, will attempt")
                 cmd = f"git clone -b {branch} {config.CLIENT_INSTALL_REPO} {config.CLIENT_INSTALL_PATH}"
                 message(f"    ssh {config.REMOTE_HOST} {cmd}")
-                ssh_remote_v(cmd)
+                ssh_remote_v(cmd, main_process=True)
                 install_path = f"-e {config.CLIENT_INSTALL_PATH}"
             else:
                 message(f"--client-install-repo is configured, will try to install directly from git")
@@ -265,8 +279,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             bye("no radiopadre-client installation method specified (see --client-install options)")
 
         # now install
-        message(f"Will attempt to pip install -U {install_path} in {remote_venv}")
-        ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {install_path}")
+        message(f"Will attempt to uv pip install -U {install_path} in {remote_venv}")
+        ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {install_path}")
 
         # sanity check
         if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
@@ -315,10 +329,11 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                                    " ".join(extra_arguments))
 
     # start ssh subprocess to launch notebook
-    login_shell = "/bin/bash -l" if config.REMOTE_LOGIN_SHELL else "/bin/bash"
-    args = list(SSH_OPTS) + [ 
-            shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript))
-    ]
+    args = list(SSH_OPTS) + [config.REMOTE_MAIN_SHELL]
+    if config.REMOTE_PREP_COMMAND:
+        runscript = f"{config.REMOTE_PREP_COMMAND} && {runscript}"
+
+    args.append(shlex.quote("shopt -s huponexit && " + ssh_hop_command(runscript)))
 
     if config.VERBOSE:
         message("running {}".format(" ".join(args)))
@@ -368,8 +383,19 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     message(u"{}: {}".format(stream_name, line))
             if not line or stream.at_eof():
                 continue
+            # check remote version
+            if version_extracter is not None:
+                remote_version = version_extracter(line)
+                if remote_version:
+                    if remote_version != expected_version:
+                        message(f"Remote client version ({remote_version}) does not match local version ({expected_version})", 
+                                color="RED")
+                        message(f"This may lead to unexpected failures. Please try to update remote installation", color="RED")
+                        message(f"by running with -u --venv-reinstall", color="RED")
+                    else:
+                        message("remote version matches our own, all is well")
             # if remote is not yet started, check output
-            match  = re.match(".*radiopadre is running on host ([^\s]+)", line)
+            match = re.match(r".*radiopadre is running on host ([^\s]+)", line)
             if match:
                 remote_hostname = match.group(1)
                 if config.VERBOSE:
@@ -382,8 +408,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     config.SESSION_ID = match.group(1)
                     continue
                 # check for notebook port, and launch second ssh with port forwards when we have it
-                re_ports = ":".join(["([\\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
-                match = re.match(f".*Selected ports: {re_ports}[\s]*$", line)
+                re_ports = ":".join([r"([\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
+                match = re.match(f".*Selected ports: {re_ports}" + r"[\s]*$", line)
                 if match:
                     ports = list(map(int, match.groups()))
                     remote_ports = ports[:NUM_PORTS]
@@ -400,7 +426,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     continue
 
                 # check for launch URL
-                match = re.match(".*Browse to URL: ([^\s\033]+)", line)
+                match = re.match(r".*Browse to URL: ([^\s\033]+)", line)
                 if match:
                     urls.append(match.group(1))
                     continue
@@ -478,7 +504,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             warning(f"Killing remote session process {proc.pid}")
             proc.kill()
-    
+
     loop.run_until_complete(cleanup_process(proc))
 
     return status

@@ -101,6 +101,13 @@ REMOTE_RADIOPADRE_DIR = "~/.radiopadre"
 # set to port assignments, when running inside container
 INSIDE_CONTAINER_PORTS = False
 
+# use a login shell (-l) to run main process, or all processes
+REMOTE_MAIN_SHELL = "/bin/bash -c"
+REMOTE_UTILITY_SHELL = "/bin/bash -c"
+
+# command to pre-execute on remote (e.g. "module load python/3.10.9")
+REMOTE_PREP_COMMAND = ""
+
 CONFIG_FILE = os.path.join(iglesia.RADIOPADRE_DIR, "radiopadre-client.config")
 
 COMPLETE_INSTALL_COOKIE = ".radiopadre.install.complete"
