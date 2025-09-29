@@ -131,6 +131,10 @@ def update_installation():
         message(f"Running {cmd}")
         shell(cmd, env=env)
 
+        cmd = "setup-radiopadre-virtualenv"
+        message(f"Running post-installation script {cmd}")
+        shell(cmd, env=env)
+
     # if not config.INSIDE_CONTAINER_PORTS:
     #     message(f"  Radiopadre has been installed from {config.SERVER_INSTALL_PATH}")
 
