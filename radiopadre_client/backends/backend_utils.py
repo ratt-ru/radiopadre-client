@@ -1,7 +1,7 @@
 import socket, time, os, os.path
 
 import iglesia
-from iglesia.utils import message, bye, ff, shell
+from iglesia.utils import message, bye, shell
 from radiopadre_client import config
 
 def update_server_from_repository():
@@ -11,12 +11,11 @@ def update_server_from_repository():
     """
     if config.UPDATE and config.SERVER_INSTALL_PATH and os.path.isdir(config.SERVER_INSTALL_PATH + "/.git"):
         if config.SERVER_INSTALL_BRANCH:
-            cmd = ff("cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull")
+            cmd = f"cd {config.SERVER_INSTALL_PATH} && git fetch origin && git checkout {config.SERVER_INSTALL_BRANCH} && git pull"
         else:
-            cmd = ff("cd {config.SERVER_INSTALL_PATH} && git pull")
-        message(ff(
-            "--update specified, --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via"))
-        message(ff("    {cmd}"))
+            cmd = f"cd {config.SERVER_INSTALL_PATH} && git pull"
+        message(f"--update specified, --server-install-path at {config.SERVER_INSTALL_PATH} will be updated via")
+        message(f"    {cmd}")
         if shell(cmd):
             bye("update failed")
 
@@ -46,7 +45,7 @@ def await_server_startup(port, process=None, server_name="jupyter notebook serve
         except socket.error:
             pass
         if not retry:
-            message(ff("Waiting for up to {wait} secs for the {server_name} to come up"))
+            message(f"Waiting for up to {wait} secs for the {server_name} to come up")
         # sleep, check process
         if process is not None:
             process.poll()
