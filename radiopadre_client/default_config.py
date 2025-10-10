@@ -30,13 +30,13 @@ import re
 # Test -V and -S and -D mode (--update --vent-reinstall)
 
 # change this to a proper patch release number for a real release
-__version__ = "1.2.3_updates2"
+__version__ = "1.2.4"
 
 # To work from a dev branch, set the name here. Default is to use "b{__version__}"
 __dev_branch__ = None
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
-__release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
+__release__ = re.match(r"^(\d+)\.(\d+)\.(\d+)$", __version__)
 
 # dev branch install
 if __dev_branch__:

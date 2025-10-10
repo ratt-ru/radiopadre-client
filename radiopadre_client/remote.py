@@ -12,7 +12,10 @@ from radiopadre_client.server import run_browser
 _dispatch_message = {': WARNING: ':warning, ': ERROR: ':error, ': DEBUG:':debug}
 
 # Find remote radiopadre script
-def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments):
+def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments,
+                       version_extracter=None, expected_version=None):
+    
+    print("version extracter is", version_extracter)
 
     SSH_MUX_OPTS = f"-p {config.REMOTE_PORT} -o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
@@ -224,11 +227,12 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         if not check_remote_file(f"{config.RADIOPADRE_VENV}/bin/activate", "-f"):
             message(f"Creating virtualenv {remote_venv}")
             ssh_remote_v(f"{config.REMOTE_PYTHON} -mvenv {config.RADIOPADRE_VENV}", main_process=True)
-            extras = "pip setuptools wheel numpy"   # numpy to speed up pyregions install
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U pip setuptools wheel uv", main_process=True)
+            extras = "numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
                 extras += " ".join(config.VENV_EXTRAS.split(","))
             message(f"Installing {extras}")
-            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {extras}", main_process=True)
+            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {extras}", main_process=True)
         else:
             message(f"Installing into existing virtualenv {remote_venv}")
 
@@ -277,8 +281,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             bye("no radiopadre-client installation method specified (see --client-install options)")
 
         # now install
-        message(f"Will attempt to pip install -U {install_path} in {remote_venv}")
-        ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U {install_path}")
+        message(f"Will attempt to uv pip install -U {install_path} in {remote_venv}")
+        ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {install_path}")
 
         # sanity check
         if ssh_remote(f"source {config.RADIOPADRE_VENV}/bin/activate && which {runscript0}", fail_retcode=1):
@@ -381,8 +385,20 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                     message(u"{}: {}".format(stream_name, line))
             if not line or stream.at_eof():
                 continue
+            # check remote version
+            print(version_extracter, line)
+            if version_extracter is not None:
+                remote_version = version_extracter(line)
+                if remote_version:
+                    if remote_version != expected_version:
+                        message(f"Remote client version ({remote_version}) does not match local version ({expected_version})", 
+                                color="RED")
+                        message(f"This may lead to unexpected failures. Please try to update remote installation", color="RED")
+                        message(f"by running with -u --venv-reinstall", color="RED")
+                    else:
+                        message("remote version matches our own, all is well")
             # if remote is not yet started, check output
-            match  = re.match(r".*radiopadre is running on host ([^\s]+)", line)
+            match = re.match(r".*radiopadre is running on host ([^\s]+)", line)
             if match:
                 remote_hostname = match.group(1)
                 if config.VERBOSE:
