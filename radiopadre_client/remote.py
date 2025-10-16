@@ -52,7 +52,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
         else:
             cmd.append(config.REMOTE_UTILITY_SHELL)
         cmd.append(shlex.quote(command))
-        debug(f"remote ssh command is {cmd}")
+        debug(f"remote ssh command is {' '.join(cmd)}")
         try:
             return subprocess.check_output(cmd, stderr=stderr).decode('utf-8')
         except subprocess.CalledProcessError as exc:
@@ -421,7 +421,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                         ssh2_args += ["-L", f"localhost:{loc}:{remote_hostname}:{rem}"]
                     # tell mux process to forward the ports
                     if config.VERBOSE:
-                        message(f"sending forward request to ssh mux process: {ssh2_args}")
+                        message(f"sending forward request to ssh mux process: {' '.join(ssh2_args)}")
                     subprocess.call(ssh2_args)
                     continue
 
