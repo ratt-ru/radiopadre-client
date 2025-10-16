@@ -142,7 +142,14 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
     docker_opts = []
 
     if homedir != ABSROOTDIR:
-        docker_opts += ["--containall", "--workdir", ABSROOTDIR]
+        docker_opts += ["--workdir", ABSROOTDIR]
+
+    # add other options
+    if config.SINGULARITY_OPTIONS:
+        opts = config.SINGULARITY_OPTIONS.split(",")
+        if not opts[0].startswith("-"):
+            opts[0] = '--' + opts[0]
+        docker_opts += opts
 
     # setup mounts for work dir and home dir, if needed
     docker_opts += [

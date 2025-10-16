@@ -91,6 +91,9 @@ group.add_argument("--container-debug", action="store_true", default=0,
 group.add_argument("--no-grim-reaper", action="store_false", dest="grim_reaper", default=1,
                    help="grim reaper will normally kill older radiopadre containers for the same \n"
                         "host/directory. Use this option to disable this behaviour.")
+group.add_argument("--singularity-options", type=str, default="", metavar="OPT[,OPT...]",
+                    help="additional options passed to singularity exec such as e.g. 'contain'.\n"
+                    "Note that a '--' will be prepended to the first item in the list automatically.")
 group.add_argument("--singularity-rebuild", action="store_true", default=0,
                     help="forces a rebuild of the Singularity image from the Docker image.")
 group.add_argument("--no-singularity-auto-build", action="store_false", dest="singularity_auto_build", default=1,

@@ -92,6 +92,7 @@ DefaultConfig = OrderedDict(
     SERVER_INSTALL_REPO="https://github.com/ratt-ru/radiopadre.git" if __install_from_branch__ else "",
     SERVER_INSTALL_BRANCH=__install_from_branch__,                  
     SERVER_INSTALL_PIP="radiopadre",
+    SINGULARITY_OPTIONS="",
     SINGULARITY_IMAGE_DIR="",
     SINGULARITY_AUTO_BUILD=True,
     IGNORE_UPDATE_ERRORS=False,

@@ -15,8 +15,6 @@ _dispatch_message = {': WARNING: ':warning, ': ERROR: ':error, ': DEBUG:':debug}
 def run_remote_session(command, copy_initial_notebook, notebook_path, extra_arguments,
                        version_extracter=None, expected_version=None):
     
-    print("version extracter is", version_extracter)
-
     SSH_MUX_OPTS = f"-p {config.REMOTE_PORT} -o ControlPath=/tmp/ssh_mux_radiopadre_%C -o ControlMaster=auto -o ControlPersist=1h".split()
 
     SCP_OPTS = ["scp"] + SSH_MUX_OPTS
@@ -386,7 +384,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             if not line or stream.at_eof():
                 continue
             # check remote version
-            print(version_extracter, line)
             if version_extracter is not None:
                 remote_version = version_extracter(line)
                 if remote_version:
