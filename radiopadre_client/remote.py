@@ -226,11 +226,10 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
             message(f"Creating virtualenv {remote_venv}")
             ssh_remote_v(f"{config.REMOTE_PYTHON} -mvenv {config.RADIOPADRE_VENV}", main_process=True)
             ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && {pip_install} -U pip setuptools wheel uv", main_process=True)
-            extras = "numpy"   # numpy to speed up pyregions install
             if config.VENV_EXTRAS:
-                extras += " ".join(config.VENV_EXTRAS.split(","))
-            message(f"Installing {extras}")
-            ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {extras}", main_process=True)
+                extras = " ".join(config.VENV_EXTRAS.split(","))
+                message(f"Installing {extras}")
+                ssh_remote_v(f"source {config.RADIOPADRE_VENV}/bin/activate && uv {pip_install} -U {extras}", main_process=True)
         else:
             message(f"Installing into existing virtualenv {remote_venv}")
 
