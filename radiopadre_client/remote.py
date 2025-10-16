@@ -406,7 +406,6 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
                 match = re.match(".*Session ID/notebook token is '([0-9a-f]+)'", line)
                 if match:
                     config.SESSION_ID = match.group(1)
-                    message(f"*** {remote_running} matched session ID")
                     continue
                 # check for notebook port, and launch second ssh with port forwards when we have it
                 re_ports = ":".join([r"([\d]+)"]*(NUM_PORTS*2))   # form up regex for ddd:ddd:...
