@@ -91,7 +91,10 @@ def update_installation(rebuild=False, docker_pull=True):
             else:
                 message(f"singularity image {singularity_image} is up-to-date")
         else:
-            message(f"--update specified but no docker access, assuming {singularity_image} is up-to-date")
+            message(f"--update specified, will force-rebuild {singularity_image} from registry")
+            message(f"(If docker was available, we could check timestamps to see if this step is necessary. But we can't.)")
+            build_image = True
+
     # now build if needed
     if build_image:
         warning(f"Rebuilding singularity image from docker://{docker_image}")
