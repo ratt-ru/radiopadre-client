@@ -6,7 +6,7 @@ This package provides variables and settings and utilities common to the client 
 
 import os, subprocess, uuid, sys
 
-from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, ff, DEVZERO, DEVNULL, \
+from .utils import find_which, chdir, make_dir, make_link, find_unused_ports, DEVZERO, DEVNULL, \
     message, warning, error, bye, debug
 from . import logger
 
@@ -17,7 +17,7 @@ if not os.path.exists(RADIOPADRE_DIR):
     try:
         os.mkdir(RADIOPADRE_DIR)
     except Exception as exc:
-        print(ff("Error creating {RADIOPADRE_DIR} ({exc}). Check your permissions or RADIOPADRE_DIR setting."))
+        print(f"Error creating {RADIOPADRE_DIR} ({exc}). Check your permissions or RADIOPADRE_DIR setting.")
         sys.exit(1)
 
 
@@ -47,6 +47,11 @@ JUPYTER_PORT    = None             # (userside) Jupyter port
 HTTPSERVER_PORT = None             # (userside) HTTP port
 JS9HELPER_PORT  = None             # (userside) helper port, if set up
 CARTA_PORT = CARTA_WS_PORT = None  # (userside) carta ports, if set up
+WETTY_PORT = None                  # (userside) wetty port, if set up
+
+LOCALHOST_URL = None               # http://localhost or https://localhost, depending on SSL settings
+
+CARTA_VERSION = None
 
 HOSTNAME = "localhost"
 
@@ -86,7 +91,7 @@ def init():
 
     ABSROOTDIR = os.path.abspath(os.getcwd())
     ROOTDIR = setdefault_path('RADIOPADRE_ROOTDIR', '.')
-    debug(ff("Setting up radiopadre environment, cwd is {ABSROOTDIR}"))
+    debug(f"Setting up radiopadre environment, cwd is {ABSROOTDIR}")
 
     # Figure out environment we are invoked in
     # (1) orthodox: a notebook is running under in an iglesia set up by run-radiopadre
@@ -98,16 +103,16 @@ def init():
         SERVER_BASEDIR = _strip_slash(os.path.abspath(os.environ['RADIOPADRE_SERVER_BASEDIR']))
         # (1) Orthodox: we're snooping if cwd of notebook is within the shadow tree
         SNOOP_MODE = _is_subdir(ABSROOTDIR, SHADOW_HOME)
-        debug(ff("  SERVER_BASEDIR preconfigured as {SERVER_BASEDIR}, snoop mode is {SNOOP_MODE}"))
+        debug(f"  SERVER_BASEDIR preconfigured as {SERVER_BASEDIR}, snoop mode is {SNOOP_MODE}")
         if SNOOP_MODE:
             ABSROOTDIR = ABSROOTDIR[len(SHADOW_HOME):]
             if os.path.exists(ABSROOTDIR):
                 os.chdir(ABSROOTDIR)
-                debug(ff("Orthodox snoop: changing into target directory {ABSROOTDIR}"))
+                debug(f"Orthodox snoop: changing into target directory {ABSROOTDIR}")
             else:
-                error(ff("Target {ABSROOTDIR} corresponding to current shadow directory doesn't exist!"))
+                error(f"Target {ABSROOTDIR} corresponding to current shadow directory doesn't exist!")
         else:
-            debug(ff("Orthodox native, running under {ABSROOTDIR}"))
+            debug(f"Orthodox native, running under {ABSROOTDIR}")
         SHADOW_BASEDIR = os.environ.get('RADIOPADRE_SHADOW_BASEDIR', SHADOW_HOME + ABSROOTDIR)
     else:
         # (2) Pagan:  we're snooping if cwd is non-writable
@@ -115,10 +120,10 @@ def init():
         os.environ['RADIOPADRE_SHADOW_BASEDIR'] = SHADOW_BASEDIR = SHADOW_HOME + ABSROOTDIR
         if SNOOP_MODE:
             SERVER_BASEDIR = SHADOW_BASEDIR
-            debug(ff("  pagan snoop mode, setting SERVER_BASEDIR to {SERVER_BASEDIR}. Bat country!"))
+            debug(f"  pagan snoop mode, setting SERVER_BASEDIR to {SERVER_BASEDIR}. Bat country!")
         else:
             SERVER_BASEDIR = ABSROOTDIR
-            debug(ff("  setting SERVER_BASEDIR to {SERVER_BASEDIR}"))
+            debug(f"  setting SERVER_BASEDIR to {SERVER_BASEDIR}")
         os.environ['RADIOPADRE_SERVER_BASEDIR'] = SERVER_BASEDIR
 
     SHADOW_ROOTDIR = SHADOW_HOME + ABSROOTDIR
@@ -155,6 +160,14 @@ def init():
     if not SESSION_ID:
         os.environ['RADIOPADRE_SESSION_ID'] = SESSION_ID = uuid.uuid4().hex
 
+    # setup SSL mode (or not)
+    global LOCALHOST_URL
+    ssl = os.environ.get('RADIOPADRE_SSL')
+    if not ssl or ssl.upper() in ('0', 'FALSE'):
+        LOCALHOST_URL = "http://localhost"
+    else:
+        LOCALHOST_URL = "https://localhost"
+
     # set verbosity
     VERBOSE = int(os.environ.get('RADIOPADRE_VERBOSE') or 0)
 
@@ -166,5 +179,32 @@ def init():
 
 def set_userside_ports(userside_ports):
     """Sets the relevant userside port variables"""
-    global JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT
-    JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT = userside_ports
+    global JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT
+    JUPYTER_PORT, JS9HELPER_PORT, HTTPSERVER_PORT, CARTA_PORT, CARTA_WS_PORT, WETTY_PORT = userside_ports
+
+CARTA_SESSION_ID = None
+
+def get_carta_url(session_id=None, args=[]):
+    global CARTA_SESSION_ID
+    global SESSION_ID
+    if session_id is None:
+        if CARTA_SESSION_ID is None:
+            CARTA_SESSION_ID = SESSION_ID
+            if CARTA_SESSION_ID is None:
+                error("CARTA session ID not initialized")
+    else:
+        CARTA_SESSION_ID = session_id
+
+    url = f"http://localhost:{CARTA_PORT}"
+    args = list(args)
+
+    if CARTA_VERSION < "2":
+        args = [f"socketUrl=ws://localhost:{CARTA_WS_PORT}"] + args
+    else:
+        token = str(uuid.UUID(CARTA_SESSION_ID))
+        args = [f"token={token}"] + args
+
+    if args:
+        return f"{url}?{'&'.join(args)}"
+    else:
+        return url

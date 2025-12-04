@@ -5,7 +5,7 @@ from radiopadre_client.default_config import __version__
 
 build_root = os.path.dirname(__file__)
 
-install_requires = ['six', 'psutil']
+install_requires = ['six', 'psutil', 'rich']
 
 def readme():
     """Get readme content for package long description"""
@@ -18,7 +18,7 @@ setup(
     name="radiopadre-client",
     version=__version__,
     install_requires=install_requires,
-    python_requires='>=2.7',
+    python_requires='>=3.9',
     author="Oleg Smirnov",
     author_email="osmirnov@gmail.com",
     description=("Radiopadre client-side script"),
@@ -32,8 +32,11 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "Topic :: Utilities",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13"
     ],
 )

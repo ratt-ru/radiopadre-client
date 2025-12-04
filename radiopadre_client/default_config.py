@@ -13,26 +13,52 @@ from collections import OrderedDict
 import os.path
 import re
 
+# Release checklist:
+#
+# Radiopadre-client
+#   * Make a release branch (e.g. b1.2.0)
+#   * Update __version__ below
+#   * Commit and push
+#
+# Radiopadre:
+#   * Make a release branch (e.g. b1.2.0)
+#   * Update version in setup.py
+#   * Update client version in Dockerfile
+#   * Commit and push, wait for github action to make docker image
+#
+#
+# Test -V and -S and -D mode (--update --vent-reinstall)
+
 # change this to a proper patch release number for a real release
-__version__ = "1.1.2"
+__version__ = "1.2.4"
+
+# To work from a dev branch, set the name here. Default is to use "b{__version__}"
+__dev_branch__ = None
 
 # if True, this is a stable release e.g. 1.1.0. If False, this is an dev version e.g. 1.1.x 
-__release__ = re.match("^(\d+)\.(\d+)\.(\d+)$", __version__)
+__release__ = re.match(r"^(\d+)\.(\d+)\.(\d+)$", __version__)
 
-# git tag or branch to use: vXXX for releases and bXXX for devs
-__tag_prefix__ = "b" # "v" if __release__ else "b"
-
-# release x.y.z pulls x.y.latest image
-if __release__:
-    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+# dev branch install
+if __dev_branch__:
+    __install_from_branch__ = __version__ = __version_string__ = __dev_branch__
+# else branch is auto-named from version
+# (will only use it if --client-install-repo is configured)
 else:
-    __image_version__ = __version__
+    __install_from_branch__ = f"b{__version__}"
+    __version_string__ = __version__ 
 
-# release x.y.z pulls x.y.latest image
-if __release__:
-    __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+## OMS: retiring this logic. One image per release!
+# # release x.y.z pulls x.y.latest image
+# if __release__:
+#     __image_version__ = ".".join([__release__.group(1), __release__.group(2), "latest"])
+# else:
+__image_version__ = __version__
+
+# set CARTA version inside container image
+if __version__ >= "1.2":
+    __docker_carta_version__ = "3.0" 
 else:
-    __image_version__ = __version__
+    __docker_carta_version__ = "1.3.1" 
 
 DefaultConfig = OrderedDict(
     AUTO_LOAD="radiopadre-auto.ipynb",
@@ -40,31 +66,55 @@ DefaultConfig = OrderedDict(
     BACKEND="",
     BORING=False,
     BROWSER="default",
+    NEW_WINDOW=True,
     CARTA_BROWSER=True,
     CONTAINER_DEV=False,
     DEFAULT_NOTEBOOK="radiopadre-default.ipynb",
+    DISABLE_CASACORE=False,
     DOCKER_IMAGE="quay.io/osmirnov/radiopadre:" + __image_version__,         # change for each release
+    DOCKER_CARTA_VERSION=__docker_carta_version__,
+    RADIOPADRE_SETTINGS="",
     CONTAINER_DEBUG=False,
     GRIM_REAPER=True,
+    REMOTE_HOP="",
     REMOTE_RADIOPADRE_DIR="~/.radiopadre",
+    REMOTE_MAIN_SHELL="/bin/bash -c",
+    REMOTE_UTILITY_SHELL="/bin/bash -c",
+    REMOTE_PYTHON="python3",
+    REMOTE_PREP_COMMAND="",
+    REMOTE_PORT=22,
+    INSTALL_JS9=False,
     CLIENT_INSTALL_PATH="~/radiopadre-client",
-    CLIENT_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre-client.git", # empty for pip release
-    CLIENT_INSTALL_BRANCH=__tag_prefix__ + __version__,                   # change for each release
+    CLIENT_INSTALL_REPO="https://github.com/ratt-ru/radiopadre-client.git" if __install_from_branch__ else "",
+    CLIENT_INSTALL_BRANCH=__install_from_branch__,
     CLIENT_INSTALL_PIP="radiopadre-client",
     SERVER_INSTALL_PATH="~/radiopadre",
-    SERVER_INSTALL_REPO="", #"https://github.com/ratt-ru/radiopadre.git", # empty for pip release
-    SERVER_INSTALL_BRANCH=__tag_prefix__ + __version__,                   # change for each release
+    SERVER_INSTALL_REPO="https://github.com/ratt-ru/radiopadre.git" if __install_from_branch__ else "",
+    SERVER_INSTALL_BRANCH=__install_from_branch__,                  
     SERVER_INSTALL_PIP="radiopadre",
+    SINGULARITY_OPTIONS="",
     SINGULARITY_IMAGE_DIR="",
     SINGULARITY_AUTO_BUILD=True,
     IGNORE_UPDATE_ERRORS=False,
     VERBOSE=0,
     LOG=False,
+#    SSL=None,
     TIMESTAMPS=False,
     RADIOPADRE_VENV="{RADIOPADRE_DIR}/venv",
     VENV_IGNORE_JS9=False,
     VENV_IGNORE_CASACORE=False,
     VENV_EXTRAS="None",
+    K8S_CONTEXT = "",
+    K8S_NAMESPACE = "",
+    K8S_UID = -1,
+    K8S_GID = -1,
+    K8S_LOCAL_DISK = False,
+    K8S_AUTO_CLEANUP = True,
+    K8S_HOME_DIR = "",
+    K8S_RADIOPADRE_DIR = "",
+    K8S_NODE_SELECTOR = "",
+    K8S_CPU_REQUEST = "2",
+    K8S_RAM_REQUEST = "8Gi",
 
     # All of the options above can be persisted in the config file via --save-config-host or --save-config-session.
     # The options below are "one-shot" and non-persisting, they are not saved to the config. This is indicated by a

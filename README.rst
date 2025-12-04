@@ -72,7 +72,7 @@ Radiopadre strives to be admin-free. That is, you should not need to bother
 your friendly local sysadmin for most (or all) of the below.
 
 Radiopadre itself (plus the attendant Jupyter etc. dependencies) must 
-be installed inside a Python 3.6+ virtual environment. The Jupyter 
+be installed inside a Python 3.9+ virtual environment. The Jupyter 
 notebook server then runs inside this environment.
 
 ``run-radiopadre`` does not have (but can) live in the same virtualenv. Since
@@ -91,13 +91,22 @@ notebook server within.
 If ``~/.radiopadre/venv`` does not exist, specify the ``--auto-init`` 
 option so that ``run-radiopadre`` can try to create it for you, and install 
 radiopadre inside. This is normally the easiest way to bootstrap a new
-installation. (Python 3.6+ required.)
+installation. (Python 3.9+ required.)
+
+NB: If you are connecting to a remote machine where the default system Python version is older than 3.9 (e.g., Python 3.8.10) and 
+you encounter an error during automatic virtual environment creation (``--auto-init``) similar to:
+``the current Python version (3.8.10) does not satisfy Python>=3.9``
+You must explicitly tell ``radiopadre`` which Python executable to use on the remote machine that satisfies the ``Python-3.9+`` requirement.
+Use the ``--remote-python`` option with the path to the correct executable: 
+``run-radiopadre --auto-init --remote-python python3.10 -V ...``
+
+This ensures $\text{radiopadre}$ uses the modern Python version for setting up and running the required environment on the remote host.
 
 Manual virtualenv install
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If, for whatever reason, you want to install radiopadre in a custom 
-virtualenv, then create [a Python 3.6+] one yourself and install radiopadre inside it
+virtualenv, then create [a Python 3.9+] one yourself and install radiopadre inside it
 following `the instructions <https://github.com/ratt-ru/radiopadre>`_. 
 This follows normal pip practice. You can use ``pip install``\ , or else 
 ``pip install -e`` for an "editable" install from a local directory. Since ``radiopadre`` depends on 
@@ -112,7 +121,7 @@ with ``--radiopadre-venv``.
 The Docker/Singularity backends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you don't want to or can't use virtual environments (don't have Python 3.6, 
+If you don't want to or can't use virtual environments (don't have Python 3.9, 
 for example), you can run radiopadre notebooks inside a Docker or Singularity 
 container. Images are provided on dockerhub. 
 
@@ -135,13 +144,13 @@ and support Docker or Singularity;
 ``pip install -e``\ , or a jury-rigged install), and support Docker 
 or Singularity.
 
-Case (a) requires Python 3.6+, and allows ``run-radiopadre -V``\ , while (b) or 
+Case (a) requires Python 3.9+, and allows ``run-radiopadre -V``\ , while (b) or 
 (c) can make do with Python as low as 2.7, but require using 
 ``run-radiopadre -D`` or ``run-radiopadre -S``.
 
 If you've got nothing at all installed on the remote, you can try ``--auto-init`` 
 to bootstrap an installation. At present, this will try to set up case (a), so 
-Python 3.6+ and virtualenv is required. For funky/older systems without, 
+Python 3.9+ and `venv` module is required. For funky/older systems without, 
 you'll have to set up (b) or (c) by hand. 
 
 Examples

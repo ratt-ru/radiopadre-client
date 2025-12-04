@@ -1,10 +1,12 @@
 from __future__ import print_function
-import os, os.path, sys, subprocess, time, glob, uuid, shutil, fnmatch
+import os, os.path, sys, subprocess, time, glob, uuid, shutil, fnmatch, webbrowser
 
 from . import config
 import iglesia
-from iglesia.utils import DEVNULL, DEVZERO, message, warning, bye, find_unused_port, find_which, ff
+from iglesia.utils import DEVNULL, DEVZERO, message, warning, bye, find_unused_port, find_which
+from iglesia.helpers import NUM_PORTS
 from .notebooks import default_notebook_code
+
 
 backend = None
 
@@ -12,38 +14,22 @@ JUPYTER_OPTS = LOAD_DIR = LOAD_NOTEBOOK = None
 
 def run_browser(*urls):
     """
-    Runs a browser pointed to URL(s), in background if config.BROWSER_BG is True.
-
-    If config.BROWSER_MULTI is set, runs a browser per URL, else feeds all URLs to one browser invocation
-
-    Returns list of processes (in BROWSER_BG mode).
+    Runs a browser pointed to URL(s)
     """
     from . import config
     procs = []
     # open browser if needed
     if config.BROWSER:
-        message("Running {} {}\r".format(config.BROWSER, " ".join(urls)))
-        message("  if this fails, specify a correct browser invocation command with --browser and rerun,")
+        browser = config.BROWSER
+        message(f"Running browser '{browser}' for {' '.join(urls)}\r")
+        controller = webbrowser.get(None if browser.upper() == "DEFAULT" else browser)
+        message("  if this fails, specify a correct browser type with --browser and rerun,")
         message("  or else browse to the URL given above (\"Browse to URL:\") yourself.")
         # sometimes the notebook does not respond immediately, so take a second
         time.sleep(1)
-        if config.BROWSER_MULTI:
-            commands = [[config.BROWSER]+list(urls)]
-        else:
-            commands = [[config.BROWSER, url] for url in urls]
-
-        for command in commands:
-            try:
-                if config.BROWSER_BG:
-                    procs.append(subprocess.Popen(command, stdin=DEVZERO, stdout=sys.stdout, stderr=sys.stderr))
-                else:
-                    subprocess.call(command, stdout=DEVNULL)
-            except OSError as exc:
-                if exc.errno == 2:
-                    message(ff("{config.BROWSER} not found"))
-                else:
-                    raise
-
+        controller.open(urls[0], new=1 if config.NEW_WINDOW else 2)
+        for url in urls[1:]:
+            controller.open_new_tab(url)
     else:
         message("--no-browser given, or browser not set, not opening a browser for you\r")
         message("Please browse to: {}\n".format(" ".join(urls)))
@@ -58,7 +44,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     USE_VENV = USE_DOCKER = USE_SINGULARITY = False
 
     for backend in config.BACKEND:
-        if backend == "venv" and find_which("virtualenv"):
+        if backend == "venv":
             USE_VENV = True
             import radiopadre_client.backends.venv
             backend = radiopadre_client.backends.venv
@@ -68,7 +54,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             has_docker = find_which("docker")
             if has_docker:
                 USE_DOCKER = True
-                message(ff("Using {has_docker} for container mode"))
+                message(f"Using {has_docker} for container mode")
                 import radiopadre_client.backends.docker
                 backend = radiopadre_client.backends.docker
                 backend.init(binary=has_docker)
@@ -78,14 +64,14 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             has_singularity = find_which("singularity")
             if has_singularity:
                 USE_SINGULARITY = True
-                message(ff("Using {has_singularity} for container mode"))
+                message(f"Using {has_singularity} for container mode")
                 import radiopadre_client.backends.singularity
                 backend = radiopadre_client.backends.singularity
                 backend.init(binary=has_singularity, docker_binary=has_docker)
                 break
-        message(ff("The '{backend}' back-end is not available."))
+        message(f"The '{backend}' back-end is not available.")
     else:
-        bye(ff("None of the specified back-ends are available."))
+        bye(f"None of the specified back-ends are available.")
 
     # if not None, gives the six port assignments
     attaching_to_ports = container_name = None
@@ -121,7 +107,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
                 bye("no sessions running, nothing to attach to")
             config.SESSION_ID = session_dict.keys()[0]
         container_name, path, _, _, attaching_to_ports = session_dict[id_]
-        message(ff("  Attaching to existing session {config.SESSION_ID} running in {path}"))
+        message(f"  Attaching to existing session {config.SESSION_ID} running in {path}")
 
     # load command
     elif command == 'load':
@@ -139,28 +125,28 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     if attaching_to_ports:
         # session_id and container_name already set above. Ports read from session file and printed to the console
         # for the benefit of the remote end (if any)
-        jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports = attaching_to_ports[:5]
-        userside_ports = attaching_to_ports[5:]
+        jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports = attaching_to_ports[:NUM_PORTS]
+        userside_ports = attaching_to_ports[NUM_PORTS:]
     # INSIDE CONTAINER: internal ports are fixed, userside ports are passed in, name is passed in, session ID is read from file
     elif config.INSIDE_CONTAINER_PORTS:
         message("started the radiopadre container")
         container_name = os.environ['RADIOPADRE_CONTAINER_NAME']
         config.SESSION_ID = os.environ['RADIOPADRE_SESSION_ID']
-        selected_ports = config.INSIDE_CONTAINER_PORTS[:5]
-        userside_ports = config.INSIDE_CONTAINER_PORTS[5:]
+        selected_ports = config.INSIDE_CONTAINER_PORTS[:NUM_PORTS]
+        userside_ports = config.INSIDE_CONTAINER_PORTS[NUM_PORTS:]
         message("  Inside container, using ports {}".format(" ".join(map(str, config.INSIDE_CONTAINER_PORTS))))
     # NORMAL MODE: find unused internal ports. Userside ports are passed from remote if in remote mode, or same in local mode
     else:
         if not USE_VENV:
             container_name = "radiopadre-{}-{}".format(config.USER, uuid.uuid4().hex)
-            message(ff("Starting new session in container {container_name}"))
+            message(f"Starting new session in container {container_name}")
             # get dict of running sessions (for GRIM_REAPER later)
             running_session_dict = backend.list_sessions()
         else:
             container_name = None
             message("Starting new session in virtual environment")
         selected_ports = [find_unused_port(1024)]
-        for i in range(4):
+        for i in range(1, NUM_PORTS):
             selected_ports.append(find_unused_port(selected_ports[-1] + 1))
 
         if config.REMOTE_MODE_PORTS:
@@ -174,16 +160,17 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         if container_name:
             backend.save_session_info(container_name, selected_ports, userside_ports)
 
-    global userside_jupyter_port  # needed for it to be visible to ff() from a list comprehension
-    jupyter_port, helper_port, http_port, carta_port, carta_ws_port = selected_ports
-    userside_jupyter_port, userside_helper_port, userside_http_port, userside_carta_port, userside_carta_ws_port = userside_ports
+    global userside_jupyter_port  
+    jupyter_port, helper_port, http_port, carta_port, carta_ws_port, wetty_port = selected_ports
+    userside_jupyter_port, userside_helper_port, userside_http_port, \
+        userside_carta_port, userside_carta_ws_port, userside_wetty_port = userside_ports
 
     # print port assignments to console -- in remote mode, remote script will parse this out
     if not config.INSIDE_CONTAINER_PORTS:
         message("  Selected ports: {}".format(":".join(map(str, selected_ports + userside_ports))))
-        message(ff("  Session ID/notebook token is '{config.SESSION_ID}'"))
+        message(f"  Session ID/notebook token is '{config.SESSION_ID}'")
         if container_name is not None:
-            message(ff("  Container name: {container_name}"))
+            message(f"  Container name: {container_name}")
 
     # ### will we be starting a browser?
 
@@ -197,7 +184,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     elif os.environ.get("SSH_CLIENT"):
         message("You appear to have logged in via ssh.")
         message("You're logged in via ssh, so I'm not opening a web browser for you.")
-        message("Please manually browse to the URL printed by Jupyter below. You will probably want to employ ssh")
+        message("Please manually browse to the URLs printed  below. You will probably want to employ ssh")
         message("port forwarding if you want to browse this notebook from your own machine.")
         browser = False
     else:
@@ -207,21 +194,20 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             message("Please manually browse to the URL printed below.")
             browser = False
         else:
-            message(ff(
-                "We'll attempt to open a web browser (using '{config.BROWSER}') as needed. Use --no-browser to disable this."))
+            message(f"We'll attempt to open a web browser (using '{config.BROWSER}') as needed. Use --no-browser to disable this.")
             browser = True
 
     # ### ATTACHING TO EXISTING SESSION: complete the attachment and exit
 
     if attaching_to_ports:
-        url = ff("http://localhost:{userside_jupyter_port}/tree#running?token={session_id}")
+        url = f"http://localhost:{userside_jupyter_port}/tree#running?token={session_id}"
         # in local mode, see if we need to open a browser. Else just print the URL -- remote script will pick it up
         if not config.REMOTE_MODE_PORTS and browser:
-            message(ff("driving browser: {config.BROWSER} {url}"))
+            message(f"driving browser: {config.BROWSER} {url}")
             subprocess.call([config.BROWSER, url], stdout=DEVNULL)
             time.sleep(1)
         else:
-            message(ff("Browse to URL: {url}"), color="GREEN")
+            message(f"Browse to URL: {url}", color="GREEN")
         # emit message so remote initiates browsing
         if config.REMOTE_MODE_PORTS:
             message("The Jupyter Notebook is running inside the reattached session, presumably")
@@ -257,7 +243,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         LOAD_DIR = '.'
         LOAD_NOTEBOOK = None
 
-    # message(ff("{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}"))
+    # message(f"{LOAD_DIR} {LOAD_NOTEBOOK} {notebook_path}")
 
     #
     if config.NBCONVERT and not LOAD_NOTEBOOK:
@@ -268,7 +254,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         kill_sessions = []
         for cont, (_, path, _, sid, _) in running_session_dict.items():
             if sid != config.SESSION_ID and os.path.samefile(path, os.getcwd()):
-                message(ff("reaping older session {sid}"))
+                message(f"reaping older session {sid}")
                 kill_sessions.append(cont)
 
         if kill_sessions:
@@ -276,6 +262,13 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
 
     # virtual environment
     os.environ["RADIOPADRE_VENV"] = config.RADIOPADRE_VENV
+    os.environ["RADIOPADRE_SSL"] = str(bool(config.SSL))
+    os.environ["RADIOPADRE_NOTEBOOK_NAME"] = LOAD_NOTEBOOK or ""
+
+    # puppeteer hack, needs chromium-browser if available
+    chromium = find_which("chromium-browser")
+    if chromium:
+        os.environ["PUPPETEER_EXECUTABLE_PATH"] = chromium
 
     # init paths & environment
     iglesia.init()
@@ -300,14 +293,15 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
     # command properly... so let it pick its own token then)
     # if options.remote or options.config.INSIDE_CONTAINER_PORTS or not options.virtual_env:
     JUPYTER_OPTS += [
-        ff("--NotebookApp.token='{config.SESSION_ID}'"),
-        ff("--NotebookApp.custom_display_url='http://localhost:{userside_jupyter_port}'")
+    #    f"--NotebookApp.token='{config.SESSION_ID}'",
+        f"--NotebookApp.custom_display_url='http://localhost:{userside_jupyter_port}'"
     ]
+    os.environ['JUPYTER_TOKEN'] = config.SESSION_ID
 
     #=== figure out whether we initialize or load a notebook
     os.chdir(iglesia.SERVER_BASEDIR)
     if iglesia.SNOOP_MODE:
-        warning(ff("{iglesia.ABSROOTDIR} is not writable for you, so radiopadre is operating in snoop mode."))
+        warning(f"{iglesia.ABSROOTDIR} is not writable for you, so radiopadre is operating in snoop mode.")
 
     ALL_NOTEBOOKS = glob.glob("*.ipynb")
 
@@ -327,7 +321,7 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
         # if no notebooks in place, see if we need to create a default
         if not ALL_NOTEBOOKS:
             if config.DEFAULT_NOTEBOOK:
-                message(ff("  No notebooks yet: will create {config.DEFAULT_NOTEBOOK}"))
+                message(f"  No notebooks yet: will create {config.DEFAULT_NOTEBOOK}")
                 LOAD_DIR = True
                 open(config.DEFAULT_NOTEBOOK, 'wt').write(default_notebook_code)
                 ALL_NOTEBOOKS = [config.DEFAULT_NOTEBOOK]
@@ -341,31 +335,30 @@ def run_radiopadre_server(command, arguments, notebook_path, workdir=None):
             LOAD_NOTEBOOK = [nb for nb in ALL_NOTEBOOKS if fnmatch.fnmatch(os.path.basename(nb), LOAD_NOTEBOOK)]
         elif config.AUTO_LOAD == "1":
             LOAD_NOTEBOOK = ALL_NOTEBOOKS[0] if ALL_NOTEBOOKS else None
-            message(ff("  Auto-loading {LOAD_NOTEBOOK[0]}."))
+            message(f"  Auto-loading {LOAD_NOTEBOOK[0]}.")
         elif config.AUTO_LOAD:
             LOAD_NOTEBOOK = [nb for nb in ALL_NOTEBOOKS if fnmatch.fnmatch(os.path.basename(nb), config.AUTO_LOAD)]
             if LOAD_NOTEBOOK:
                 message("  Auto-loading {}".format(" ".join(LOAD_NOTEBOOK)))
             else:
-                message(ff("  No notebooks matching --auto-load {config.AUTO_LOAD}"))
-
-    urls = []
-    if LOAD_DIR:
-        urls.append(ff("http://localhost:{userside_jupyter_port}/?token={config.SESSION_ID}"))
-    if LOAD_NOTEBOOK:
-        urls += [ff("http://localhost:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}")
-                 for nb in LOAD_NOTEBOOK]
+                message(f"  No notebooks matching --auto-load {config.AUTO_LOAD}")
 
     if not config.NBCONVERT:
-        for url in urls[::-1]:
-            message(ff("Browse to URL: {url}"), color="GREEN")
-        if config.CARTA_BROWSER:
-            url = ff("http://localhost:{iglesia.CARTA_PORT}/?socketUrl=ws://localhost:{iglesia.CARTA_WS_PORT}")
-            message(ff("Browse to URL: {url} (CARTA file browser)"), color="GREEN")
-            urls.append(url)
+        site = "https://localhost" if config.SSL else "http://localhost"
+        urls = []
+        if LOAD_NOTEBOOK:
+            urls += [f"{site}:{userside_jupyter_port}/notebooks/{nb}?token={config.SESSION_ID}" for nb in LOAD_NOTEBOOK]
+        if LOAD_DIR:
+            urls.append(f"{site}:{userside_jupyter_port}/?token={config.SESSION_ID}")
+    else:
+        urls = None
+
+        # if config.CARTA_BROWSER:
+        #     message(f"Browse to URL: {iglesia.get_carta_url()} (CARTA file browser)", color="GREEN")
+        #     urls.append(url)
 
 
     # now we're ready to start the session
 
     backend.start_session(container_name, selected_ports, userside_ports,
-                          notebook_path, browser and urls)
+                          notebook_path, urls, run_browser=browser and run_browser)
