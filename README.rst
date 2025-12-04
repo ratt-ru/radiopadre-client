@@ -93,6 +93,15 @@ option so that ``run-radiopadre`` can try to create it for you, and install
 radiopadre inside. This is normally the easiest way to bootstrap a new
 installation. (Python 3.9+ required.)
 
+NB: If you are connecting to a remote machine where the default system Python version is older than 3.9 (e.g., Python 3.8.10) and 
+you encounter an error during automatic virtual environment creation (``--auto-init``) similar to:
+``the current Python version (3.8.10) does not satisfy Python>=3.9``
+You must explicitly tell ``radiopadre`` which Python executable to use on the remote machine that satisfies the ``Python-3.9+`` requirement.
+Use the ``--remote-python`` option with the path to the correct executable: 
+``run-radiopadre --auto-init --remote-python python3.10 -V ...``
+
+This ensures $\text{radiopadre}$ uses the modern Python version for setting up and running the required environment on the remote host.
+
 Manual virtualenv install
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
