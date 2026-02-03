@@ -164,8 +164,8 @@ def start_session(container_name, selected_ports, userside_ports, notebook_path,
         "-B", "{}:{}".format(session_info_dir, SHADOW_SESSION_DIR),
         # mount a writeable tmp dir for the js9 install -- needed by js9helper
         "-B", "{}:/.radiopadre/venv/js9-www/tmp".format(js9_tmp),
-        # mount home session dir
-        "-B", f"{homedir}/.radiopadre-session:{homedir}/.radiopadre-session"
+        # # mount home session dir
+        # "-B", f"{homedir}/.radiopadre-session:{homedir}/.radiopadre-session"
     ]
     if config.CONTAINER_DEV:
         if os.path.isdir(config.CLIENT_INSTALL_PATH):
