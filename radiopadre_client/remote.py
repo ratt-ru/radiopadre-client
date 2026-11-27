@@ -343,7 +343,8 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     status = 0
     eof_reported = False
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     proc = loop.run_until_complete(
         asyncio.create_subprocess_exec(*args,
             stdin=asyncio.subprocess.PIPE,
@@ -361,7 +362,7 @@ def run_remote_session(command, copy_initial_notebook, notebook_path, extra_argu
     async def remote_jupyter_waiter(event):
         await event.wait()
 
-    startup_waiter = asyncio.Task(remote_jupyter_waiter(jupyter_running))
+    startup_waiter = loop.create_task(remote_jupyter_waiter(jupyter_running))
 
     async def remote_stream_reader(stream, stream_name, is_stderr=False):
         while not stream.at_eof():
